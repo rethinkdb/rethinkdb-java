@@ -11,12 +11,9 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class Datum extends ReqlExpr {
 
     public final java.lang.Object datum;
-
     public Datum(java.lang.Object arg) {
         super(TermType.DATUM, null, null);
         datum = arg;

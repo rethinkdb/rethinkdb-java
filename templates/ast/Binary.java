@@ -2,17 +2,16 @@
 
 <%block name="add_imports">
 import com.rethinkdb.net.Converter;
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 </%block>
 
 <%block name="member_vars">
-    Optional<byte[]> b64Data = Optional.empty();
-</%block>
+    @Nullable byte[] b64Data;</%block>
 
 <%block name="constructors">
     public ${classname}(byte[] bytes){
         this(new Arguments());
-        b64Data = Optional.of(bytes);
+        b64Data = bytes;
     }
     public ${classname}(Object arg) {
         this(new Arguments(arg), null);
@@ -31,8 +30,8 @@ import java.util.Optional;
 <%block name="special_methods">
     @Override
     public Object build(){
-        if(b64Data.isPresent()){
-            return Converter.toBinary(b64Data.get());
+        if(b64Data != null){
+            return Converter.toBinary(b64Data);
         }else{
             return super.build();
         }

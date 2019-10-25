@@ -1,6 +1,7 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import org.jetbrains.annotations.Nullable;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
@@ -14,9 +15,8 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Optional;
 
-public class SocketWrapper {
+class SocketWrapper {
     // networking stuff
     private Socket socket = null;
     private SocketFactory socketFactory = SocketFactory.getDefault();
@@ -25,15 +25,14 @@ public class SocketWrapper {
     private DataInputStream readStream = null;
 
     // options
-    private Optional<SSLContext> sslContext = Optional.empty();
-    private Optional<Long> timeout = Optional.empty();
+    private SSLContext sslContext;
+    private Long timeout;
     private final String hostname;
     private final int port;
 
     SocketWrapper(String hostname,
-                  int port,
-                  Optional<SSLContext> sslContext,
-                  Optional<Long> timeout) {
+                  int port, SSLContext sslContext,
+                  Long timeout) {
         this.hostname = hostname;
         this.port = port;
         this.sslContext = sslContext;
@@ -44,24 +43,24 @@ public class SocketWrapper {
      * @param handshake
      */
     void connect(Handshake handshake) {
-        final Optional<Long> deadline = timeout.map(Util::deadline);
+        Long deadline = timeout == null ? null : Util.deadline(timeout);
         try {
             handshake.reset();
             // establish connection
             final InetSocketAddress addr = new InetSocketAddress(hostname, port);
             socket = socketFactory.createSocket();
-            socket.connect(addr, timeout.orElse(0L).intValue());
+            socket.connect(addr, timeout == null ? 0 : timeout.intValue());
             socket.setTcpNoDelay(true);
             socket.setKeepAlive(true);
 
             // should we secure the connection?
-            if (sslContext.isPresent()) {
-                socketFactory = sslContext.get().getSocketFactory();
+            if (sslContext != null) {
+                socketFactory = sslContext.getSocketFactory();
                 SSLSocketFactory sslSf = (SSLSocketFactory) socketFactory;
                 sslSocket = (SSLSocket) sslSf.createSocket(socket,
-                        socket.getInetAddress().getHostAddress(),
-                        socket.getPort(),
-                        true);
+                    socket.getInetAddress().getHostAddress(),
+                    socket.getPort(),
+                    true);
 
                 // replace input/output streams
                 readStream = new DataInputStream(sslSocket.getInputStream());
@@ -77,12 +76,12 @@ public class SocketWrapper {
             // execute RethinkDB handshake
 
             // initialize handshake
-            Optional<ByteBuffer> toWrite = handshake.nextMessage(null);
+            ByteBuffer toWrite = handshake.nextMessage(null);
             // Sit in the handshake until it's completed. Exceptions will be thrown if
             // anything goes wrong.
-            while(!handshake.isFinished()) {
-                if (toWrite.isPresent()) {
-                    write(toWrite.get());
+            while (!handshake.isFinished()) {
+                if (toWrite != null) {
+                    write(toWrite);
                 }
                 String serverMsg = readNullTerminatedString(deadline);
                 toWrite = handshake.nextMessage(serverMsg);
@@ -108,17 +107,14 @@ public class SocketWrapper {
      * @return a string.
      * @throws IOException
      */
-    private String readNullTerminatedString(Optional<Long> deadline)
-            throws IOException {
+    private String readNullTerminatedString(@Nullable Long deadline) throws IOException {
         final StringBuilder sb = new StringBuilder();
         char c;
-        // set deadline instant
-        final Optional<Long> deadlineInstant = deadline.isPresent() ? Optional.of(System.currentTimeMillis() + deadline.get()) : Optional.empty();
         while ((c = (char) this.readStream.readByte()) != '\0') {
             // is there a deadline?
-            if (deadlineInstant.isPresent()) {
+            if (deadline != null) {
                 // have we timed-out?
-                if (deadlineInstant.get() < System.currentTimeMillis()) { // reached time-out
+                if (deadline < System.currentTimeMillis()) { // reached time-out
                     throw new ReqlDriverError("Connection timed out.");
                 }
             }
@@ -155,26 +151,29 @@ public class SocketWrapper {
         return ByteBuffer.wrap(buf).order(ByteOrder.LITTLE_ENDIAN);
     }
 
-    public Optional<Integer> clientPort() {
-        Optional<Integer> ret;
+    @Nullable
+    Integer clientPort() {
         if (socket != null) {
-            ret = Optional.ofNullable(socket.getLocalPort());
-        } else {
-            ret = Optional.empty();
+            return socket.getLocalPort();
         }
-        return ret;
+        return null;
     }
 
-    public Optional<SocketAddress> clientAddress() {
-        return Optional.ofNullable(socket.getLocalSocketAddress());
+    @Nullable
+    SocketAddress clientAddress() {
+        if (socket != null) {
+            return socket.getLocalSocketAddress();
+        }
+        return null;
     }
+
     /**
      * Tells whether we have a working connection or not.
      *
      * @return true if connection is connected and open, false otherwise.
      */
     boolean isOpen() {
-        return socket == null ? false : socket.isConnected() && !socket.isClosed();
+        return socket != null && (socket.isConnected() && !socket.isClosed());
     }
 
     /**

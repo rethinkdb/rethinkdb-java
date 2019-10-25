@@ -5,37 +5,21 @@
 package com.rethinkdb.gen;
 
 import com.rethinkdb.RethinkDB;
-import com.rethinkdb.gen.exc.*;
 import com.rethinkdb.gen.ast.*;
-import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
-import com.rethinkdb.net.Cursor;
-import junit.framework.TestCase;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.junit.*;
-import org.junit.rules.ExpectedException;
 
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.Instant;
 import java.util.stream.LongStream;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
-import java.util.Collections;
-import java.nio.charset.StandardCharsets;
 
 import static com.rethinkdb.TestingCommon.*;
 import com.rethinkdb.TestingFramework;
@@ -93,9 +77,9 @@ public class TransformUnorderedMap {
         return String.valueOf(i);
     }
 
-    // A hack to concatenate two List<Long>s -- see is_array_add in convert_tests.py.
-    private static List<Long> concatLong(List<Long> x, List<Long> y) {
-        List<Long> ret = new ArrayList<Long>(x);
+    // A hack to concatenate two Lists -- see is_array_add in convert_tests.py.
+    private static List concatList(List x, List y) {
+        List ret = new ArrayList<Long>(x);
         ret.addAll(y);
         return ret;
     }
@@ -381,7 +365,7 @@ public class TransformUnorderedMap {
         {
             // transform/unordered_map.yaml line #62
             /* [x for x in range(0,10000)] + [1, 2, 3] */
-            List expected_ = concatLong(LongStream.range(0L, 10000L).boxed().map(x -> x).collect(Collectors.toList()), r.array(1L, 2L, 3L));
+            List expected_ = concatList(LongStream.range(0L, 10000L).boxed().map(x -> x).collect(Collectors.toList()), r.array(1L, 2L, 3L));
             /* r.range().limit(10000).union([1,2,3], interleave= false) */
             logger.info("About to run line #62: r.range().limit(10000L).union(r.array(1L, 2L, 3L)).optArg('interleave', false)");
             Object obtained = runOrCatch(r.range().limit(10000L).union(r.array(1L, 2L, 3L)).optArg("interleave", false),

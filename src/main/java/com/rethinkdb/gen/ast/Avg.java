@@ -11,10 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class Avg extends ReqlExpr {
-
 
     public Avg(Object arg) {
         this(new Arguments(arg), null);

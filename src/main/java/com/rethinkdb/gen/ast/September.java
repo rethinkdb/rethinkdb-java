@@ -11,10 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class September extends ReqlExpr {
-
 
     public September(Object arg) {
         this(new Arguments(arg), null);

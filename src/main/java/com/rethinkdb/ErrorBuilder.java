@@ -2,32 +2,32 @@ package com.rethinkdb;
 
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
+import com.rethinkdb.gen.exc.*;
 import com.rethinkdb.gen.proto.ErrorType;
 import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Backtrace;
-import com.rethinkdb.gen.exc.*;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Optional;
 import java.util.function.Function;
 
 public class ErrorBuilder {
-    final String msg;
-    final ResponseType responseType;
-    Optional<Backtrace> backtrace = Optional.empty();
-    Optional<ErrorType> errorType = Optional.empty();
-    Optional<ReqlAst> term = Optional.empty();
+    private final String msg;
+    private final ResponseType responseType;
+    private @Nullable Backtrace backtrace;
+    private @Nullable ErrorType errorType;
+    private @Nullable ReqlAst term;
 
     public ErrorBuilder(String msg, ResponseType responseType) {
         this.msg = msg;
         this.responseType = responseType;
     }
 
-    public ErrorBuilder setBacktrace(Optional<Backtrace> backtrace) {
+    public ErrorBuilder setBacktrace(@Nullable Backtrace backtrace) {
         this.backtrace = backtrace;
         return this;
     }
 
-    public ErrorBuilder setErrorType(Optional<ErrorType> errorType) {
+    public ErrorBuilder setErrorType(@Nullable ErrorType errorType) {
         this.errorType = errorType;
         return this;
     }
@@ -40,7 +40,7 @@ public class ErrorBuilder {
     public ReqlError build() {
         assert (msg != null);
         assert (responseType != null);
-        Function<String,ReqlError> con;
+        Function<String, ReqlError> con;
         switch (responseType) {
             case CLIENT_ERROR:
                 con = ReqlClientError::new;
@@ -49,36 +49,44 @@ public class ErrorBuilder {
                 con = ReqlServerCompileError::new;
                 break;
             case RUNTIME_ERROR: {
-                con = errorType.<Function<String,ReqlError>>map(et -> {
-                    switch (et) {
+                if (errorType == null) {
+                    con = ReqlRuntimeError::new;
+                } else {
+                    switch (errorType) {
                         case INTERNAL:
-                            return ReqlInternalError::new;
+                            con = ReqlInternalError::new;
+                            break;
                         case RESOURCE_LIMIT:
-                            return ReqlResourceLimitError::new;
+                            con = ReqlResourceLimitError::new;
+                            break;
                         case QUERY_LOGIC:
-                            return ReqlQueryLogicError::new;
+                            con = ReqlQueryLogicError::new;
+                            break;
                         case NON_EXISTENCE:
-                            return ReqlNonExistenceError::new;
+                            con = ReqlNonExistenceError::new;
+                            break;
                         case OP_FAILED:
-                            return ReqlOpFailedError::new;
+                            con = ReqlOpFailedError::new;
+                            break;
                         case OP_INDETERMINATE:
-                            return ReqlOpIndeterminateError::new;
+                            con = ReqlOpIndeterminateError::new;
+                            break;
                         case USER:
-                            return ReqlUserError::new;
+                            con = ReqlUserError::new;
+                            break;
                         case PERMISSION_ERROR:
-                            return ReqlPermissionError::new;
+                            con = ReqlPermissionError::new;
+                            break;
                         default:
-                            return ReqlRuntimeError::new;
+                            con = ReqlRuntimeError::new;
+                            break;
                     }
-                }).orElse(ReqlRuntimeError::new);
+                }
                 break;
             }
             default:
                 con = ReqlError::new;
         }
-        ReqlError res = con.apply(msg);
-        backtrace.ifPresent(res::setBacktrace);
-        term.ifPresent(res::setTerm);
-        return res;
+        return con.apply(msg).setBacktrace(backtrace).setTerm(term);
     }
 }

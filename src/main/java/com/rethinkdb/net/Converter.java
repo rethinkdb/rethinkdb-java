@@ -10,17 +10,12 @@ import com.rethinkdb.model.OptArgs;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Converter {
-
     private static final Base64.Decoder b64decoder = Base64.getMimeDecoder();
     private static final Base64.Encoder b64encoder = Base64.getMimeEncoder();
-
 
     public static final String PSEUDOTYPE_KEY = "$reql_type$";
 
@@ -53,18 +48,18 @@ public class Converter {
                     .map(item -> convertPseudotypes(item, fmt))
                     .collect(Collectors.toList());
         } else if(obj instanceof Map) {
-            Map<String, Object> mapobj = (Map) obj;
+            Map<String, Object> mapobj = (Map<String, Object>) obj;
             if(mapobj.containsKey(PSEUDOTYPE_KEY)){
                 return convertPseudo(mapobj, fmt);
             }
             return mapobj.entrySet().stream()
                     .collect(
-                            HashMap::new,
+                            LinkedHashMap::new,
                             (map, entry) -> map.put(
                                     entry.getKey(),
                                     convertPseudotypes(entry.getValue(), fmt)
                             ),
-                            HashMap<String, Object>::putAll
+                            LinkedHashMap<String, Object>::putAll
                     );
         } else {
             return obj;
@@ -102,7 +97,7 @@ public class Converter {
     private static OffsetDateTime getTime(Map<String, Object> obj) {
         try {
             ZoneOffset offset = ZoneOffset.of((String) obj.get("timezone"));
-            Double epochTime = ((Number) obj.get("epoch_time")).doubleValue();
+            double epochTime = ((Number) obj.get("epoch_time")).doubleValue();
             Instant timeInstant = Instant.ofEpochMilli(((Double) (epochTime * 1000.0)).longValue());
             return OffsetDateTime.ofInstant(timeInstant, offset);
         } catch (Exception ex) {
@@ -110,16 +105,13 @@ public class Converter {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static byte[] getBinary(Map<String, Object> value) {
-        String str = (String) value.get("data");
-        return b64decoder.decode(str);
+        return b64decoder.decode((String) value.get("data"));
     }
 
     public static Map<String,Object> toBinary(byte[] data){
-        MapObject mob = new MapObject();
-        mob.with("$reql_type$", BINARY);
-        mob.with("data", b64encoder.encodeToString(data));
-        return mob;
+        return new MapObject<String, Object>()
+            .with("$reql_type$", BINARY)
+            .with("data", b64encoder.encodeToString(data));
     }
 }

@@ -9,16 +9,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Created by thejp on 10/25/2016.
+ * Use this with the primary key/id of your pojo
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 @JacksonAnnotationsInside
 @JsonInclude(JsonInclude.Include.NON_NULL)
-
-/**
- * Use this with the primary key/id of your pojo
- */
-public @interface id
-{
+public @interface id {
 }

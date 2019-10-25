@@ -11,6 +11,7 @@ import com.rethinkdb.gen.exc.ReqlDriverError;
 
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class TopLevel {
@@ -24,24 +25,24 @@ public class TopLevel {
                                   " Use lambda syntax instead");
     }
 
-    public MapObject hashMap(Object key, Object val){
-        return new MapObject().with(key, val);
+    public MapObject<Object, Object> hashMap(Object key, Object val){
+        return new MapObject<>().with(key, val);
     }
 
-    public MapObject hashMap() {
-        return new MapObject();
+    public MapObject<Object, Object> hashMap() {
+        return new MapObject<>();
     }
 
 % for type in ["Object", "ReqlFunction0", "ReqlFunction1", "ReqlFunction2", "ReqlFunction3", "ReqlFunction4"]:
-    public List array(${type} val0, ${type}... vals){
-        List res = new ArrayList();
+    public List<Object> array(${type} val0, ${type}... vals){
+        List<Object> res = new ArrayList<>();
         res.add(val0);
-        res.addAll(Arrays.asList(vals));
+        Collections.addAll(res, vals);
         return res;
     }
 % endfor
-    public List array(){
-        return new ArrayList();
+    public List<Object> array(){
+        return new ArrayList<>();
     }
 
 %for term in all_terms.values():

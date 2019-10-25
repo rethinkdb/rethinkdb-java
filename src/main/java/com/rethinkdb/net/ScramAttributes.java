@@ -1,21 +1,19 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.gen.exc.ReqlAuthError;
-
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 public class ScramAttributes {
-    Optional<String> _authIdentity = Optional.empty(); // a
-    Optional<String> _username = Optional.empty();     // n
-    Optional<String> _nonce = Optional.empty();        // r
-    Optional<String> _headerAndChannelBinding = Optional.empty(); // c
-    Optional<byte[]> _salt = Optional.empty(); // s
-    Optional<Integer> _iterationCount = Optional.empty(); // i
-    Optional<String> _clientProof = Optional.empty(); // p
-    Optional<byte[]> _serverSignature = Optional.empty(); // v
-    Optional<String> _error = Optional.empty(); // e
-    Optional<String> _originalString = Optional.empty();
-
+    @Nullable String _authIdentity; // a
+    @Nullable String _username;     // n
+    @Nullable String _nonce;        // r
+    @Nullable String _headerAndChannelBinding; // c
+    @Nullable byte[] _salt; // s
+    @Nullable Integer _iterationCount; // i
+    @Nullable String _clientProof; // p
+    @Nullable byte[] _serverSignature; // v
+    @Nullable String _error; // e
+    @Nullable String _originalString;
 
     public static ScramAttributes create() {
         return new ScramAttributes();
@@ -36,9 +34,8 @@ public class ScramAttributes {
     }
 
     static ScramAttributes from(String input) {
-
         ScramAttributes sa = new ScramAttributes();
-        sa._originalString = Optional.of(input);
+        sa._originalString = input;
         for (String section : input.split(",")) {
             String[] keyVal = section.split("=", 2);
             sa.setAttribute(keyVal[0], keyVal[1]);
@@ -49,33 +46,33 @@ public class ScramAttributes {
     private void setAttribute(String key, String val) {
         switch (key) {
             case "a":
-                _authIdentity = Optional.of(val);
+                _authIdentity = val;
                 break;
             case "n":
-                _username = Optional.of(val);
+                _username = val;
                 break;
             case "r":
-                _nonce = Optional.of(val);
+                _nonce = val;
                 break;
             case "m":
                 throw new ReqlAuthError("m field disallowed");
             case "c":
-                _headerAndChannelBinding = Optional.of(val);
+                _headerAndChannelBinding = val;
                 break;
             case "s":
-                _salt = Optional.of(Crypto.fromBase64(val));
+                _salt = Crypto.fromBase64(val);
                 break;
             case "i":
-                _iterationCount = Optional.of(Integer.parseInt(val));
+                _iterationCount = Integer.parseInt(val);
                 break;
             case "p":
-                _clientProof = Optional.of(val);
+                _clientProof = val;
                 break;
             case "v":
-                _serverSignature = Optional.of(Crypto.fromBase64(val));
+                _serverSignature = Crypto.fromBase64(val);
                 break;
             case "e":
-                _error = Optional.of(val);
+                _error = val;
                 break;
             default:
                 // Supposed to ignore unexpected fields
@@ -83,21 +80,21 @@ public class ScramAttributes {
     }
 
     public String toString() {
-        if (_originalString.isPresent()) {
-            return _originalString.get();
+        if (_originalString != null) {
+            return _originalString;
         }
         String output = "";
-        if (_username.isPresent()) {
-            output += ",n=" + _username.get();
+        if (_username != null) {
+            output += ",n=" + _username;
         }
-        if (_nonce.isPresent()) {
-            output += ",r=" + _nonce.get();
+        if (_nonce != null) {
+            output += ",r=" + _nonce;
         }
-        if (_headerAndChannelBinding.isPresent()) {
-            output += ",c=" + _headerAndChannelBinding.get();
+        if (_headerAndChannelBinding != null) {
+            output += ",c=" + _headerAndChannelBinding;
         }
-        if (_clientProof.isPresent()) {
-            output += ",p=" + _clientProof.get();
+        if (_clientProof != null) {
+            output += ",p=" + _clientProof;
         }
         if (output.startsWith(",")) {
             return output.substring(1);
@@ -109,36 +106,44 @@ public class ScramAttributes {
     // Setters with coercion
     ScramAttributes username(String username) {
         ScramAttributes next = ScramAttributes.from(this);
-        next._username = Optional.of(username.replace("=", "=3D").replace(",", "=2C"));
+        next._username = username.replace("=", "=3D").replace(",", "=2C");
         return next;
     }
 
     ScramAttributes nonce(String nonce) {
         ScramAttributes next = ScramAttributes.from(this);
-        next._nonce = Optional.of(nonce);
+        next._nonce = nonce;
         return next;
     }
 
     ScramAttributes headerAndChannelBinding(String hacb) {
         ScramAttributes next = ScramAttributes.from(this);
-        next._headerAndChannelBinding = Optional.of(hacb);
+        next._headerAndChannelBinding = hacb;
         return next;
     }
 
     ScramAttributes clientProof(byte[] clientProof) {
         ScramAttributes next = ScramAttributes.from(this);
-        next._clientProof = Optional.of(Crypto.toBase64(clientProof));
+        next._clientProof = Crypto.toBase64(clientProof);
         return next;
     }
 
     // Getters
-    String authIdentity() { return _authIdentity.get(); }
-    String username() { return _username.get(); }
-    String nonce() { return _nonce.get(); }
-    String headerAndChannelBinding() { return _headerAndChannelBinding.get(); }
-    byte[] salt() { return _salt.get(); }
-    Integer iterationCount() { return _iterationCount.get(); }
-    String clientProof() { return _clientProof.get(); }
-    byte[] serverSignature() { return _serverSignature.get(); }
-    String error() { return _error.get(); }
+    String authIdentity() { return _authIdentity; }
+
+    String username() { return _username; }
+
+    String nonce() { return _nonce; }
+
+    String headerAndChannelBinding() { return _headerAndChannelBinding; }
+
+    byte[] salt() { return _salt; }
+
+    Integer iterationCount() { return _iterationCount; }
+
+    String clientProof() { return _clientProof; }
+
+    byte[] serverSignature() { return _serverSignature; }
+
+    String error() { return _error; }
 }

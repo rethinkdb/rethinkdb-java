@@ -369,9 +369,9 @@ public final class TestingCommon {
         }
         try {
             Object res = ((ReqlAst)query).run(conn, runopts);
-            if(res instanceof com.rethinkdb.net.Cursor) {
+            if(res instanceof Cursor) {
                 ArrayList ret = new ArrayList();
-                ((com.rethinkdb.net.Cursor) res).forEachRemaining(ret::add);
+                ((Cursor) res).forEachRemaining(ret::add);
                 return ret;
             }else{
                 return res;

@@ -4,14 +4,14 @@
 // ../../../../../../../../templates/Exception.java
 package com.rethinkdb.gen.exc;
 
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.model.Backtrace;
 
 public class ReqlOpFailedError extends ReqlAvailabilityError {
 
-    Optional<Backtrace> backtrace = Optional.empty();
-    Optional<ReqlAst> term = Optional.empty();
+    @Nullable Backtrace backtrace;
+    @Nullable ReqlAst term;
 
     public ReqlOpFailedError() {
     }
@@ -34,25 +34,25 @@ public class ReqlOpFailedError extends ReqlAvailabilityError {
 
     public ReqlOpFailedError(String msg, ReqlAst term, Backtrace bt) {
         super(msg);
-        this.backtrace = Optional.ofNullable(bt);
-        this.term = Optional.ofNullable(term);
+        this.backtrace = bt;
+        this.term = term;
     }
 
-    public ReqlOpFailedError setBacktrace(Backtrace backtrace) {
-        this.backtrace = Optional.ofNullable(backtrace);
-        return this;
-    }
-
-    public Optional<Backtrace> getBacktrace() {
+    public @Nullable Backtrace getBacktrace() {
         return backtrace;
     }
 
-    public ReqlOpFailedError setTerm(ReqlAst term) {
-        this.term = Optional.ofNullable(term);
+    public ReqlOpFailedError setBacktrace(Backtrace backtrace) {
+        this.backtrace = backtrace;
         return this;
     }
 
-    public Optional<ReqlAst> getTerm() {
+    public @Nullable ReqlAst getTerm() {
         return this.term;
+    }
+
+    public ReqlOpFailedError setTerm(ReqlAst term) {
+        this.term = term;
+        return this;
     }
 }

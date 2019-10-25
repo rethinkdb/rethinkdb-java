@@ -69,55 +69,55 @@ public class RethinkDBTest{
     @Test
     public void testBooleans() throws Exception {
         Boolean t = r.expr(true).run(conn);
-        Assert.assertEquals(t.booleanValue(), true);
+        Assert.assertEquals(true, t.booleanValue());
 
         Boolean f = r.expr(false).run(conn);
-        Assert.assertEquals(f.booleanValue(), false);
+        Assert.assertEquals(false, f.booleanValue());
 
         String trueType = r.expr(true).typeOf().run(conn);
-        Assert.assertEquals(trueType, "BOOL");
+        Assert.assertEquals("BOOL", trueType);
 
         String falseString = r.expr(false).coerceTo("string").run(conn);
-        Assert.assertEquals(falseString, "false");
+        Assert.assertEquals("false", falseString);
 
         Boolean boolCoerce = r.expr(true).coerceTo("bool").run(conn);
-        Assert.assertEquals(boolCoerce.booleanValue(), true);
+        Assert.assertEquals(true, boolCoerce.booleanValue());
     }
 
     @Test
     public void testNull() {
         Object o = r.expr(null).run(conn);
-        Assert.assertEquals(o, null);
+        Assert.assertEquals(null, o);
 
         String nullType = r.expr(null).typeOf().run(conn);
-        Assert.assertEquals(nullType, "NULL");
+        Assert.assertEquals("NULL", nullType);
 
         String nullCoerce = r.expr(null).coerceTo("string").run(conn);
-        Assert.assertEquals(nullCoerce, "null");
+        Assert.assertEquals("null", nullCoerce);
 
         Object n = r.expr(null).coerceTo("null").run(conn);
-        Assert.assertEquals(n, null);
+        Assert.assertEquals(null, n);
     }
 
     @Test
     public void testString() {
         String str = r.expr("str").run(conn);
-        Assert.assertEquals(str, "str");
+        Assert.assertEquals("str", str);
 
         String unicode = r.expr("こんにちは").run(conn);
-        Assert.assertEquals(unicode, "こんにちは");
+        Assert.assertEquals("こんにちは", unicode);
 
         String strType = r.expr("foo").typeOf().run(conn);
-        Assert.assertEquals(strType, "STRING");
+        Assert.assertEquals("STRING", strType);
 
         String strCoerce = r.expr("foo").coerceTo("string").run(conn);
-        Assert.assertEquals(strCoerce, "foo");
+        Assert.assertEquals("foo", strCoerce);
 
         Number nmb12 = r.expr("-1.2").coerceTo("NUMBER").run(conn);
-        Assert.assertEquals(nmb12, -1.2);
+        Assert.assertEquals(-1.2, nmb12);
 
         Long nmb10 = r.expr("0xa").coerceTo("NUMBER").run(conn);
-        Assert.assertEquals(nmb10.longValue(), 10L);
+        Assert.assertEquals(10L, nmb10.longValue());
     }
 
     @Test
@@ -201,7 +201,7 @@ public class RethinkDBTest{
                 .with("yes", 7)
                 .with("no", null );
         Map<String, Object> result = r.db(dbName).table(tableName).insert(foo).run(conn);
-        assertEquals(result.get("inserted"), 1L);
+        assertEquals(1L, result.get("inserted"));
     }
 
     @Test
@@ -308,7 +308,7 @@ public class RethinkDBTest{
 
         Cursor<TestPojo> cursor = r.db(dbName).table(tableName).run(conn, TestPojo.class);
         List<TestPojo> result = cursor.toList();
-        assertEquals(2, result.size());
+        assertEquals(2L, result.size());
 
         TestPojo pojoOneSelected = "foo".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
         TestPojo pojoTwoSelected = "bar".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
@@ -337,7 +337,7 @@ public class RethinkDBTest{
         TestPojo pojoSelected = result.get(0);
     }
 
-    @Test(timeout=20000)
+    @Test(timeout=40000)
     public void testConcurrentWrites() throws TimeoutException, InterruptedException {
         final int total = 500;
         final AtomicInteger writeCounter = new AtomicInteger(0);
@@ -351,7 +351,7 @@ public class RethinkDBTest{
                 waiter.resume();
             }).start();
 
-        waiter.await(2500, total);
+        waiter.await(5000, total);
 
         assertEquals(total, writeCounter.get());
     }

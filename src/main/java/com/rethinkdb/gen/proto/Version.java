@@ -5,7 +5,7 @@
 
 package com.rethinkdb.gen.proto;
 
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 public enum Version {
 
@@ -34,11 +34,11 @@ public enum Version {
         }
     }
 
-    public static Optional<Version> maybeFromValue(int value) {
+    public static @Nullable Version maybeFromValue(int value) {
         try {
-            return Optional.of(fromValue(value));
+            return fromValue(value);
         } catch (IllegalArgumentException iae) {
-            return Optional.empty();
+            return null;
         }
     }
 

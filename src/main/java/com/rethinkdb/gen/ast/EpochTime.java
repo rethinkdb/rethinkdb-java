@@ -11,10 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class EpochTime extends ReqlExpr {
-
 
     public EpochTime(Object arg) {
         this(new Arguments(arg), null);
