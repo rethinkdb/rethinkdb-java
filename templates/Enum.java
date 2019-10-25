@@ -1,7 +1,7 @@
 <%page args="package,classname,items,value_type='int'"/>
 package com.rethinkdb.gen.${package};
 
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 public enum ${classname} {
 
@@ -24,11 +24,11 @@ public enum ${classname} {
         }
     }
 
-    public static Optional<${classname}> maybeFromValue(${value_type} value) {
+    public static @Nullable ${classname} maybeFromValue(${value_type} value) {
         try {
-            return Optional.of(fromValue(value));
+            return fromValue(value);
         } catch (IllegalArgumentException iae) {
-            return Optional.empty();
+            return null;
         }
     }
 <%block name="custom_methods"/>

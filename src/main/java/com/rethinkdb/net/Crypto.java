@@ -1,6 +1,7 @@
 package com.rethinkdb.net;
 
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import org.jetbrains.annotations.Nullable;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKeyFactory;
@@ -15,14 +16,15 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.rethinkdb.net.Util.fromUTF8;
 import static com.rethinkdb.net.Util.toUTF8;
 
 class Crypto {
-
     private static final String DEFAULT_SSL_PROTOCOL = "TLSv1.2";
     private static final String HMAC_SHA_256 = "HmacSHA256";
     private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
@@ -65,6 +67,7 @@ class Crypto {
             return result;
         }
     }
+
     private static byte[] cacheLookup(byte[] password, byte[] salt, int iterations) {
         return pbkdf2Cache.get(new PasswordLookup(password, salt, iterations));
     }
@@ -99,7 +102,7 @@ class Crypto {
             return cachedValue;
         }
         final PBEKeySpec spec = new PBEKeySpec(
-                fromUTF8(password).toCharArray(), salt, iterationCount, 256);
+            fromUTF8(password).toCharArray(), salt, iterationCount, 256);
         final SecretKeyFactory skf;
         try {
             skf = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM);
@@ -136,15 +139,14 @@ class Crypto {
         return decoder.decode(string);
     }
 
-    static Optional<SSLContext> handleCertfile(
-            Optional<InputStream> certFile, Optional<SSLContext> sslContext) {
-        if (certFile.isPresent()) {
+    static @Nullable SSLContext handleCertfile(@Nullable InputStream certFile, @Nullable SSLContext sslContext) {
+        if (certFile != null) {
             try {
                 final CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                final X509Certificate caCert = (X509Certificate) cf.generateCertificate(certFile.get());
+                final X509Certificate caCert = (X509Certificate) cf.generateCertificate(certFile);
 
                 final TrustManagerFactory tmf = TrustManagerFactory
-                        .getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    .getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
                 ks.load(null); // You don't need the KeyStore instance to come from a file.
                 ks.setCertificateEntry("caCert", caCert);
@@ -152,7 +154,7 @@ class Crypto {
 
                 final SSLContext ssc = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
                 ssc.init(null, tmf.getTrustManagers(), null);
-                return Optional.of(ssc);
+                return ssc;
             } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
                 throw new ReqlDriverError(e);
             }

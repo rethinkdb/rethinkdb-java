@@ -5,7 +5,7 @@
 
 package com.rethinkdb.gen.proto;
 
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 public enum QueryType {
 
@@ -34,11 +34,11 @@ public enum QueryType {
         }
     }
 
-    public static Optional<QueryType> maybeFromValue(int value) {
+    public static @Nullable QueryType maybeFromValue(int value) {
         try {
-            return Optional.of(fromValue(value));
+            return fromValue(value);
         } catch (IllegalArgumentException iae) {
-            return Optional.empty();
+            return null;
         }
     }
 

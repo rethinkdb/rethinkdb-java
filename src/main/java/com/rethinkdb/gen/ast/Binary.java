@@ -6,24 +6,20 @@
 package com.rethinkdb.gen.ast;
 
 import com.rethinkdb.gen.proto.TermType;
-import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
-import com.rethinkdb.ast.ReqlAst;
-
-
 import com.rethinkdb.net.Converter;
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 
 public class Binary extends ReqlExpr {
 
-    Optional<byte[]> b64Data = Optional.empty();
+    @Nullable byte[] b64Data;
 
 
     public Binary(byte[] bytes){
         this(new Arguments());
-        b64Data = Optional.of(bytes);
+        b64Data = bytes;
     }
     public Binary(Object arg) {
         this(new Arguments(arg), null);
@@ -41,8 +37,8 @@ public class Binary extends ReqlExpr {
 
     @Override
     public Object build(){
-        if(b64Data.isPresent()){
-            return Converter.toBinary(b64Data.get());
+        if (b64Data != null) {
+            return Converter.toBinary(b64Data);
         }else{
             return super.build();
         }

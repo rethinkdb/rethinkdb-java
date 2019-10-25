@@ -5,16 +5,15 @@
 
 package com.rethinkdb.gen.model;
 
-import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.model.Arguments;
-import com.rethinkdb.model.MapObject;
+import com.rethinkdb.ast.Util;
 import com.rethinkdb.gen.ast.Error;
 import com.rethinkdb.gen.ast.*;
-import com.rethinkdb.ast.Util;
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.model.Arguments;
+import com.rethinkdb.model.MapObject;
 
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class TopLevel {
@@ -28,52 +27,58 @@ public class TopLevel {
                                   " Use lambda syntax instead");
     }
 
-    public MapObject hashMap(Object key, Object val){
-        return new MapObject().with(key, val);
+    public MapObject<Object, Object> hashMap(Object key, Object val) {
+        return new MapObject<>().with(key, val);
     }
 
-    public MapObject hashMap() {
-        return new MapObject();
+    public MapObject<Object, Object> hashMap() {
+        return new MapObject<>();
     }
 
-    public List array(Object val0, Object... vals){
-        List res = new ArrayList();
+    public List<Object> array(Object val0, Object... vals) {
+        List<Object> res = new ArrayList<>();
         res.add(val0);
-        res.addAll(Arrays.asList(vals));
+        Collections.addAll(res, vals);
         return res;
     }
-    public List array(ReqlFunction0 val0, ReqlFunction0... vals){
-        List res = new ArrayList();
+
+    public List<Object> array(ReqlFunction0 val0, ReqlFunction0... vals) {
+        List<Object> res = new ArrayList<>();
         res.add(val0);
-        res.addAll(Arrays.asList(vals));
+        Collections.addAll(res, vals);
         return res;
     }
-    public List array(ReqlFunction1 val0, ReqlFunction1... vals){
-        List res = new ArrayList();
+
+    public List<Object> array(ReqlFunction1 val0, ReqlFunction1... vals) {
+        List<Object> res = new ArrayList<>();
         res.add(val0);
-        res.addAll(Arrays.asList(vals));
+        Collections.addAll(res, vals);
         return res;
     }
-    public List array(ReqlFunction2 val0, ReqlFunction2... vals){
-        List res = new ArrayList();
+
+    public List<Object> array(ReqlFunction2 val0, ReqlFunction2... vals) {
+        List<Object> res = new ArrayList<>();
         res.add(val0);
-        res.addAll(Arrays.asList(vals));
+        Collections.addAll(res, vals);
         return res;
     }
-    public List array(ReqlFunction3 val0, ReqlFunction3... vals){
-        List res = new ArrayList();
+
+    public List<Object> array(ReqlFunction3 val0, ReqlFunction3... vals) {
+        List<Object> res = new ArrayList<>();
         res.add(val0);
-        res.addAll(Arrays.asList(vals));
+        Collections.addAll(res, vals);
         return res;
     }
-    public List array(ReqlFunction4 val0, ReqlFunction4... vals){
-        List res = new ArrayList();
+
+    public List<Object> array(ReqlFunction4 val0, ReqlFunction4... vals) {
+        List<Object> res = new ArrayList<>();
         res.add(val0);
-        res.addAll(Arrays.asList(vals));
+        Collections.addAll(res, vals);
         return res;
     }
-    public List array(){
-        return new ArrayList();
+
+    public List<Object> array() {
+        return new ArrayList<>();
     }
 
     public Javascript js(Object expr){

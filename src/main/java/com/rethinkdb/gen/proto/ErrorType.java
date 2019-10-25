@@ -5,7 +5,7 @@
 
 package com.rethinkdb.gen.proto;
 
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 public enum ErrorType {
 
@@ -40,11 +40,11 @@ public enum ErrorType {
         }
     }
 
-    public static Optional<ErrorType> maybeFromValue(int value) {
+    public static @Nullable ErrorType maybeFromValue(int value) {
         try {
-            return Optional.of(fromValue(value));
+            return fromValue(value);
         } catch (IllegalArgumentException iae) {
-            return Optional.empty();
+            return null;
         }
     }
 
