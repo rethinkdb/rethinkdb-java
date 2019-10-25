@@ -120,7 +120,7 @@ def _try_eval(node, context):
         raise Skip("Java type system prevents static Reql errors")
     except AttributeError:
         raise Skip("Java type system prevents attribute errors")
-    except Exception:
+    except Exception as exc:
         logger.error("Failed evaluating %r", ast.dump(node_4_eval))
         raise
     else:

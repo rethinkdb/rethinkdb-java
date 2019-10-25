@@ -5,3 +5,29 @@ build/
 .idea/
 test-config-override.properties
 gradle.properties
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Environments
+*.pid
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+virtualenv/
+
+# RethinkDB
+scripts/*.proto
+
+# Editors
+.vscode/
+.idea/

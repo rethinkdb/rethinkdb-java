@@ -1,38 +1,43 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-'''Finds yaml tests, converts them to Java tests.'''
+"""Finds yaml tests, converts them to Java tests."""
 from __future__ import print_function
 
-import sys
+import argparse
+import ast
+import logging
 import os
 import os.path
 import re
+import sys
 import time
-import ast
-import argparse
+from collections import namedtuple
+
+from rethinkdb import r, ast as rethinkdb_ast
+
 import metajava
+import parse_polyglot
 import process_polyglot
-import logging
-from process_polyglot import Unhandled, Skip, FatalSkip, SkippedTest
+from process_polyglot import FatalSkip, Skip, SkippedTest, Unhandled
+
 try:
     from cStringIO import StringIO
 except ImportError:
     from io import StringIO
-from collections import namedtuple
 
-sys.path.append(
-    os.path.abspath(os.path.join(__file__, "../../../test/common")))
 
-import parsePolyglot
-parsePolyglot.printDebug = False
+try:
+    clock = time.process_time
+except AttributeError:
+    clock = time.clock
+
+
+parse_polyglot.printDebug = False
 
 if sys.hexversion < 0x03040000:
-    raise 'Python version must be >= 3.4'
+    raise "Python version must be >= 3.4"
 
 logger = logging.getLogger("convert_tests")
-
-# Supplied by import_python_driver
-r = None
 
 
 TEST_EXCLUSIONS = [
@@ -40,42 +45,35 @@ TEST_EXCLUSIONS = [
     # 'regression/1133',
     # 'regression/767',
     # 'regression/1005',
-    'regression/',
-    'limits',  # pending fix in issue #4965
+    "regression/",
+    "limits",  # pending fix in issue #4965
     # double run
-    'changefeeds/squash',
+    "changefeeds/squash",
     # arity checked at compile time
-    'arity',
-    '.rb.yaml',
+    "arity",
+    ".rb.yaml",
 ]
 
 
 def main():
     logging.basicConfig(format="[%(name)s] %(message)s", level=logging.INFO)
-    start = time.clock()
+    start = clock()
     args = parse_args()
     if args.debug:
         logger.setLevel(logging.DEBUG)
-        logging.getLogger('process_polyglot').setLevel(logging.DEBUG)
+        logging.getLogger("process_polyglot").setLevel(logging.DEBUG)
     elif args.info:
         logger.setLevel(logging.INFO)
-        logging.getLogger('process_polyglot').setLevel(logging.INFO)
+        logging.getLogger("process_polyglot").setLevel(logging.INFO)
     else:
         logger.root.setLevel(logging.WARNING)
     if args.e:
         evaluate_snippet(args.e)
         exit(0)
-    global r
-    r = import_python_driver(args.python_driver_dir)
     renderer = metajava.Renderer(
-        args.template_dir,
-        invoking_filenames=[
-            __file__,
-            process_polyglot.__file__,
-        ])
-    for testfile in process_polyglot.all_yaml_tests(
-            args.test_dir,
-            TEST_EXCLUSIONS):
+        args.template_dir, invoking_filenames=[__file__, process_polyglot.__file__]
+    )
+    for testfile in process_polyglot.all_yaml_tests(args.test_dir, TEST_EXCLUSIONS):
         logger.info("Working on %s", testfile)
         TestFile(
             test_dir=args.test_dir,
@@ -83,16 +81,16 @@ def main():
             test_output_dir=args.test_output_dir,
             renderer=renderer,
         ).load().render()
-    logger.info("Finished in %s seconds", time.clock() - start)
+    logger.info("Finished in %s seconds", clock() - start)
 
 
 def parse_args():
-    '''Parse command line arguments'''
+    """Parse command line arguments"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--test-dir",
         help="Directory where yaml tests are",
-        default="../../test/rql_test/src"
+        default="../../test/rql_test/src",
     )
     parser.add_argument(
         "--test-output-dir",
@@ -104,71 +102,45 @@ def parse_args():
         help="Where to find test generation templates",
         default="./templates",
     )
+    parser.add_argument("--test-file", help="Only convert the specified yaml file")
     parser.add_argument(
-        "--python-driver-dir",
-        help="Where the built python driver is located",
-        default="../../build/drivers/python"
+        "--debug", help="Print debug output", dest="debug", action="store_true"
     )
-    parser.add_argument(
-        "--test-file",
-        help="Only convert the specified yaml file",
-    )
-    parser.add_argument(
-        '--debug',
-        help="Print debug output",
-        dest='debug',
-        action='store_true')
     parser.set_defaults(debug=False)
     parser.add_argument(
-        '--info',
-        help="Print info level output",
-        dest='info',
-        action='store_true')
-    parser.set_defaults(info=False)
-    parser.add_argument(
-        '-e',
-        help="Convert an inline python reql to java reql snippet",
+        "--info", help="Print info level output", dest="info", action="store_true"
     )
+    parser.set_defaults(info=False)
+    parser.add_argument("-e", help="Convert an inline python reql to java reql snippet")
     return parser.parse_args()
 
 
-def import_python_driver(py_driver_dir):
-    '''Imports the test driver header'''
-    stashed_path = sys.path
-    sys.path.insert(0, os.path.realpath(py_driver_dir))
-    import rethinkdb as r
-    sys.path = stashed_path
-    return r
-
 JavaQuery = namedtuple(
-    'JavaQuery',
-    ('line',
-     'expected_type',
-     'expected_line',
-     'testfile',
-     'line_num',
-     'runopts')
+    "JavaQuery",
+    ("line", "expected_type", "expected_line", "testfile", "line_num", "runopts"),
 )
 JavaDef = namedtuple(
-    'JavaDef',
-    ('line',
-     'varname',
-     'vartype',
-     'value',
-     'run_if_query',
-     'testfile',
-     'line_num',
-     'runopts')
+    "JavaDef",
+    (
+        "line",
+        "varname",
+        "vartype",
+        "value",
+        "run_if_query",
+        "testfile",
+        "line_num",
+        "runopts",
+    ),
 )
 Version = namedtuple("Version", "original java")
 
-JAVA_DECL = re.compile(r'(?P<type>.+) (?P<var>\w+) = (?P<value>.*);')
+JAVA_DECL = re.compile(r"(?P<type>.+) (?P<var>\w+) = (?P<value>.*);")
 
 
 def evaluate_snippet(snippet):
-    '''Just converts a single expression snippet into java'''
+    """Just converts a single expression snippet into java"""
     try:
-        parsed = ast.parse(snippet, mode='eval').body
+        parsed = ast.parse(snippet, mode="eval").body
     except Exception as e:
         return print("Error:", e)
     try:
@@ -178,49 +150,54 @@ def evaluate_snippet(snippet):
 
 
 class TestFile(object):
-    '''Represents a single test file'''
+    """Represents a single test file"""
 
     def __init__(self, test_dir, filename, test_output_dir, renderer):
         self.filename = filename
         self.full_path = os.path.join(test_dir, filename)
-        self.module_name = metajava.camel(
-            filename.split('.')[0].replace('/', '_'))
+        self.module_name = metajava.camel(filename.split(".")[0].replace("/", "_"))
         self.test_output_dir = test_output_dir
-        self.reql_vars = {'r'}
+        self.reql_vars = {"r"}
         self.renderer = renderer
 
     def load(self):
-        '''Load the test file, yaml parse it, extract file-level metadata'''
-        with open(self.full_path, encoding='utf-8') as f:
-            parsed_yaml = parsePolyglot.parseYAML(f)
-        self.description = parsed_yaml.get('desc', 'No description')
+        context_r = r
+        # rethinkdb python package does not put ast on RethinkDB object anymore
+        # but the test conversion using it. This is a "not so nice" mitigation of
+        # the issue until we figure out how to do this better. 
+        r.ast = rethinkdb_ast
+
+        """Load the test file, yaml parse it, extract file-level metadata"""
+        with open(self.full_path, encoding="utf-8") as f:
+            parsed_yaml = parse_polyglot.parseYAML(f)
+        self.description = parsed_yaml.get("desc", "No description")
         self.table_var_names = self.get_varnames(parsed_yaml)
         self.reql_vars.update(self.table_var_names)
-        self.raw_test_data = parsed_yaml['tests']
+        self.raw_test_data = parsed_yaml["tests"]
         self.test_generator = process_polyglot.tests_and_defs(
             self.filename,
             self.raw_test_data,
             context=process_polyglot.create_context(r, self.table_var_names),
-            custom_field='java',
+            custom_field="java",
         )
         return self
 
     def get_varnames(self, yaml_file):
-        '''Extract table variable names from yaml variable
-        They can be specified just space separated, or comma separated'''
-        raw_var_names = yaml_file.get('table_variable_name', '')
+        """Extract table variable names from yaml variable
+        They can be specified just space separated, or comma separated"""
+        raw_var_names = yaml_file.get("table_variable_name", "")
         if not raw_var_names:
             return set()
-        return set(re.split(r'[, ]+', raw_var_names))
+        return set(re.split(r"[, ]+", raw_var_names))
 
     def render(self):
-        '''Renders the converted tests to a runnable test file'''
+        """Renders the converted tests to a runnable test file"""
         defs_and_test = ast_to_java(self.test_generator, self.reql_vars)
         self.renderer.source_files = [self.full_path]
         self.renderer.render(
-            'Test.java',
+            "Test.java",
             output_dir=self.test_output_dir,
-            output_name=self.module_name + '.java',
+            output_name=self.module_name + ".java",
             dependencies=[self.full_path],
             defs_and_test=defs_and_test,
             table_var_names=list(sorted(self.table_var_names)),
@@ -232,84 +209,83 @@ class TestFile(object):
 
 
 def py_to_java_type(py_type, node):
-    '''Converts python types to their Java equivalents'''
+    """Converts python types to their Java equivalents"""
     if py_type is None:
         return None
     elif isinstance(py_type, str):
         # This can be called on something already converted
         return py_type
-    elif py_type.__name__ == 'function':
-        return 'ReqlFunction1'
-    elif (py_type.__module__ == 'datetime' and
-          py_type.__name__ == 'datetime'):
-        return 'OffsetDateTime'
-    elif py_type.__module__ == 'builtins':
+    elif py_type.__name__ == "function":
+        return "ReqlFunction1"
+    elif py_type.__module__ == "datetime" and py_type.__name__ == "datetime":
+        return "OffsetDateTime"
+    elif py_type.__module__ == "builtins":
         return {
-            bool: 'Boolean',
-            bytes: 'byte[]',
-            int: 'Long',
-            float: 'Double',
-            str: 'String',
-            dict: 'Map',
-            list: 'List',
-            object: 'Object',
-            type(None): 'Object',
+            bool: "Boolean",
+            bytes: "byte[]",
+            int: "Long",
+            float: "Double",
+            str: "String",
+            dict: "Map",
+            list: "List",
+            object: "Object",
+            type(None): "Object",
         }[py_type]
-    elif py_type.__module__ == 'rethinkdb.ast':
+    elif py_type.__module__ == "rethinkdb.ast":
         # Anomalous non-rule based capitalization in the python driver
-        return {
-            'DB': 'Db'
-        }.get(py_type.__name__, py_type.__name__)
-    elif py_type.__module__ == 'rethinkdb.errors':
+        return {"DB": "Db"}.get(py_type.__name__, py_type.__name__)
+    elif py_type.__module__ == "rethinkdb.errors":
         return py_type.__name__
-    elif py_type.__module__ == '?test?':
-        return {
-            'uuid': 'UUIDMatch',  # clashes with ast.Uuid
-        }.get(py_type.__name__, metajava.camel(py_type.__name__))
-    elif py_type.__module__ == 'rethinkdb.query':
+    elif py_type.__module__ == "?test?":
+        return {"uuid": "UUIDMatch"}.get(  # clashes with ast.Uuid
+            py_type.__name__, metajava.camel(py_type.__name__)
+        )
+    elif py_type.__module__ == "rethinkdb.query":
         # All of the constants like minval maxval etc are defined in
         # query.py, but no type name is provided to `type`, so we have
         # to pull it out of a class variable
-        assert py_type.__name__ == 'RqlConstant'
+        assert py_type.__name__ == "RqlConstant"
         return metajava.camel(node.st)
     else:
         raise Unhandled(
-            "Don't know how to convert python type {}.{} to java"
-            .format(py_type.__module__, py_type.__name__))
+            "Don't know how to convert python type {}.{} to java".format(
+                py_type.__module__, py_type.__name__
+            )
+        )
 
 
 def is_reql(t):
-    '''Determines if a type is a reql term'''
+    """Determines if a type is a reql term"""
     # Other options for module: builtins, ?test?, datetime
-    return t.__module__ == 'rethinkdb.ast'
+    return t.__module__ == "rethinkdb.ast"
 
 
 def escape_string(s, out):
     out.write('"')
     for codepoint in s:
         rpr = repr(codepoint)[1:-1]
-        if rpr.startswith('\\x'):
+        if rpr.startswith("\\x"):
             # Python will shorten unicode escapes that are less than a
             # byte to use \x instead of \u . Java doesn't accept \x so
             # we have to expand it back out.
-            rpr = '\\u00' + rpr[2:]
+            rpr = "\\u00" + rpr[2:]
         elif rpr == '"':
-            rpr = r'\"'
+            rpr = r"\""
         out.write(rpr)
     out.write('"')
 
 
 def attr_matches(path, node):
-    '''Helper function. Several places need to know if they are an
-    attribute of some root object'''
-    root, name = path.split('.')
+    """Helper function. Several places need to know if they are an
+    attribute of some root object"""
+    root, name = path.split(".")
     ret = is_name(root, node.value) and node.attr == name
     return ret
 
 
 def is_name(name, node):
-    '''Determine if the current attribute node is a Name with the
-    given name'''
+    """Determine if the current attribute node is a Name with the
+    given name"""
     return type(node) == ast.Name and node.id == name
 
 
@@ -321,25 +297,21 @@ def def_to_java(item, reql_vars):
             visitor = ReQLVisitor
         else:
             visitor = JavaVisitor
-        java_line = visitor(reql_vars,
-                            type_=item.term.type,
-                            is_def=True,
-                            ).convert(item.term.ast)
+        java_line = visitor(reql_vars, type_=item.term.type, is_def=True).convert(
+            item.term.ast
+        )
     except Skip as skip:
         return SkippedTest(line=item.term.line, reason=str(skip))
     java_decl = JAVA_DECL.match(java_line).groupdict()
     return JavaDef(
-        line=Version(
-            original=item.term.line,
-            java=java_line,
-        ),
-        varname=java_decl['var'],
-        vartype=java_decl['type'],
-        value=java_decl['value'],
+        line=Version(original=item.term.line, java=java_line),
+        varname=java_decl["var"],
+        vartype=java_decl["type"],
+        value=java_decl["value"],
         run_if_query=item.run_if_query,
         testfile=item.testfile,
         line_num=item.line_num,
-        runopts=convert_runopts(reql_vars, java_decl['type'], item.runopts)
+        runopts=convert_runopts(reql_vars, java_decl["type"], item.runopts),
     )
 
 
@@ -347,43 +319,36 @@ def convert_runopts(reql_vars, type_, runopts):
     if runopts is None:
         return None
     return {
-        key: JavaVisitor(
-            reql_vars, type_=type_).convert(val)
+        key: JavaVisitor(reql_vars, type_=type_).convert(val)
         for key, val in runopts.items()
     }
 
 
 def query_to_java(item, reql_vars):
     if item.runopts is not None:
-        converted_runopts = convert_runopts(
-            reql_vars, item.query.type, item.runopts)
+        converted_runopts = convert_runopts(reql_vars, item.query.type, item.runopts)
     else:
         converted_runopts = item.runopts
     try:
-        java_line = ReQLVisitor(
-            reql_vars, type_=item.query.type).convert(item.query.ast)
+        java_line = ReQLVisitor(reql_vars, type_=item.query.type).convert(
+            item.query.ast
+        )
         if is_reql(item.expected.type):
             visitor = ReQLVisitor
         else:
             visitor = JavaVisitor
-        java_expected_line = visitor(
-            reql_vars, type_=item.expected.type)\
-            .convert(item.expected.ast)
+        java_expected_line = visitor(reql_vars, type_=item.expected.type).convert(
+            item.expected.ast
+        )
     except Skip as skip:
         return SkippedTest(line=item.query.line, reason=str(skip))
     return JavaQuery(
-        line=Version(
-            original=item.query.line,
-            java=java_line,
-        ),
+        line=Version(original=item.query.line, java=java_line),
         # If py_to_java_type ever fails here, note that I'm not 100%
         # sure item.expected.ast is the correct parameter -- I think
         # we never use it -- so consider changing that.
         expected_type=py_to_java_type(item.expected.type, item.expected.ast),
-        expected_line=Version(
-            original=item.expected.line,
-            java=java_expected_line,
-        ),
+        expected_line=Version(original=item.expected.line, java=java_expected_line),
         testfile=item.testfile,
         line_num=item.line_num,
         runopts=converted_runopts,
@@ -391,16 +356,19 @@ def query_to_java(item, reql_vars):
 
 
 def ast_to_java(sequence, reql_vars):
-    '''Converts the the parsed test data to java source lines using the
-    visitor classes'''
+    """Converts the the parsed test data to java source lines using the
+    visitor classes"""
     reql_vars = set(reql_vars)
+    print(reql_vars, sequence)
     for item in sequence:
         if type(item) == process_polyglot.Def:
             yield def_to_java(item, reql_vars)
         elif type(item) == process_polyglot.CustomDef:
-            yield JavaDef(line=Version(item.line, item.line),
-                          testfile=item.testfile,
-                          line_num=item.line_num)
+            yield JavaDef(
+                line=Version(item.line, item.line),
+                testfile=item.testfile,
+                line_num=item.line_num,
+            )
         elif type(item) == process_polyglot.Query:
             yield query_to_java(item, reql_vars)
         elif type(item) == SkippedTest:
@@ -410,14 +378,15 @@ def ast_to_java(sequence, reql_vars):
 
 
 class JavaVisitor(ast.NodeVisitor):
-    '''Converts python ast nodes into a java string'''
+    """Converts python ast nodes into a java string"""
 
-    def __init__(self,
-                 reql_vars=frozenset("r"),
-                 out=None,
-                 type_=None,
-                 is_def=False,
-                 smart_bracket=False,
+    def __init__(
+        self,
+        reql_vars=frozenset("r"),
+        out=None,
+        type_=None,
+        is_def=False,
+        smart_bracket=False,
     ):
         self.out = StringIO() if out is None else out
         self.reql_vars = reql_vars
@@ -432,13 +401,13 @@ class JavaVisitor(ast.NodeVisitor):
 
     def skip(self, message, *args, **kwargs):
         cls = Skip
-        is_fatal = kwargs.pop('fatal', False)
+        is_fatal = kwargs.pop("fatal", False)
         if self.is_def or is_fatal:
             cls = FatalSkip
         raise cls(message, *args, **kwargs)
 
     def convert(self, node):
-        '''Convert a text line to another text line'''
+        """Convert a text line to another text line"""
         self.visit(node)
         return self.out.getvalue()
 
@@ -454,10 +423,11 @@ class JavaVisitor(ast.NodeVisitor):
     def to_str(self, s):
         escape_string(s, self.out)
 
-    def cast_null(self, arg, cast='ReqlExpr'):
-        '''Emits a cast to (ReqlExpr) if the node represents null'''
-        if (type(arg) == ast.Name and arg.id == 'null') or \
-           (type(arg) == ast.NameConstant and arg.value == None):
+    def cast_null(self, arg, cast="ReqlExpr"):
+        """Emits a cast to (ReqlExpr) if the node represents null"""
+        if (type(arg) == ast.Name and arg.id == "null") or (
+            type(arg) == ast.NameConstant and arg.value == None
+        ):
             self.write("(")
             self.write(cast)
             self.write(") ")
@@ -468,7 +438,7 @@ class JavaVisitor(ast.NodeVisitor):
         if args:
             self.cast_null(args[0])
         for arg in args[1:]:
-            self.write(', ')
+            self.write(", ")
             self.cast_null(arg)
         self.write(")")
         for optarg in optargs:
@@ -480,7 +450,7 @@ class JavaVisitor(ast.NodeVisitor):
 
     def generic_visit(self, node):
         logger.error("While translating: %s", ast.dump(node))
-        logger.error("Got as far as: %s", ''.join(self.out))
+        logger.error("Got as far as: %s", "".join(self.out))
         raise Unhandled("Don't know what this thing is: " + str(type(node)))
 
     def visit_Assign(self, node):
@@ -493,11 +463,9 @@ class JavaVisitor(ast.NodeVisitor):
         self.write(type)
         self.write(") (")
         if is_reql(self._type):
-            ReQLVisitor(self.reql_vars,
-                        out=self.out,
-                        type_=type,
-                        is_def=True,
-                        ).visit(node.value)
+            ReQLVisitor(self.reql_vars, out=self.out, type_=type, is_def=True).visit(
+                node.value
+            )
         else:
             self.visit(node.value)
 
@@ -524,17 +492,18 @@ class JavaVisitor(ast.NodeVisitor):
 
     def visit_Name(self, node):
         name = node.id
-        if name == 'frozenset':
+        if name == "frozenset":
             self.skip("can't convert frozensets to GroupedData yet")
-        if name in metajava.java_term_info.JAVA_KEYWORDS or \
-           name in metajava.java_term_info.OBJECT_METHODS:
-            name += '_'
-        self.write({
-            'True': 'true',
-            'False': 'false',
-            'None': 'null',
-            'nil': 'null',
-            }.get(name, name))
+        if (
+            name in metajava.java_term_info.JAVA_KEYWORDS
+            or name in metajava.java_term_info.OBJECT_METHODS
+        ):
+            name += "_"
+        self.write(
+            {"True": "true", "False": "false", "None": "null", "nil": "null"}.get(
+                name, name
+            )
+        )
 
     def visit_arg(self, node):
         self.write(node.arg)
@@ -547,8 +516,7 @@ class JavaVisitor(ast.NodeVisitor):
         elif node.value is False:
             self.write("false")
         else:
-            raise Unhandled(
-                "Don't know NameConstant with value %s" % node.value)
+            raise Unhandled("Don't know NameConstant with value %s" % node.value)
 
     def visit_Attribute(self, node, emit_parens=True):
         skip_parent = False
@@ -576,28 +544,26 @@ class JavaVisitor(ast.NodeVisitor):
         self.visit(node.value)
 
     def skip_if_arity_check(self, node):
-        '''Throws out tests for arity'''
-        rgx = re.compile('.*([Ee]xpect(ed|s)|Got) .* argument')
+        """Throws out tests for arity"""
+        rgx = re.compile(".*([Ee]xpect(ed|s)|Got) .* argument")
         try:
-            if node.func.id == 'err' and rgx.match(node.args[1].s):
+            if node.func.id == "err" and rgx.match(node.args[1].s):
                 self.skip("arity checks done by java type system")
         except (AttributeError, TypeError):
             pass
 
     def convert_if_string_encode(self, node):
-        '''Finds strings like 'foo'.encode("utf-8") and turns them into the
-        java version: "foo".getBytes(StandardCharsets.UTF_8)'''
+        """Finds strings like 'foo'.encode("utf-8") and turns them into the
+        java version: "foo".getBytes(StandardCharsets.UTF_8)"""
         try:
-            assert node.func.attr == 'encode'
+            assert node.func.attr == "encode"
             node.func.value.s
             encoding = node.args[0].s
         except Exception:
             return False
-        java_encoding = {
-            "ascii": "US_ASCII",
-            "utf-16": "UTF_16",
-            "utf-8": "UTF_8",
-        }[encoding]
+        java_encoding = {"ascii": "US_ASCII", "utf-16": "UTF_16", "utf-8": "UTF_8"}[
+            encoding
+        ]
         self.visit(node.func.value)
         self.write(".getBytes(StandardCharsets.")
         self.write(java_encoding)
@@ -605,7 +571,7 @@ class JavaVisitor(ast.NodeVisitor):
         return True
 
     def bag_data_hack(self, node):
-        '''This is a very specific hack that isn't a general conversion method
+        """This is a very specific hack that isn't a general conversion method
         whatsoever. In the tests we have an expected value like
         bag(data * 2) where data is a list. This doesn't work in Java
         obviously, but the only way to detect it "correctly" requires
@@ -615,10 +581,10 @@ class JavaVisitor(ast.NodeVisitor):
         I've made this extremely specific so it hopefully only gets
         triggered by this specific case in the tests and not on
         general conversions.
-        '''
+        """
         try:
-            assert node.func.id == 'bag'
-            assert node.args[0].left.id == 'data'
+            assert node.func.id == "bag"
+            assert node.args[0].left.id == "data"
             assert type(node.args[0].op) == ast.Mult
             assert node.args[0].right.n == 2
             self.write("bag((List)")
@@ -636,7 +602,7 @@ class JavaVisitor(ast.NodeVisitor):
             return
         if self.bag_data_hack(node):
             return
-        if type(node.func) == ast.Attribute and node.func.attr == 'error':
+        if type(node.func) == ast.Attribute and node.func.attr == "error":
             # This weird special case is because sometimes the tests
             # use r.error and sometimes they use r.error(). The java
             # driver only supports r.error(). Since we're coming in
@@ -679,8 +645,10 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_Subscript(self, node):
         if node.slice is None or type(node.slice.value) != ast.Num:
             logger.error("While doing: %s", ast.dump(node))
-            raise Unhandled("Only integers subscript can be converted."
-                            " Got %s" % node.slice.value.s)
+            raise Unhandled(
+                "Only integers subscript can be converted."
+                " Got %s" % node.slice.value.s
+            )
         self.visit(node.value)
         self.write(".get(")
         self.write(str(node.slice.value.n))
@@ -689,7 +657,7 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_ListComp(self, node):
         gen = node.generators[0]
 
-        if type(gen.iter) == ast.Call and gen.iter.func.id.endswith('range'):
+        if type(gen.iter) == ast.Call and gen.iter.func.id.endswith("range"):
             # This is really a special-case hacking of [... for i in
             # range(i)] comprehensions that are used in the polyglot
             # tests sometimes. It won't handle translating arbitrary
@@ -714,25 +682,22 @@ class JavaVisitor(ast.NodeVisitor):
         self.write(").collect(Collectors.toList())")
 
     def visit_UnaryOp(self, node):
-        opMap = {
-            ast.USub: "-",
-            ast.Not: "!",
-            ast.UAdd: "+",
-            ast.Invert: "~",
-        }
+        opMap = {ast.USub: "-", ast.Not: "!", ast.UAdd: "+", ast.Invert: "~"}
         self.write(opMap[type(node.op)])
         self.visit(node.operand)
 
     def is_array_add(self, node):
-        if ((type(node.left) == ast.ListComp or type(node.left) == ast.List) and
-            (type(node.right) == ast.ListComp or type(node.right) == ast.List) and
-            type(node.op) == ast.Add):
+        if (
+            (type(node.left) == ast.ListComp or type(node.left) == ast.List)
+            and (type(node.right) == ast.ListComp or type(node.right) == ast.List)
+            and type(node.op) == ast.Add
+        ):
             # A hack for the transform/unordered_map case
-            self.write('concatLong(')
+            self.write("concatLong(")
             self.visit(node.left)
-            self.write(', ')
+            self.write(", ")
             self.visit(node.right)
-            self.write(')')
+            self.write(")")
             return True
         else:
             return False
@@ -762,23 +727,43 @@ class JavaVisitor(ast.NodeVisitor):
 
 
 class ReQLVisitor(JavaVisitor):
-    '''Mostly the same as the JavaVisitor, but converts some
+    """Mostly the same as the JavaVisitor, but converts some
     reql-specific stuff. This should only be invoked on an expression
-    if it's already known to return true from is_reql'''
+    if it's already known to return true from is_reql"""
 
     TOPLEVEL_CONSTANTS = {
-        'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
-        'saturday', 'sunday', 'january', 'february', 'march', 'april',
-        'may', 'june', 'july', 'august', 'september', 'october',
-        'november', 'december', 'minval', 'maxval', 'error'
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+        "minval",
+        "maxval",
+        "error",
     }
 
     def is_byte_array_add(self, node):
-        '''Some places we do stuff like b'foo' + b'bar' and byte
-        arrays don't like that much'''
-        if (type(node.left) == ast.Bytes and
-           type(node.right) == ast.Bytes and
-           type(node.op) == ast.Add):
+        """Some places we do stuff like b'foo' + b'bar' and byte
+        arrays don't like that much"""
+        if (
+            type(node.left) == ast.Bytes
+            and type(node.right) == ast.Bytes
+            and type(node.op) == ast.Add
+        ):
             self.visit_Bytes(node.left, skip_suffix=True)
             self.visit_Bytes(node.right, skip_prefix=True)
             return True
@@ -842,8 +827,14 @@ class ReQLVisitor(JavaVisitor):
         self.write(")")
 
     def is_not_reql(self, node):
-        if type(node) in (ast.Name, ast.NameConstant,
-                          ast.Num, ast.Str, ast.Dict, ast.List):
+        if type(node) in (
+            ast.Name,
+            ast.NameConstant,
+            ast.Num,
+            ast.Str,
+            ast.Dict,
+            ast.List,
+        ):
             return True
         else:
             return False
@@ -874,10 +865,10 @@ class ReQLVisitor(JavaVisitor):
             raise Unhandled("No translation for ExtSlice")
 
     def get_slice_bounds(self, slc):
-        '''Used to extract bounds when using bracket slice
+        """Used to extract bounds when using bracket slice
         syntax. This is more complicated since Python3 parses -1 as
         UnaryOp(op=USub, operand=Num(1)) instead of Num(-1) like
-        Python2 does'''
+        Python2 does"""
         if not slc:
             return 0, -1, True
 
@@ -889,8 +880,7 @@ class ReQLVisitor(JavaVisitor):
             elif type(bound) == ast.Num:
                 return bound.n
             else:
-                raise Unhandled(
-                    "Not handling bound: %s" % ast.dump(bound))
+                raise Unhandled("Not handling bound: %s" % ast.dump(bound))
 
         right_closed = slc.upper is None
 
@@ -908,24 +898,26 @@ class ReQLVisitor(JavaVisitor):
             # These are underscored in the python driver to avoid
             # keywords, but they aren't java keywords so we convert
             # them back.
-            'or_': 'or',
-            'and_': 'and',
-            'not_': 'not',
+            "or_": "or",
+            "and_": "and",
+            "not_": "not",
         }
-        method_aliases = {metajava.dromedary(k): v
-                          for k, v in metajava.java_term_info
-                          .METHOD_ALIASES.items()}
+        method_aliases = {
+            metajava.dromedary(k): v
+            for k, v in metajava.java_term_info.METHOD_ALIASES.items()
+        }
         self.visit(node.value)
         self.write(".")
-        initial = python_clashes.get(
-            node.attr, metajava.dromedary(node.attr))
+        initial = python_clashes.get(node.attr, metajava.dromedary(node.attr))
         initial = method_aliases.get(initial, initial)
         self.write(initial)
-        if initial in metajava.java_term_info.JAVA_KEYWORDS or \
-           initial in metajava.java_term_info.OBJECT_METHODS:
-            self.write('_')
+        if (
+            initial in metajava.java_term_info.JAVA_KEYWORDS
+            or initial in metajava.java_term_info.OBJECT_METHODS
+        ):
+            self.write("_")
         if emit_parens and is_toplevel_constant:
-            self.write('()')
+            self.write("()")
 
     def visit_UnaryOp(self, node):
         if type(node.op) == ast.Invert:
@@ -943,12 +935,16 @@ class ReQLVisitor(JavaVisitor):
         super_result = super(ReQLVisitor, self).visit_Call(node)
 
         # r.for_each(1) etc should be skipped
-        if (attr_equals(node.func, "attr", "for_each") and
-           type(node.args[0]) != ast.Lambda):
-            self.skip("the java driver doesn't allow "
-                      "non-function arguments to forEach")
+        if (
+            attr_equals(node.func, "attr", "for_each")
+            and type(node.args[0]) != ast.Lambda
+        ):
+            self.skip(
+                "the java driver doesn't allow " "non-function arguments to forEach"
+            )
         # map(1) should be skipped
         elif attr_equals(node.func, "attr", "map"):
+
             def check(node):
                 if type(node) == ast.Lambda:
                     return True
@@ -963,16 +959,20 @@ class ReQLVisitor(JavaVisitor):
                     return True
                 else:
                     return False
+
             if not check(node.args[-1]):
-                self.skip("the java driver statically checks that "
-                          "map contains a function argument")
+                self.skip(
+                    "the java driver statically checks that "
+                    "map contains a function argument"
+                )
         else:
             return super_result
 
 
 def attr_equals(node, attr, value):
-    '''Helper for digging into ast nodes'''
+    """Helper for digging into ast nodes"""
     return hasattr(node, attr) and getattr(node, attr) == value
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

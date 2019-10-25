@@ -302,19 +302,19 @@ public class TimesConstructors {
         }
 
         {
-            // times/constructors.yaml line #48
-            /* 10000 */
-            Long expected_ = 10000L;
-            /* r.epoch_time(253430000000).year() */
-            logger.info("About to run line #48: r.epochTime(253430000000L).year()");
-            Object obtained = runOrCatch(r.epochTime(253430000000L).year(),
+            // times/constructors.yaml line #49
+            /* "1970-01-01T00:00:01.444+00:00" */
+            String expected_ = "1970-01-01T00:00:01.444+00:00";
+            /* r.epoch_time(1.444).to_iso8601() */
+            logger.info("About to run line #49: r.epochTime(1.444).toIso8601()");
+            Object obtained = runOrCatch(r.epochTime(1.444).toIso8601(),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #48");
+            logger.info("Finished running line #49");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #48:" + ae.toString());
+                logger.error("Whoops, got exception on line #49:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -323,40 +323,19 @@ public class TimesConstructors {
         }
 
         {
-            // times/constructors.yaml line #50
-            /* err("ReqlQueryLogicError", "Year `10000` out of valid ISO 8601 range [0, 9999].", []) */
-            Err expected_ = err("ReqlQueryLogicError", "Year `10000` out of valid ISO 8601 range [0, 9999].", r.array());
-            /* r.epoch_time(253430000000).to_iso8601() */
-            logger.info("About to run line #50: r.epochTime(253430000000L).toIso8601()");
-            Object obtained = runOrCatch(r.epochTime(253430000000L).toIso8601(),
+            // times/constructors.yaml line #52
+            /* "1970-01-01T00:00:01.001+00:00" */
+            String expected_ = "1970-01-01T00:00:01.001+00:00";
+            /* r.epoch_time(1.001).to_iso8601() */
+            logger.info("About to run line #52: r.epochTime(1.001).toIso8601()");
+            Object obtained = runOrCatch(r.epochTime(1.001).toIso8601(),
                                           new OptArgs()
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
-            logger.info("Finished running line #50");
+            logger.info("Finished running line #52");
             } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #50:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // times/constructors.yaml line #53
-            /* err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", []) */
-            Err expected_ = err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", r.array());
-            /* r.epoch_time(253440000000).year() */
-            logger.info("About to run line #53: r.epochTime(253440000000L).year()");
-            Object obtained = runOrCatch(r.epochTime(253440000000L).year(),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #53");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #53:" + ae.toString());
+                logger.error("Whoops, got exception on line #52:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -366,11 +345,11 @@ public class TimesConstructors {
 
         {
             // times/constructors.yaml line #55
-            /* 253440000000 */
-            Long expected_ = 253440000000L;
-            /* r.epoch_time(253440000000).to_epoch_time() */
-            logger.info("About to run line #55: r.epochTime(253440000000L).toEpochTime()");
-            Object obtained = runOrCatch(r.epochTime(253440000000L).toEpochTime(),
+            /* "1970-01-01T00:00:02.058+00:00" */
+            String expected_ = "1970-01-01T00:00:02.058+00:00";
+            /* r.epoch_time(2.058).to_iso8601() */
+            logger.info("About to run line #55: r.epochTime(2.058).toIso8601()");
+            Object obtained = runOrCatch(r.epochTime(2.058).toIso8601(),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -386,33 +365,12 @@ public class TimesConstructors {
         }
 
         {
-            // times/constructors.yaml line #57
-            /* 1400 */
-            Long expected_ = 1400L;
-            /* r.epoch_time(-17980000000).year() */
-            logger.info("About to run line #57: r.epochTime(-17980000000L).year()");
-            Object obtained = runOrCatch(r.epochTime(-17980000000L).year(),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #57");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #57:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
             // times/constructors.yaml line #59
-            /* err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", []) */
-            Err expected_ = err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", r.array());
-            /* r.epoch_time(-17990000000).year() */
-            logger.info("About to run line #59: r.epochTime(-17990000000L).year()");
-            Object obtained = runOrCatch(r.epochTime(-17990000000L).year(),
+            /* 10000 */
+            Long expected_ = 10000L;
+            /* r.epoch_time(253430000000).year() */
+            logger.info("About to run line #59: r.epochTime(253430000000L).year()");
+            Object obtained = runOrCatch(r.epochTime(253430000000L).year(),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -429,11 +387,11 @@ public class TimesConstructors {
 
         {
             // times/constructors.yaml line #61
-            /* -17990000000 */
-            Long expected_ = -17990000000L;
-            /* r.epoch_time(-17990000000).to_epoch_time() */
-            logger.info("About to run line #61: r.epochTime(-17990000000L).toEpochTime()");
-            Object obtained = runOrCatch(r.epochTime(-17990000000L).toEpochTime(),
+            /* err("ReqlQueryLogicError", "Year `10000` out of valid ISO 8601 range [0, 9999].", []) */
+            Err expected_ = err("ReqlQueryLogicError", "Year `10000` out of valid ISO 8601 range [0, 9999].", r.array());
+            /* r.epoch_time(253430000000).to_iso8601() */
+            logger.info("About to run line #61: r.epochTime(253430000000L).toIso8601()");
+            Object obtained = runOrCatch(r.epochTime(253430000000L).toIso8601(),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -448,52 +406,157 @@ public class TimesConstructors {
             }
         }
 
-        // times/constructors.yaml line #65
+        {
+            // times/constructors.yaml line #64
+            /* err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", []) */
+            Err expected_ = err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", r.array());
+            /* r.epoch_time(253440000000).year() */
+            logger.info("About to run line #64: r.epochTime(253440000000L).year()");
+            Object obtained = runOrCatch(r.epochTime(253440000000L).year(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #64");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #64:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // times/constructors.yaml line #66
+            /* 253440000000 */
+            Long expected_ = 253440000000L;
+            /* r.epoch_time(253440000000).to_epoch_time() */
+            logger.info("About to run line #66: r.epochTime(253440000000L).toEpochTime()");
+            Object obtained = runOrCatch(r.epochTime(253440000000L).toEpochTime(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #66");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #66:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // times/constructors.yaml line #68
+            /* 1400 */
+            Long expected_ = 1400L;
+            /* r.epoch_time(-17980000000).year() */
+            logger.info("About to run line #68: r.epochTime(-17980000000L).year()");
+            Object obtained = runOrCatch(r.epochTime(-17980000000L).year(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #68");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #68:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // times/constructors.yaml line #70
+            /* err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", []) */
+            Err expected_ = err("ReqlQueryLogicError", "Error in time logic: Year is out of valid range: 1400..10000.", r.array());
+            /* r.epoch_time(-17990000000).year() */
+            logger.info("About to run line #70: r.epochTime(-17990000000L).year()");
+            Object obtained = runOrCatch(r.epochTime(-17990000000L).year(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #70");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #70:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // times/constructors.yaml line #72
+            /* -17990000000 */
+            Long expected_ = -17990000000L;
+            /* r.epoch_time(-17990000000).to_epoch_time() */
+            logger.info("About to run line #72: r.epochTime(-17990000000L).toEpochTime()");
+            Object obtained = runOrCatch(r.epochTime(-17990000000L).toEpochTime(),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #72");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #72:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        // times/constructors.yaml line #76
         // cdate = "2013-01-01"
         logger.info("Possibly executing: String cdate = (String) ('2013-01-01');");
         String cdate = (String) ("2013-01-01");
 
-        // times/constructors.yaml line #66
+        // times/constructors.yaml line #77
         // dates = ["2013", "2013-01", "2013-01-01", "20130101", "2013-001", "2013001"]
         logger.info("Possibly executing: List dates = (List) (r.array('2013', '2013-01', '2013-01-01', '20130101', '2013-001', '2013001'));");
         List dates = (List) (r.array("2013", "2013-01", "2013-01-01", "20130101", "2013-001", "2013001"));
 
-        // times/constructors.yaml line #67
+        // times/constructors.yaml line #78
         // ctime = "13:00:00"
         logger.info("Possibly executing: String ctime = (String) ('13:00:00');");
         String ctime = (String) ("13:00:00");
 
-        // times/constructors.yaml line #68
+        // times/constructors.yaml line #79
         // times = ["13", "13:00", "1300", "13:00:00", "13:00:00.000000", "130000.000000"]
         logger.info("Possibly executing: List times = (List) (r.array('13', '13:00', '1300', '13:00:00', '13:00:00.000000', '130000.000000'));");
         List times = (List) (r.array("13", "13:00", "1300", "13:00:00", "13:00:00.000000", "130000.000000"));
 
-        // times/constructors.yaml line #69
+        // times/constructors.yaml line #80
         // ctz = "+00:00"
         logger.info("Possibly executing: String ctz = (String) ('+00:00');");
         String ctz = (String) ("+00:00");
 
-        // times/constructors.yaml line #70
+        // times/constructors.yaml line #81
         // tzs = ["Z", "+00", "+0000", "+00:00"]
         logger.info("Possibly executing: List tzs = (List) (r.array('Z', '+00', '+0000', '+00:00'));");
         List tzs = (List) (r.array("Z", "+00", "+0000", "+00:00"));
 
-        // times/constructors.yaml line #71
+        // times/constructors.yaml line #82
         // cdt = [cdate+"T"+ctime+ctz]
         logger.info("Possibly executing: List cdt = (List) (r.array(cdate + 'T' + ctime + ctz));");
         List cdt = (List) (r.array(cdate + "T" + ctime + ctz));
 
-        // times/constructors.yaml line #81
+        // times/constructors.yaml line #92
         // bad_dates = ["201301", "2013-0101", "2a13", "2013+01", "2013-01-01.1"]
         logger.info("Possibly executing: List bad_dates = (List) (r.array('201301', '2013-0101', '2a13', '2013+01', '2013-01-01.1'));");
         List bad_dates = (List) (r.array("201301", "2013-0101", "2a13", "2013+01", "2013-01-01.1"));
 
-        // times/constructors.yaml line #82
+        // times/constructors.yaml line #93
         // bad_times = ["a3", "13:0000", "13:000", "13:00.00", "130000.00000000a"]
         logger.info("Possibly executing: List bad_times = (List) (r.array('a3', '13:0000', '13:000', '13:00.00', '130000.00000000a'));");
         List bad_times = (List) (r.array("a3", "13:0000", "13:000", "13:00.00", "130000.00000000a"));
 
-        // times/constructors.yaml line #83
+        // times/constructors.yaml line #94
         // bad_tzs = ["X", "-7", "-07:-1", "+07+01", "PST", "UTC", "Z+00"]
         logger.info("Possibly executing: List bad_tzs = (List) (r.array('X', '-7', '-07:-1', '+07+01', 'PST', 'UTC', 'Z+00'));");
         List bad_tzs = (List) (r.array("X", "-7", "-07:-1", "+07+01", "PST", "UTC", "Z+00"));
