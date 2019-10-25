@@ -949,6 +949,27 @@ public class MathLogicLogic {
         }
 
         {
+            // math_logic/logic.yaml line #143
+            /* err("ReqlDriverCompileError", "Calling '==' on result of infix bitwise operator:", []) */
+            Err expected_ = err("ReqlDriverCompileError", "Calling '==' on result of infix bitwise operator:", r.array());
+            /* r.expr(r.expr(True) & r.expr(False) == r.expr(False) | r.expr(True)) */
+            logger.info("About to run line #143: r.expr(r.expr(true).and(r.expr(false)).eq(r.expr(false).or(r.expr(true))))");
+            Object obtained = runOrCatch(r.expr(r.expr(true).and(r.expr(false)).eq(r.expr(false).or(r.expr(true)))),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #143");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #143:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
             // math_logic/logic.yaml line #145
             /* False */
             Boolean expected_ = false;
@@ -962,6 +983,27 @@ public class MathLogicLogic {
             logger.info("Finished running line #145");
             } catch (Throwable ae) {
                 logger.error("Whoops, got exception on line #145:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
+
+        {
+            // math_logic/logic.yaml line #147
+            /* err("ReqlDriverCompileError", "Calling '>=' on result of infix bitwise operator:", []) */
+            Err expected_ = err("ReqlDriverCompileError", "Calling '>=' on result of infix bitwise operator:", r.array());
+            /* r.expr(r.expr(True) & r.expr(False) >= r.expr(False) | r.expr(True)) */
+            logger.info("About to run line #147: r.expr(r.expr(true).and(r.expr(false)).ge(r.expr(false).or(r.expr(true))))");
+            Object obtained = runOrCatch(r.expr(r.expr(true).and(r.expr(false)).ge(r.expr(false).or(r.expr(true)))),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #147");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #147:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
