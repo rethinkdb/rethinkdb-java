@@ -423,7 +423,7 @@ class JavaVisitor(ast.NodeVisitor):
     def to_str(self, s):
         escape_string(s, self.out)
 
-    def cast_null(self, arg, cast="ReqlExpr"):
+    def cast_null(self, arg, cast="ReqlFunction3"):
         """Emits a cast to (ReqlExpr) if the node represents null"""
         if (type(arg) == ast.Name and arg.id == "null") or (
             type(arg) == ast.NameConstant and arg.value == None

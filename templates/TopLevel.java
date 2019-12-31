@@ -33,7 +33,14 @@ public class TopLevel {
         return new MapObject<>();
     }
 
-% for type in ["Object", "ReqlFunction0", "ReqlFunction1", "ReqlFunction2", "ReqlFunction3", "ReqlFunction4"]:
+    public <T> List<T> array(T val0, T... vals){
+        List<T> res = new ArrayList<>();
+        res.add(val0);
+        Collections.addAll(res, vals);
+        return res;
+    }
+
+% for type in ["ReqlFunction0", "ReqlFunction1", "ReqlFunction2", "ReqlFunction3", "ReqlFunction4"]:
     public List<Object> array(${type} val0, ${type}... vals){
         List<Object> res = new ArrayList<>();
         res.add(val0);

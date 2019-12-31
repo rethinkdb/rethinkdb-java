@@ -512,8 +512,8 @@ public class DatumArray {
             /* err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array(0L));
             /* r.expr([1,2,3]).insert_at(null, 1) */
-            logger.info("About to run line #65: r.expr(r.array(1L, 2L, 3L)).insertAt((ReqlExpr) null, 1L)");
-            Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).insertAt((ReqlExpr) null, 1L),
+            logger.info("About to run line #65: r.expr(r.array(1L, 2L, 3L)).insertAt((ReqlFunction3) null, 1L)");
+            Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).insertAt((ReqlFunction3) null, 1L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -701,8 +701,8 @@ public class DatumArray {
             /* err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array(0L));
             /* r.expr([1,2,3]).splice_at(null, [1]) */
-            logger.info("About to run line #86: r.expr(r.array(1L, 2L, 3L)).spliceAt((ReqlExpr) null, r.array(1L))");
-            Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).spliceAt((ReqlExpr) null, r.array(1L)),
+            logger.info("About to run line #86: r.expr(r.array(1L, 2L, 3L)).spliceAt((ReqlFunction3) null, r.array(1L))");
+            Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).spliceAt((ReqlFunction3) null, r.array(1L)),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -953,8 +953,8 @@ public class DatumArray {
             /* err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array(0L));
             /* r.expr([1,2,3]).delete_at(null) */
-            logger.info("About to run line #113: r.expr(r.array(1L, 2L, 3L)).deleteAt((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).deleteAt((ReqlExpr) null),
+            logger.info("About to run line #113: r.expr(r.array(1L, 2L, 3L)).deleteAt((ReqlFunction3) null)");
+            Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).deleteAt((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1121,8 +1121,8 @@ public class DatumArray {
             /* err('ReqlNonExistenceError', 'Expected type NUMBER but found NULL.', [0]) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array(0L));
             /* r.expr([1,2,3]).change_at(null, 1) */
-            logger.info("About to run line #132: r.expr(r.array(1L, 2L, 3L)).changeAt((ReqlExpr) null, 1L)");
-            Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).changeAt((ReqlExpr) null, 1L),
+            logger.info("About to run line #132: r.expr(r.array(1L, 2L, 3L)).changeAt((ReqlFunction3) null, 1L)");
+            Object obtained = runOrCatch(r.expr(r.array(1L, 2L, 3L)).changeAt((ReqlFunction3) null, 1L),
                                           new OptArgs()
                                           ,conn);
             try {

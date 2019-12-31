@@ -561,8 +561,8 @@ public class DatumString {
             /* [] */
             List expected_ = r.array();
             /* r.expr('').split(null) */
-            logger.info("About to run line #102: r.expr('').split((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr("").split((ReqlExpr) null),
+            logger.info("About to run line #102: r.expr('').split((ReqlFunction3) null)");
+            Object obtained = runOrCatch(r.expr("").split((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -624,8 +624,8 @@ public class DatumString {
             /* [] */
             List expected_ = r.array();
             /* r.expr('').split(null, 5) */
-            logger.info("About to run line #108: r.expr('').split((ReqlExpr) null, 5L)");
-            Object obtained = runOrCatch(r.expr("").split((ReqlExpr) null, 5L),
+            logger.info("About to run line #108: r.expr('').split((ReqlFunction3) null, 5L)");
+            Object obtained = runOrCatch(r.expr("").split((ReqlFunction3) null, 5L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -708,8 +708,8 @@ public class DatumString {
             /* ['aaaa', 'bbbb', 'cccc'] */
             List expected_ = r.array("aaaa", "bbbb", "cccc");
             /* r.expr('aaaa bbbb  cccc ').split(null) */
-            logger.info("About to run line #117: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null),
+            logger.info("About to run line #117: r.expr('aaaa bbbb  cccc ').split((ReqlFunction3) null)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -897,8 +897,8 @@ public class DatumString {
             /* ['aaaa', 'bbbb', 'cccc'] */
             List expected_ = r.array("aaaa", "bbbb", "cccc");
             /* r.expr('aaaa bbbb  cccc ').split(null, 3) */
-            logger.info("About to run line #136: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 3L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 3L),
+            logger.info("About to run line #136: r.expr('aaaa bbbb  cccc ').split((ReqlFunction3) null, 3L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlFunction3) null, 3L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1086,8 +1086,8 @@ public class DatumString {
             /* ['aaaa', 'bbbb', 'cccc '] */
             List expected_ = r.array("aaaa", "bbbb", "cccc ");
             /* r.expr('aaaa bbbb  cccc ').split(null, 2) */
-            logger.info("About to run line #155: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 2L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 2L),
+            logger.info("About to run line #155: r.expr('aaaa bbbb  cccc ').split((ReqlFunction3) null, 2L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlFunction3) null, 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1107,8 +1107,8 @@ public class DatumString {
             /* ["a", "b"] */
             List expected_ = r.array("a", "b");
             /* r.expr("a  b  ").split(null, 2) */
-            logger.info("About to run line #157: r.expr('a  b  ').split((ReqlExpr) null, 2L)");
-            Object obtained = runOrCatch(r.expr("a  b  ").split((ReqlExpr) null, 2L),
+            logger.info("About to run line #157: r.expr('a  b  ').split((ReqlFunction3) null, 2L)");
+            Object obtained = runOrCatch(r.expr("a  b  ").split((ReqlFunction3) null, 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1296,8 +1296,8 @@ public class DatumString {
             /* ['aaaa', 'bbbb  cccc '] */
             List expected_ = r.array("aaaa", "bbbb  cccc ");
             /* r.expr('aaaa bbbb  cccc ').split(null, 1) */
-            logger.info("About to run line #176: r.expr('aaaa bbbb  cccc ').split((ReqlExpr) null, 1L)");
-            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlExpr) null, 1L),
+            logger.info("About to run line #176: r.expr('aaaa bbbb  cccc ').split((ReqlFunction3) null, 1L)");
+            Object obtained = runOrCatch(r.expr("aaaa bbbb  cccc ").split((ReqlFunction3) null, 1L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1506,8 +1506,8 @@ public class DatumString {
             /* [] */
             List expected_ = r.array();
             /* r.expr('  ').split(null) */
-            logger.info("About to run line #197: r.expr('  ').split((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr("  ").split((ReqlExpr) null),
+            logger.info("About to run line #197: r.expr('  ').split((ReqlFunction3) null)");
+            Object obtained = runOrCatch(r.expr("  ").split((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1548,8 +1548,8 @@ public class DatumString {
             /* [] */
             List expected_ = r.array();
             /* r.expr('  ').split(null, 5) */
-            logger.info("About to run line #201: r.expr('  ').split((ReqlExpr) null, 5L)");
-            Object obtained = runOrCatch(r.expr("  ").split((ReqlExpr) null, 5L),
+            logger.info("About to run line #201: r.expr('  ').split((ReqlFunction3) null, 5L)");
+            Object obtained = runOrCatch(r.expr("  ").split((ReqlFunction3) null, 5L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1611,8 +1611,8 @@ public class DatumString {
             /* ['aaaa', 'bbbb', 'cccc'] */
             List expected_ = r.array("aaaa", "bbbb", "cccc");
             /* r.expr('  aaaa bbbb  cccc ').split(null) */
-            logger.info("About to run line #208: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null),
+            logger.info("About to run line #208: r.expr('  aaaa bbbb  cccc ').split((ReqlFunction3) null)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1779,8 +1779,8 @@ public class DatumString {
             /* ['aaaa', 'bbbb', 'cccc'] */
             List expected_ = r.array("aaaa", "bbbb", "cccc");
             /* r.expr('  aaaa bbbb  cccc ').split(null, 3) */
-            logger.info("About to run line #225: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 3L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 3L),
+            logger.info("About to run line #225: r.expr('  aaaa bbbb  cccc ').split((ReqlFunction3) null, 3L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlFunction3) null, 3L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1947,8 +1947,8 @@ public class DatumString {
             /* ['aaaa', 'bbbb', 'cccc '] */
             List expected_ = r.array("aaaa", "bbbb", "cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(null, 2) */
-            logger.info("About to run line #242: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 2L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 2L),
+            logger.info("About to run line #242: r.expr('  aaaa bbbb  cccc ').split((ReqlFunction3) null, 2L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlFunction3) null, 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -1968,8 +1968,8 @@ public class DatumString {
             /* ["a", "b"] */
             List expected_ = r.array("a", "b");
             /* r.expr("a  b  ").split(null, 2) */
-            logger.info("About to run line #244: r.expr('a  b  ').split((ReqlExpr) null, 2L)");
-            Object obtained = runOrCatch(r.expr("a  b  ").split((ReqlExpr) null, 2L),
+            logger.info("About to run line #244: r.expr('a  b  ').split((ReqlFunction3) null, 2L)");
+            Object obtained = runOrCatch(r.expr("a  b  ").split((ReqlFunction3) null, 2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -2136,8 +2136,8 @@ public class DatumString {
             /* ['aaaa', 'bbbb  cccc '] */
             List expected_ = r.array("aaaa", "bbbb  cccc ");
             /* r.expr('  aaaa bbbb  cccc ').split(null, 1) */
-            logger.info("About to run line #261: r.expr('  aaaa bbbb  cccc ').split((ReqlExpr) null, 1L)");
-            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlExpr) null, 1L),
+            logger.info("About to run line #261: r.expr('  aaaa bbbb  cccc ').split((ReqlFunction3) null, 1L)");
+            Object obtained = runOrCatch(r.expr("  aaaa bbbb  cccc ").split((ReqlFunction3) null, 1L),
                                           new OptArgs()
                                           ,conn);
             try {

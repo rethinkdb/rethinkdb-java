@@ -54,7 +54,7 @@ class Response {
                 "JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
         }
         Map<String, Object> jsonResp = Util.toJSON(buf);
-        ResponseType responseType = ResponseType.fromValue(((Long) jsonResp.get("t")).intValue());
+        ResponseType responseType = ResponseType.fromValue((Integer) jsonResp.get("t"));
         List<Long> responseNoteVals = new ArrayList<>();
         jsonResp.put("n", responseNoteVals);
         List<ResponseNote> responseNotes = responseNoteVals

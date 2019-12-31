@@ -113,8 +113,8 @@ public class Default {
             /* 2 */
             Long expected_ = 2L;
             /* r.expr(null).default(2) */
-            logger.info("About to run line #5: r.expr((ReqlExpr) null).default_(2L)");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).default_(2L),
+            logger.info("About to run line #5: r.expr((ReqlFunction3) null).default_(2L)");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).default_(2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -239,8 +239,8 @@ public class Default {
             /* 2 */
             Long expected_ = 2L;
             /* (r.expr(null) + 5).default(2) */
-            logger.info("About to run line #25: r.expr((ReqlExpr) null).add(5L).default_(2L)");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).add(5L).default_(2L),
+            logger.info("About to run line #25: r.expr((ReqlFunction3) null).add(5L).default_(2L)");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).add(5L).default_(2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -260,8 +260,8 @@ public class Default {
             /* 2 */
             Long expected_ = 2L;
             /* (5 + r.expr(null)).default(2) */
-            logger.info("About to run line #28: r.add(5L, r.expr((ReqlExpr) null)).default_(2L)");
-            Object obtained = runOrCatch(r.add(5L, r.expr((ReqlExpr) null)).default_(2L),
+            logger.info("About to run line #28: r.add(5L, r.expr((ReqlFunction3) null)).default_(2L)");
+            Object obtained = runOrCatch(r.add(5L, r.expr((ReqlFunction3) null)).default_(2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -281,8 +281,8 @@ public class Default {
             /* 2 */
             Long expected_ = 2L;
             /* (5 - r.expr(null)).default(2) */
-            logger.info("About to run line #31: r.sub(5L, r.expr((ReqlExpr) null)).default_(2L)");
-            Object obtained = runOrCatch(r.sub(5L, r.expr((ReqlExpr) null)).default_(2L),
+            logger.info("About to run line #31: r.sub(5L, r.expr((ReqlFunction3) null)).default_(2L)");
+            Object obtained = runOrCatch(r.sub(5L, r.expr((ReqlFunction3) null)).default_(2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -302,8 +302,8 @@ public class Default {
             /* 2 */
             Long expected_ = 2L;
             /* (r.expr(null) - 5).default(2) */
-            logger.info("About to run line #34: r.expr((ReqlExpr) null).sub(5L).default_(2L)");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).sub(5L).default_(2L),
+            logger.info("About to run line #34: r.expr((ReqlFunction3) null).sub(5L).default_(2L)");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).sub(5L).default_(2L),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -428,8 +428,8 @@ public class Default {
             /* (null) */
             Object expected_ = null;
             /* r.expr(null).default(r.error()) */
-            logger.info("About to run line #52: r.expr((ReqlExpr) null).default_(r.error())");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).default_(r.error()),
+            logger.info("About to run line #52: r.expr((ReqlFunction3) null).default_(r.error())");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -512,8 +512,8 @@ public class Default {
             /* err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", []) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array());
             /* (r.expr(null) + 5).default(r.error) */
-            logger.info("About to run line #65: r.expr((ReqlExpr) null).add(5L).default_(r.error())");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).add(5L).default_(r.error()),
+            logger.info("About to run line #65: r.expr((ReqlFunction3) null).add(5L).default_(r.error())");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).add(5L).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -533,8 +533,8 @@ public class Default {
             /* err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", []) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array());
             /* (5 + r.expr(null)).default(r.error) */
-            logger.info("About to run line #68: r.add(5L, r.expr((ReqlExpr) null)).default_(r.error())");
-            Object obtained = runOrCatch(r.add(5L, r.expr((ReqlExpr) null)).default_(r.error()),
+            logger.info("About to run line #68: r.add(5L, r.expr((ReqlFunction3) null)).default_(r.error())");
+            Object obtained = runOrCatch(r.add(5L, r.expr((ReqlFunction3) null)).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -554,8 +554,8 @@ public class Default {
             /* err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", []) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array());
             /* (5 - r.expr(null)).default(r.error) */
-            logger.info("About to run line #71: r.sub(5L, r.expr((ReqlExpr) null)).default_(r.error())");
-            Object obtained = runOrCatch(r.sub(5L, r.expr((ReqlExpr) null)).default_(r.error()),
+            logger.info("About to run line #71: r.sub(5L, r.expr((ReqlFunction3) null)).default_(r.error())");
+            Object obtained = runOrCatch(r.sub(5L, r.expr((ReqlFunction3) null)).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -575,8 +575,8 @@ public class Default {
             /* err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", []) */
             Err expected_ = err("ReqlNonExistenceError", "Expected type NUMBER but found NULL.", r.array());
             /* (r.expr(null) - 5).default(r.error) */
-            logger.info("About to run line #74: r.expr((ReqlExpr) null).sub(5L).default_(r.error())");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).sub(5L).default_(r.error()),
+            logger.info("About to run line #74: r.expr((ReqlFunction3) null).sub(5L).default_(r.error())");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).sub(5L).default_(r.error()),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -617,8 +617,8 @@ public class Default {
             /* (null) */
             Object expected_ = null;
             /* r.expr(null).default(lambda e:e) */
-            logger.info("About to run line #83: r.expr((ReqlExpr) null).default_(e -> e)");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).default_(e -> e),
+            logger.info("About to run line #83: r.expr((ReqlFunction3) null).default_(e -> e)");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -701,8 +701,8 @@ public class Default {
             /* ("Expected type NUMBER but found NULL.") */
             String expected_ = "Expected type NUMBER but found NULL.";
             /* (r.expr(null) + 5).default(lambda e:e) */
-            logger.info("About to run line #99: r.expr((ReqlExpr) null).add(5L).default_(e -> e)");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).add(5L).default_(e -> e),
+            logger.info("About to run line #99: r.expr((ReqlFunction3) null).add(5L).default_(e -> e)");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).add(5L).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -722,8 +722,8 @@ public class Default {
             /* ("Expected type NUMBER but found NULL.") */
             String expected_ = "Expected type NUMBER but found NULL.";
             /* (5 + r.expr(null)).default(lambda e:e) */
-            logger.info("About to run line #103: r.add(5L, r.expr((ReqlExpr) null)).default_(e -> e)");
-            Object obtained = runOrCatch(r.add(5L, r.expr((ReqlExpr) null)).default_(e -> e),
+            logger.info("About to run line #103: r.add(5L, r.expr((ReqlFunction3) null)).default_(e -> e)");
+            Object obtained = runOrCatch(r.add(5L, r.expr((ReqlFunction3) null)).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -743,8 +743,8 @@ public class Default {
             /* ("Expected type NUMBER but found NULL.") */
             String expected_ = "Expected type NUMBER but found NULL.";
             /* (5 - r.expr(null)).default(lambda e:e) */
-            logger.info("About to run line #107: r.sub(5L, r.expr((ReqlExpr) null)).default_(e -> e)");
-            Object obtained = runOrCatch(r.sub(5L, r.expr((ReqlExpr) null)).default_(e -> e),
+            logger.info("About to run line #107: r.sub(5L, r.expr((ReqlFunction3) null)).default_(e -> e)");
+            Object obtained = runOrCatch(r.sub(5L, r.expr((ReqlFunction3) null)).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -764,8 +764,8 @@ public class Default {
             /* ("Expected type NUMBER but found NULL.") */
             String expected_ = "Expected type NUMBER but found NULL.";
             /* (r.expr(null) - 5).default(lambda e:e) */
-            logger.info("About to run line #111: r.expr((ReqlExpr) null).sub(5L).default_(e -> e)");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).sub(5L).default_(e -> e),
+            logger.info("About to run line #111: r.expr((ReqlFunction3) null).sub(5L).default_(e -> e)");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).sub(5L).default_(e -> e),
                                           new OptArgs()
                                           ,conn);
             try {

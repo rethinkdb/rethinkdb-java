@@ -218,8 +218,8 @@ public class DatumBool {
             /* False */
             Boolean expected_ = false;
             /* r.expr(null).coerce_to('bool') */
-            logger.info("About to run line #30: r.expr((ReqlExpr) null).coerceTo('bool')");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).coerceTo("bool"),
+            logger.info("About to run line #30: r.expr((ReqlFunction3) null).coerceTo('bool')");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).coerceTo("bool"),
                                           new OptArgs()
                                           ,conn);
             try {

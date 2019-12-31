@@ -4,9 +4,9 @@
 // ../../../../../../../../templates/Exception.java
 package com.rethinkdb.gen.exc;
 
+import org.jetbrains.annotations.Nullable;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.model.Backtrace;
-import org.jetbrains.annotations.Nullable;
 
 public class ReqlOpFailedError extends ReqlAvailabilityError {
 
@@ -38,21 +38,21 @@ public class ReqlOpFailedError extends ReqlAvailabilityError {
         this.term = term;
     }
 
-    public @Nullable Backtrace getBacktrace() {
-        return backtrace;
-    }
-
     public ReqlOpFailedError setBacktrace(Backtrace backtrace) {
         this.backtrace = backtrace;
         return this;
     }
 
-    public @Nullable ReqlAst getTerm() {
-        return this.term;
+    public @Nullable Backtrace getBacktrace() {
+        return backtrace;
     }
 
     public ReqlOpFailedError setTerm(ReqlAst term) {
         this.term = term;
         return this;
+    }
+
+    public @Nullable ReqlAst getTerm() {
+        return this.term;
     }
 }

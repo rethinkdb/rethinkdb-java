@@ -92,8 +92,8 @@ public class DatumTypeof {
             /* 'NULL' */
             String expected_ = "NULL";
             /* r.expr(null).type_of() */
-            logger.info("About to run line #5: r.expr((ReqlExpr) null).typeOf()");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).typeOf(),
+            logger.info("About to run line #5: r.expr((ReqlFunction3) null).typeOf()");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).typeOf(),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -113,8 +113,8 @@ public class DatumTypeof {
             /* 'NULL' */
             String expected_ = "NULL";
             /* r.type_of(null) */
-            logger.info("About to run line #9: r.typeOf((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.typeOf((ReqlExpr) null),
+            logger.info("About to run line #9: r.typeOf((ReqlFunction3) null)");
+            Object obtained = runOrCatch(r.typeOf((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {

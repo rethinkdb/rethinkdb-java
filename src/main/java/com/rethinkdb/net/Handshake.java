@@ -129,10 +129,13 @@ public class Handshake {
 
         @Override
         public ProtocolState nextState(String response) {
-            Map<String, Object> json = toJSON(response);
+
+            final Map<String, Object> json = toJSON(response);
             throwIfFailure(json);
-            Long minVersion = (Long) json.get("min_protocol_version");
-            Long maxVersion = (Long) json.get("max_protocol_version");
+
+            final int minVersion = (Integer) json.get("min_protocol_version");
+            final int maxVersion = (Integer) json.get("max_protocol_version");
+
             if (SUB_PROTOCOL_VERSION < minVersion || SUB_PROTOCOL_VERSION > maxVersion) {
                 throw new ReqlDriverError(
                     "Unsupported protocol version " + SUB_PROTOCOL_VERSION +

@@ -37,7 +37,7 @@ public class Binary extends ReqlExpr {
 
     @Override
     public Object build(){
-        if (b64Data != null) {
+        if(b64Data != null){
             return Converter.toBinary(b64Data);
         }else{
             return super.build();

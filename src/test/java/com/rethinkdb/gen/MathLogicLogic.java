@@ -1100,8 +1100,8 @@ public class MathLogicLogic {
             /* true */
             Boolean expected_ = true;
             /* ~r.expr(null) */
-            logger.info("About to run line #168: r.expr((ReqlExpr) null).not()");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).not(),
+            logger.info("About to run line #168: r.expr((ReqlFunction3) null).not()");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).not(),
                                           new OptArgs()
                                           ,conn);
             try {

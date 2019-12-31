@@ -500,8 +500,8 @@ public class TimesIndex {
             /* ({'created':1}) */
             Map expected_ = r.hashMap("created", 1L);
             /* tbl.index_create('b', lambda row:r.branch(row['id'] < t4, row['a'], null)) */
-            logger.info("About to run line #98: tbl.indexCreate('b', row -> r.branch(row.bracket('id').lt(t4), row.bracket('a'), (ReqlExpr) null))");
-            Object obtained = runOrCatch(tbl.indexCreate("b", row -> r.branch(row.bracket("id").lt(t4), row.bracket("a"), (ReqlExpr) null)),
+            logger.info("About to run line #98: tbl.indexCreate('b', row -> r.branch(row.bracket('id').lt(t4), row.bracket('a'), (ReqlFunction3) null))");
+            Object obtained = runOrCatch(tbl.indexCreate("b", row -> r.branch(row.bracket("id").lt(t4), row.bracket("a"), (ReqlFunction3) null)),
                                           new OptArgs()
                                           ,conn);
             try {

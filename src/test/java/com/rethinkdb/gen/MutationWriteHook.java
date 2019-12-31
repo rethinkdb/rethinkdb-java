@@ -5,40 +5,23 @@
 package com.rethinkdb.gen;
 
 import com.rethinkdb.RethinkDB;
-import com.rethinkdb.gen.exc.*;
-import com.rethinkdb.gen.ast.*;
-import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.model.MapObject;
+import com.rethinkdb.TestingFramework;
+import com.rethinkdb.gen.ast.ReqlFunction3;
+import com.rethinkdb.gen.ast.Table;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
-import com.rethinkdb.net.Cursor;
-import junit.framework.TestCase;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertArrayEquals;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.junit.*;
-import org.junit.rules.ExpectedException;
-
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.Instant;
-import java.util.stream.LongStream;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
-import java.util.Collections;
-import java.nio.charset.StandardCharsets;
 
 import static com.rethinkdb.TestingCommon.*;
-import com.rethinkdb.TestingFramework;
+import static org.junit.Assert.*;
+
 
 public class MutationWriteHook {
     // Tests insertion with a write hook function
@@ -161,8 +144,8 @@ public class MutationWriteHook {
             /* partial({'deleted': 1 }) */
             Partial expected_ = partial(r.hashMap("deleted", 1L));
             /* tbl.set_write_hook(null) */
-            logger.info("About to run line #18: tbl.setWriteHook((ReqlExpr) null)");
-            Object obtained = runOrCatch(tbl.setWriteHook((ReqlExpr) null),
+            logger.info("About to run line #18: tbl.setWriteHook((ReqlFunction3) null)");
+            Object obtained = runOrCatch(tbl.setWriteHook((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -266,8 +249,8 @@ public class MutationWriteHook {
             /* partial({'deleted': 1 }) */
             Partial expected_ = partial(r.hashMap("deleted", 1L));
             /* tbl.set_write_hook(null) */
-            logger.info("About to run line #37: tbl.setWriteHook((ReqlExpr) null)");
-            Object obtained = runOrCatch(tbl.setWriteHook((ReqlExpr) null),
+            logger.info("About to run line #37: tbl.setWriteHook((ReqlFunction3) null)");
+            Object obtained = runOrCatch(tbl.setWriteHook((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -288,9 +271,16 @@ public class MutationWriteHook {
             Err expected_ = err("ReqlQueryLogicError", "Write hook functions must expect 3 arguments.");
             /* tbl.set_write_hook(lambda ctx: 1) */
             logger.info("About to run line #41: tbl.setWriteHook(ctx -> 1L)");
-            Object obtained = runOrCatch(tbl.setWriteHook(ctx -> 1L),
+
+
+            // TODO: Replace lines [279:295] with below comment
+            //tbl.getClass().getMethod("setWriteHook", ReqlFunction3.class);
+
+            Object obtained = runOrCatch(tbl.setWriteHook((ctx) -> 1L),
                                           new OptArgs()
                                           ,conn);
+
+
             try {
                 assertEquals(expected_, obtained);
             logger.info("Finished running line #41");
@@ -301,6 +291,7 @@ public class MutationWriteHook {
                 }
                 throw ae;
             }
+
         }
 
         {
@@ -413,8 +404,8 @@ public class MutationWriteHook {
             /* partial({'deleted': 1 }) */
             Partial expected_ = partial(r.hashMap("deleted", 1L));
             /* tbl.set_write_hook(null) */
-            logger.info("About to run line #66: tbl.setWriteHook((ReqlExpr) null)");
-            Object obtained = runOrCatch(tbl.setWriteHook((ReqlExpr) null),
+            logger.info("About to run line #66: tbl.setWriteHook((ReqlFunction3) null)");
+            Object obtained = runOrCatch(tbl.setWriteHook((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {

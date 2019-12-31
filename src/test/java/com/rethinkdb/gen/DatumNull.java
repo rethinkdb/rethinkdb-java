@@ -92,8 +92,8 @@ public class DatumNull {
             /* (null) */
             Object expected_ = null;
             /* r.expr(null) */
-            logger.info("About to run line #6: r.expr((ReqlExpr) null)");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null),
+            logger.info("About to run line #6: r.expr((ReqlFunction3) null)");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -113,8 +113,8 @@ public class DatumNull {
             /* 'NULL' */
             String expected_ = "NULL";
             /* r.expr(null).type_of() */
-            logger.info("About to run line #9: r.expr((ReqlExpr) null).typeOf()");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).typeOf(),
+            logger.info("About to run line #9: r.expr((ReqlFunction3) null).typeOf()");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).typeOf(),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -134,8 +134,8 @@ public class DatumNull {
             /* 'null' */
             String expected_ = "null";
             /* r.expr(null).coerce_to('string') */
-            logger.info("About to run line #14: r.expr((ReqlExpr) null).coerceTo('string')");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).coerceTo("string"),
+            logger.info("About to run line #14: r.expr((ReqlFunction3) null).coerceTo('string')");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).coerceTo("string"),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -155,8 +155,8 @@ public class DatumNull {
             /* null */
             Object expected_ = null;
             /* r.expr(null).coerce_to('null') */
-            logger.info("About to run line #17: r.expr((ReqlExpr) null).coerceTo('null')");
-            Object obtained = runOrCatch(r.expr((ReqlExpr) null).coerceTo("null"),
+            logger.info("About to run line #17: r.expr((ReqlFunction3) null).coerceTo('null')");
+            Object obtained = runOrCatch(r.expr((ReqlFunction3) null).coerceTo("null"),
                                           new OptArgs()
                                           ,conn);
             try {

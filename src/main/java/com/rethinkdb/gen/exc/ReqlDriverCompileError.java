@@ -4,9 +4,9 @@
 // ../../../../../../../../templates/Exception.java
 package com.rethinkdb.gen.exc;
 
+import org.jetbrains.annotations.Nullable;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.model.Backtrace;
-import org.jetbrains.annotations.Nullable;
 
 public class ReqlDriverCompileError extends ReqlCompileError {
 
@@ -38,21 +38,21 @@ public class ReqlDriverCompileError extends ReqlCompileError {
         this.term = term;
     }
 
-    public @Nullable Backtrace getBacktrace() {
-        return backtrace;
-    }
-
     public ReqlDriverCompileError setBacktrace(Backtrace backtrace) {
         this.backtrace = backtrace;
         return this;
     }
 
-    public @Nullable ReqlAst getTerm() {
-        return this.term;
+    public @Nullable Backtrace getBacktrace() {
+        return backtrace;
     }
 
     public ReqlDriverCompileError setTerm(ReqlAst term) {
         this.term = term;
         return this;
+    }
+
+    public @Nullable ReqlAst getTerm() {
+        return this.term;
     }
 }
