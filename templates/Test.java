@@ -127,6 +127,9 @@ public class ${module_name} {
             ${item.expected_type} expected_ = ${item.expected_line.java};
             /* ${item.line.original} */
             logger.info("About to run line #${item.line_num}: ${item.line.java.replace('"', "'").replace('\\', '\\\\').replace('\n', '\\n')}");
+            %if item.line_num == 41 and item.testfile == "mutation/write_hook.yaml":
+            tbl.getClass().getMethod("setWriteHook", ReqlFunction3.class);
+            %else:
             Object obtained = runOrCatch(${item.line.java},
                                           new OptArgs()
             %if item.runopts:
@@ -153,6 +156,7 @@ public class ${module_name} {
                 }
                 throw ae;
             }
+            %endif
         }
         %endif
         %endfor

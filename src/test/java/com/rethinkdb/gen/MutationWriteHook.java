@@ -6,7 +6,6 @@ package com.rethinkdb.gen;
 
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.TestingFramework;
-import com.rethinkdb.ast.Util;
 import com.rethinkdb.gen.ast.ReqlFunction3;
 import com.rethinkdb.gen.ast.Table;
 import com.rethinkdb.model.OptArgs;
@@ -21,8 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.rethinkdb.TestingCommon.*;
-import static org.junit.Assert.*;
-
+import static org.junit.Assert.assertEquals;
 
 public class MutationWriteHook {
     // Tests insertion with a write hook function
@@ -272,27 +270,7 @@ public class MutationWriteHook {
             Err expected_ = err("ReqlQueryLogicError", "Write hook functions must expect 3 arguments.");
             /* tbl.set_write_hook(lambda ctx: 1) */
             logger.info("About to run line #41: tbl.setWriteHook(ctx -> 1L)");
-
-
-            // TODO: Replace lines [279:295] with below comment
-            //tbl.getClass().getMethod("setWriteHook", ReqlFunction3.class);
-
-            Object obtained = runOrCatch(tbl.setWriteHook((ctx) -> 1L),
-                                          new OptArgs()
-                                          ,conn);
-
-
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #41");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #41:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-
+            tbl.getClass().getMethod("setWriteHook", ReqlFunction3.class);
         }
 
         {
