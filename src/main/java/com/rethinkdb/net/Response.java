@@ -65,7 +65,7 @@ class Response {
             .collect(Collectors.toList());
         Builder res = new Builder(token, responseType);
         if (jsonResp.containsKey("e")) {
-            res.setErrorType(((Long) jsonResp.get("e")).intValue());
+            res.setErrorType((Integer) jsonResp.get("e"));
         }
         return res.setNotes(responseNotes)
             .setProfile((List<Object>) jsonResp.getOrDefault("p", null))

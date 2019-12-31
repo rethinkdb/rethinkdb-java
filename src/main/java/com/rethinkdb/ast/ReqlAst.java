@@ -7,6 +7,8 @@ import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 
 import java.util.*;
+import java.util.stream.Collectors;
+
 
 /**
  * Base class for all reql queries.
@@ -36,7 +38,7 @@ public class ReqlAst {
         List<Object> list = new ArrayList<>();
         list.add(termType.value);
         if (args.size() > 0) {
-            args.forEach(reqlAst -> list.add(reqlAst.build()));
+            list.add(args.stream().map(ReqlAst::build).collect(Collectors.toList()));
         } else {
             list.add(Collections.emptyList());
         }

@@ -6,6 +6,7 @@ package com.rethinkdb.gen;
 
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.TestingFramework;
+import com.rethinkdb.ast.Util;
 import com.rethinkdb.gen.ast.ReqlFunction3;
 import com.rethinkdb.gen.ast.Table;
 import com.rethinkdb.model.OptArgs;

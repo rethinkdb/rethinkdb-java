@@ -1,18 +1,15 @@
-<%page args="all_terms" />
-package com.rethinkdb.gen.model;
-
-import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.model.Arguments;
-import com.rethinkdb.model.MapObject;
-import com.rethinkdb.gen.ast.Error;
-import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.ast.Util;
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.model.Arguments;
+import com.rethinkdb.model.MapObject;
 
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+
+<%page args="all_terms"/>
+	package com.rethinkdb.gen.model;
 
 public class TopLevel {
 
