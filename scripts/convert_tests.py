@@ -552,6 +552,15 @@ class JavaVisitor(ast.NodeVisitor):
         except (AttributeError, TypeError):
             pass
 
+    def skip_if_lambda_check(self, node):
+        """Throws out tests for lambda """
+        rgx = re.compile(".*[Ff]unctions must expect \d* arguments?")
+        try:
+            if node.func.id == "err" and rgx.match(node.args[1].s):
+                self.skip("lambda checks done by java type system")
+        except (AttributeError, TypeError):
+            pass
+
     def convert_if_string_encode(self, node):
         """Finds strings like 'foo'.encode("utf-8") and turns them into the
         java version: "foo".getBytes(StandardCharsets.UTF_8)"""
@@ -598,6 +607,7 @@ class JavaVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node):
         self.skip_if_arity_check(node)
+        self.skip_if_lambda_check(node)
         if self.convert_if_string_encode(node):
             return
         if self.bag_data_hack(node):
@@ -723,7 +733,7 @@ class JavaVisitor(ast.NodeVisitor):
                 self.write(" << ")
                 self.visit(node.right)
             else:
-                raise Unhandled("Can't do exponent with non 2 base")
+                raise Unhandled(f"Can't do exponent with non 2 base - {node.left} :: {node.right}")
 
 
 class ReQLVisitor(JavaVisitor):
