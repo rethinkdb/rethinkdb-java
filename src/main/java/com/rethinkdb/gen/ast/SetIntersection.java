@@ -11,10 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class SetIntersection extends ReqlExpr {
-
 
     public SetIntersection(Object arg) {
         this(new Arguments(arg), null);

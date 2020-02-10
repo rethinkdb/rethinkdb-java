@@ -5,7 +5,7 @@
 
 package com.rethinkdb.gen.proto;
 
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 public enum TermType {
 
@@ -396,11 +396,11 @@ public enum TermType {
         }
     }
 
-    public static Optional<TermType> maybeFromValue(int value) {
+    public static @Nullable TermType maybeFromValue(int value) {
         try {
-            return Optional.of(fromValue(value));
+            return fromValue(value);
         } catch (IllegalArgumentException iae) {
-            return Optional.empty();
+            return null;
         }
     }
 

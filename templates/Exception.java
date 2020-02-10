@@ -34,6 +34,10 @@ public class ${camel(classname)} extends ${camel(superclass)} {
         this.term = Optional.ofNullable(term);
     }
 
+    public @Nullable Backtrace getBacktrace() {
+        return backtrace;
+    }
+
     public ${camel(classname)} setBacktrace(Backtrace backtrace) {
         this.backtrace = Optional.ofNullable(backtrace);
         return this;

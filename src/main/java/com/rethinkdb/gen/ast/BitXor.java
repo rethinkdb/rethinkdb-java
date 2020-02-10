@@ -11,10 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class BitXor extends ReqlExpr {
-
 
     public BitXor(Object arg) {
         this(new Arguments(arg), null);

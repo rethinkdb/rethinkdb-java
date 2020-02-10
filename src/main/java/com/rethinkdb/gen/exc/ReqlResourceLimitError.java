@@ -4,14 +4,14 @@
 // ../../../../../../../../templates/Exception.java
 package com.rethinkdb.gen.exc;
 
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.model.Backtrace;
 
 public class ReqlResourceLimitError extends ReqlRuntimeError {
 
-    Optional<Backtrace> backtrace = Optional.empty();
-    Optional<ReqlAst> term = Optional.empty();
+    @Nullable Backtrace backtrace;
+    @Nullable ReqlAst term;
 
     public ReqlResourceLimitError() {
     }
@@ -34,25 +34,25 @@ public class ReqlResourceLimitError extends ReqlRuntimeError {
 
     public ReqlResourceLimitError(String msg, ReqlAst term, Backtrace bt) {
         super(msg);
-        this.backtrace = Optional.ofNullable(bt);
-        this.term = Optional.ofNullable(term);
+        this.backtrace = bt;
+        this.term = term;
     }
 
-    public ReqlResourceLimitError setBacktrace(Backtrace backtrace) {
-        this.backtrace = Optional.ofNullable(backtrace);
-        return this;
-    }
-
-    public Optional<Backtrace> getBacktrace() {
+    public @Nullable Backtrace getBacktrace() {
         return backtrace;
     }
 
-    public ReqlResourceLimitError setTerm(ReqlAst term) {
-        this.term = Optional.ofNullable(term);
+    public ReqlResourceLimitError setBacktrace(Backtrace backtrace) {
+        this.backtrace = backtrace;
         return this;
     }
 
-    public Optional<ReqlAst> getTerm() {
+    public @Nullable ReqlAst getTerm() {
         return this.term;
+    }
+
+    public ReqlResourceLimitError setTerm(ReqlAst term) {
+        this.term = term;
+        return this;
     }
 }

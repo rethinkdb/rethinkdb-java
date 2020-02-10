@@ -4,30 +4,22 @@ import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.gen.ast.Db;
 import com.rethinkdb.gen.exc.ReqlDriverError;
-import com.rethinkdb.gen.proto.Protocol;
-import com.rethinkdb.gen.proto.Version;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jetbrains.annotations.Nullable;
 
 import javax.net.ssl.SSLContext;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Closeable;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Connection implements Closeable {
-    // logger
-    private static final Logger log = LoggerFactory.getLogger(Connection.class);
-
     // public immutable
     public final String hostname;
     public final int port;
@@ -35,15 +27,15 @@ public class Connection implements Closeable {
     private final AtomicLong nextToken = new AtomicLong();
 
     // private mutable
-    private Optional<String> dbname;
-    private Optional<Long> connectTimeout;
-    private Optional<SSLContext> sslContext;
+    private @Nullable String dbname;
+    private @Nullable Long connectTimeout;
+    private @Nullable SSLContext sslContext;
     private final Handshake handshake;
 
     // network stuff
-    Optional<SocketWrapper> socket = Optional.empty();
+    private @Nullable SocketWrapper socket;
 
-    private Map<Long, Cursor> cursorCache = new ConcurrentHashMap<>();
+    private Map<Long, CursorImpl<?>> cursorCache = new ConcurrentHashMap<>();
 
     // execution stuff
     private ExecutorService exec;
@@ -53,41 +45,33 @@ public class Connection implements Closeable {
 
     public Connection(Builder builder) {
         dbname = builder.dbname;
-        if (builder.authKey.isPresent() && builder.user.isPresent()) {
+        if (builder.authKey != null && builder.user != null) {
             throw new ReqlDriverError("Either `authKey` or `user` can be used, but not both.");
         }
-        String user = builder.user.orElse("admin");
-        String password = builder.password.orElse(builder.authKey.orElse(""));
+        String user = builder.user != null ? builder.user : "admin";
+        String password = builder.password != null ? builder.password : builder.authKey != null ? builder.authKey : "";
         handshake = new Handshake(user, password);
-        hostname = builder.hostname.orElse("localhost");
-        port = builder.port.orElse(28015);
+        hostname = builder.hostname != null ? builder.hostname : "localhost";
+        port = builder.port != null ? builder.port : 28015;
         // is certFile provided? if so, it has precedence over SSLContext
-        this.sslContext = Crypto.handleCertfile(builder.certFile, builder.sslContext);
+        sslContext = Crypto.handleCertfile(builder.certFile, builder.sslContext);
         connectTimeout = builder.timeout;
     }
 
-    public static Builder build() {
-        return new Builder();
-    }
-
-    public Optional<String> db() {
+    public @Nullable String db() {
         return dbname;
     }
 
-    public void connect() throws TimeoutException {
-        connect(Optional.empty());
+    public void connect() {
+        connect(null);
     }
 
     public Connection reconnect() {
-        try {
-            return reconnect(false, Optional.empty());
-        } catch (TimeoutException toe) {
-            throw new RuntimeException("Timeout can't happen here.");
-        }
+        return reconnect(false, null);
     }
 
-    public Connection reconnect(boolean noreplyWait, Optional<Long> timeout) throws TimeoutException {
-        if (!timeout.isPresent()) {
+    public Connection reconnect(boolean noreplyWait, @Nullable Long timeout) {
+        if (timeout == null) {
             timeout = connectTimeout;
         }
         close(noreplyWait);
@@ -95,14 +79,14 @@ public class Connection implements Closeable {
         return this;
     }
 
-    void connect(Optional<Long> timeout) throws TimeoutException {
-        final SocketWrapper sock = new SocketWrapper(hostname, port, sslContext, timeout.isPresent() ? timeout : connectTimeout);
+    private void connect(@Nullable Long timeout) {
+        final SocketWrapper sock = new SocketWrapper(hostname, port, sslContext, timeout != null ? timeout : connectTimeout);
         sock.connect(handshake);
-        socket = Optional.of(sock);
+        socket = sock;
 
         // start response pump
         exec = Executors.newSingleThreadExecutor();
-        exec.submit((Runnable) () -> {
+        exec.submit(() -> {
             // pump responses until canceled
             while (true) {
                 // validate socket is open
@@ -114,7 +98,10 @@ public class Connection implements Closeable {
 
                 // read response and send it to whoever is waiting, if anyone
                 try {
-                    final Response response = this.socket.orElseThrow(() -> new ReqlDriverError("No socket available.")).read();
+                    if (socket == null) {
+                        throw new ReqlDriverError("No socket available.");
+                    }
+                    final Response response = socket.read();
                     final CompletableFuture<Response> awaiter = awaiters.remove(response.token);
                     if (awaiter != null) {
                         awaiter.complete(response);
@@ -128,16 +115,27 @@ public class Connection implements Closeable {
         });
     }
 
-    public Optional<Integer> clientPort() {
-        return socket.map(SocketWrapper::clientPort).orElse(Optional.empty());
+    @Nullable
+    public Integer clientPort() {
+        if (socket != null) {
+            return socket.clientPort();
+        }
+        return null;
     }
 
-    public Optional<SocketAddress> clientAddress() {
-        return socket.map(SocketWrapper::clientAddress).orElse(Optional.empty());
+    @Nullable
+    public SocketAddress clientAddress() {
+        if (socket != null) {
+            return socket.clientAddress();
+        }
+        return null;
     }
 
     public boolean isOpen() {
-        return socket.map(SocketWrapper::isOpen).orElse(false);
+        if (socket != null) {
+            return socket.isOpen();
+        }
+        return false;
     }
 
     @Override
@@ -149,20 +147,20 @@ public class Connection implements Closeable {
         // disconnect
         try {
             if (shouldNoreplyWait) {
-                noreplyWait();
+                runQuery(Query.noreplyWait(newToken()), null);
             }
         } finally {
             // reset token
             nextToken.set(0);
 
             // clear cursor cache
-            for (Cursor cursor : cursorCache.values()) {
+            for (CursorImpl<?> cursor : cursorCache.values()) {
                 cursor.setError("Connection is closed.");
             }
             cursorCache.clear();
 
             // handle current awaiters
-            this.awaiters.values().stream().forEach(awaiter -> {
+            this.awaiters.values().forEach(awaiter -> {
                 // what happened?
                 if (this.awaiterException != null) { // an exception
                     awaiter.completeExceptionally(this.awaiterException);
@@ -178,16 +176,17 @@ public class Connection implements Closeable {
             }
 
             // close the socket
-            socket.ifPresent(SocketWrapper::close);
+            if (socket != null) {
+                socket.close();
+            }
         }
-
     }
 
     public void use(String db) {
-        dbname = Optional.ofNullable(db);
+        dbname = db;
     }
 
-    public Optional<Long> timeout() {
+    public @Nullable Long timeout() {
         return connectTimeout;
     }
 
@@ -195,19 +194,20 @@ public class Connection implements Closeable {
      * Writes a query and returns a completable future.
      * Said completable future value will eventually be set by the runnable response pump (see {@link #connect}).
      *
-     * @param query    the query to execute.
-     * @param deadline the timeout.
+     * @param query the query to execute.
      * @return a completable future.
      */
-    private Future<Response> sendQuery(Query query, Optional<Long> deadline) {
+    private Future<Response> sendQuery(Query query) {
         // check if response pump is running
         if (!exec.isShutdown() && !exec.isTerminated()) {
             final CompletableFuture<Response> awaiter = new CompletableFuture<>();
             awaiters.put(query.token, awaiter);
             try {
                 lock.lock();
-                socket.orElseThrow(() -> new ReqlDriverError("No socket available."))
-                        .write(query.serialize());
+                if (socket == null) {
+                    throw new ReqlDriverError("No socket available.");
+                }
+                socket.write(query.serialize());
                 return awaiter.toCompletableFuture();
             } finally {
                 lock.unlock();
@@ -221,15 +221,17 @@ public class Connection implements Closeable {
     /**
      * Writes a query without waiting for a response
      *
-     * @param query    the query to execute.
+     * @param query the query to execute.
      */
-    private void sendQueryNoreply(Query query) {
+    private void runQueryNoreply(Query query) {
         // check if response pump is running
         if (!exec.isShutdown() && !exec.isTerminated()) {
             try {
                 lock.lock();
-                socket.orElseThrow(() -> new ReqlDriverError("No socket available."))
-                        .write(query.serialize());
+                if (socket == null) {
+                    throw new ReqlDriverError("No socket available.");
+                }
+                socket.write(query.serialize());
                 return;
             } finally {
                 lock.unlock();
@@ -240,33 +242,11 @@ public class Connection implements Closeable {
         throw new ReqlDriverError("Can't write query because response pump is not running.");
     }
 
-
-    void runQueryNoreply(Query query) {
-        sendQueryNoreply(query);
-    }
-
-    <T> T runQuery(Query query) {
-        return runQuery(query, Optional.empty());
-    }
-
-    <T, P> T runQuery(Query query, Optional<Class<P>> pojoClass) {
-        return runQuery(query, pojoClass, Optional.empty());
-    }
-
-    /**
-     * Runs a query and blocks until a response is retrieved.
-     *
-     * @param query
-     * @param pojoClass
-     * @param timeout
-     * @param <T>
-     * @param <P>
-     * @return
-     */
-    <T, P> T runQuery(Query query, Optional<Class<P>> pojoClass, Optional<Long> timeout) {
-        Response res = null;
+    @SuppressWarnings("unchecked")
+    private <T, P> T runQuery(Query query, @Nullable Class<P> pojoClass) {
+        Response res;
         try {
-            res = sendQuery(query, timeout).get();
+            res = sendQuery(query).get();
         } catch (InterruptedException | ExecutionException e) {
             throw new ReqlDriverError(e);
         }
@@ -280,8 +260,7 @@ public class Connection implements Closeable {
                 throw new ReqlDriverError("Atom response was empty!", ex);
             }
         } else if (res.isPartial() || res.isSequence()) {
-            Cursor cursor = Cursor.create(this, query, res, pojoClass);
-            return (T) cursor;
+            return (T) new CursorImpl<>(this, query, res, (Class<T>) pojoClass);
         } else if (res.isWaitComplete()) {
             return null;
         } else {
@@ -293,7 +272,7 @@ public class Connection implements Closeable {
         return nextToken.incrementAndGet();
     }
 
-    void addToCache(long token, Cursor cursor) {
+    void addToCache(long token, CursorImpl<?> cursor) {
         cursorCache.put(token, cursor);
     }
 
@@ -302,14 +281,14 @@ public class Connection implements Closeable {
     }
 
     public void noreplyWait() {
-        runQuery(Query.noreplyWait(newToken()));
+        runQuery(Query.noreplyWait(newToken()), null);
     }
 
     private void setDefaultDB(OptArgs globalOpts) {
-        if (!globalOpts.containsKey("db") && dbname.isPresent()) {
+        if (!globalOpts.containsKey("db") && dbname != null) {
             // Only override the db global arg if the user hasn't
             // specified one already and one is specified on the connection
-            globalOpts.with("db", dbname.get());
+            globalOpts.with("db", dbname);
         }
         if (globalOpts.containsKey("db")) {
             // The db arg must be wrapped in a db ast object
@@ -317,19 +296,13 @@ public class Connection implements Closeable {
         }
     }
 
-    public <T, P> T run(ReqlAst term, OptArgs globalOpts, Optional<Class<P>> pojoClass) {
-        return run(term, globalOpts, pojoClass, Optional.empty());
-    }
-
-    public <T, P> T run(ReqlAst term, OptArgs globalOpts, Optional<Class<P>> pojoClass, Optional<Long> timeout) {
+    public <T, P> T run(ReqlAst term, OptArgs globalOpts, @Nullable Class<P> pojoClass) {
         setDefaultDB(globalOpts);
         Query q = Query.start(newToken(), term, globalOpts);
         if (globalOpts.containsKey("noreply")) {
-            throw new ReqlDriverError(
-                    "Don't provide the noreply option as an optarg. " +
-                            "Use `.runNoReply` instead of `.run`");
+            throw new ReqlDriverError("Don't provide the noreply option as an optarg. Use `.runNoReply` instead of `.run`");
         }
-        return runQuery(q, pojoClass, timeout);
+        return runQuery(q, pojoClass);
     }
 
     public void runNoReply(ReqlAst term, OptArgs globalOpts) {
@@ -339,33 +312,32 @@ public class Connection implements Closeable {
     }
 
     Future<Response> continue_(Cursor cursor) {
-        return sendQuery(Query.continue_(cursor.token), Optional.empty());
+        return sendQuery(Query.continue_(cursor.connectionToken()));
     }
-
 
     void stop(Cursor cursor) {
         // While the server does reply to the stop request, we ignore that reply.
         // This works because the response pump in `connect` ignores replies for which
         // no waiter exists.
-        runQueryNoreply(Query.stop(cursor.token));
+        runQueryNoreply(Query.stop(cursor.connectionToken()));
     }
 
     /**
      * Connection.Builder should be used to build a Connection instance.
      */
     public static class Builder implements Cloneable {
-        private Optional<String> hostname = Optional.empty();
-        private Optional<Integer> port = Optional.empty();
-        private Optional<String> dbname = Optional.empty();
-        private Optional<InputStream> certFile = Optional.empty();
-        private Optional<SSLContext> sslContext = Optional.empty();
-        private Optional<Long> timeout = Optional.empty();
-        private Optional<String> authKey = Optional.empty();
-        private Optional<String> user = Optional.empty();
-        private Optional<String> password = Optional.empty();
+        private @Nullable String hostname;
+        private @Nullable Integer port;
+        private @Nullable String dbname;
+        private @Nullable InputStream certFile;
+        private @Nullable SSLContext sslContext;
+        private @Nullable Long timeout;
+        private @Nullable String authKey;
+        private @Nullable String user;
+        private @Nullable String password;
 
         public Builder clone() throws CloneNotSupportedException {
-            Builder c = (Builder)super.clone();
+            Builder c = (Builder) super.clone();
             c.hostname = hostname;
             c.port = port;
             c.dbname = dbname;
@@ -379,43 +351,43 @@ public class Connection implements Closeable {
         }
 
         public Builder hostname(String val) {
-            hostname = Optional.of(val);
+            hostname = val;
             return this;
         }
 
         public Builder port(int val) {
-            port = Optional.of(val);
+            port = val;
             return this;
         }
 
         public Builder db(String val) {
-            dbname = Optional.of(val);
+            dbname = val;
             return this;
         }
 
         public Builder authKey(String key) {
-            authKey = Optional.of(key);
+            authKey = key;
             return this;
         }
 
         public Builder user(String user, String password) {
-            this.user = Optional.of(user);
-            this.password = Optional.of(password);
+            this.user = user;
+            this.password = password;
             return this;
         }
 
         public Builder certFile(InputStream val) {
-            certFile = Optional.of(val);
+            certFile = val;
             return this;
         }
 
         public Builder sslContext(SSLContext val) {
-            sslContext = Optional.of(val);
+            sslContext = val;
             return this;
         }
 
         public Builder timeout(long val) {
-            timeout = Optional.of(val);
+            timeout = val;
             return this;
         }
 

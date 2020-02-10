@@ -11,10 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class Iso8601 extends ReqlExpr {
-
 
     public Iso8601(Object arg) {
         this(new Arguments(arg), null);

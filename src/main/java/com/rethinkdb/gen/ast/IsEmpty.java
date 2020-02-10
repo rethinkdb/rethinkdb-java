@@ -11,10 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class IsEmpty extends ReqlExpr {
-
 
     public IsEmpty(Object arg) {
         this(new Arguments(arg), null);

@@ -1,70 +1,43 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.*;
-import com.rethinkdb.ast.*;
+import com.rethinkdb.ErrorBuilder;
+import com.rethinkdb.ast.Query;
 import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.proto.ErrorType;
-import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.gen.proto.ResponseNote;
+import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Backtrace;
 import com.rethinkdb.model.Profile;
-import org.json.simple.*;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
-
 class Response {
+    private static final Logger logger = LoggerFactory.getLogger(Query.class);
+
     public final long token;
     public final ResponseType type;
-    public final ArrayList<ResponseNote> notes;
+    public final List<ResponseNote> notes;
 
-    public final JSONArray data;
-    public final Optional<Profile> profile;
-    public final Optional<Backtrace> backtrace;
-    public final Optional<ErrorType> errorType;
-
-    static final Logger logger = LoggerFactory.getLogger(Query.class);
-
-    public static Response parseFrom(long token, ByteBuffer buf) {
-        if (Response.logger.isDebugEnabled()) {
-            Response.logger.debug(
-                    "JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
-        }
-        JSONObject jsonResp = Util.toJSON(buf);
-        ResponseType responseType = ResponseType.fromValue(
-                ((Long) jsonResp.get("t")).intValue()
-        );
-        ArrayList<Long> responseNoteVals = (ArrayList<Long>) jsonResp
-            .getOrDefault("n", new ArrayList());
-        ArrayList<ResponseNote> responseNotes = responseNoteVals
-            .stream()
-                .map(Long::intValue)
-                .map(ResponseNote::maybeFromValue)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toCollection(ArrayList::new));
-        Builder res = new Builder(token, responseType);
-        if(jsonResp.containsKey("e")){
-            res.setErrorType(((Long)jsonResp.get("e")).intValue());
-        }
-        return res.setNotes(responseNotes)
-                .setProfile((JSONArray) jsonResp.getOrDefault("p", null))
-                .setBacktrace((JSONArray) jsonResp.getOrDefault("b", null))
-                .setData((JSONArray) jsonResp.getOrDefault("r", new JSONArray()))
-                .build();
-    }
+    public final List<Object> data;
+    public final @Nullable Profile profile;
+    public final @Nullable Backtrace backtrace;
+    public final @Nullable ErrorType errorType;
 
     private Response(long token,
                      ResponseType responseType,
-                     JSONArray data,
-                     ArrayList<ResponseNote> responseNotes,
-                     Optional<Profile> profile,
-                     Optional<Backtrace> backtrace,
-                     Optional<ErrorType> errorType
+                     List<Object> data,
+                     List<ResponseNote> responseNotes,
+                     @Nullable Profile profile,
+                     @Nullable Backtrace backtrace,
+                     @Nullable ErrorType errorType
     ) {
         this.token = token;
         this.type = responseType;
@@ -75,62 +48,45 @@ class Response {
         this.errorType = errorType;
     }
 
-    static class Builder {
-        long token;
-        ResponseType responseType;
-        ArrayList<ResponseNote> notes = new ArrayList<>();
-        JSONArray data = new JSONArray();
-        Optional<Profile> profile = Optional.empty();
-        Optional<Backtrace> backtrace = Optional.empty();
-        Optional<ErrorType> errorType = Optional.empty();
-
-        Builder(long token, ResponseType responseType){
-            this.token = token;
-            this.responseType = responseType;
+    public static Response parseFrom(long token, ByteBuffer buf) {
+        if (Response.logger.isDebugEnabled()) {
+            Response.logger.debug(
+                "JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
         }
-
-        Builder setNotes(ArrayList<ResponseNote> notes){
-            this.notes.addAll(notes);
-            return this;
+        Map<String, Object> jsonResp = Util.toJSON(buf);
+        ResponseType responseType = ResponseType.fromValue(((Long) jsonResp.get("t")).intValue());
+        List<Long> responseNoteVals = new ArrayList<>();
+        jsonResp.put("n", responseNoteVals);
+        List<ResponseNote> responseNotes = responseNoteVals
+            .stream()
+            .map(Long::intValue)
+            .map(ResponseNote::maybeFromValue)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+        Builder res = new Builder(token, responseType);
+        if (jsonResp.containsKey("e")) {
+            res.setErrorType(((Long) jsonResp.get("e")).intValue());
         }
-
-        Builder setData(JSONArray data){
-            if(data != null){
-                this.data = data;
-            }
-            return this;
-        }
-
-        Builder setProfile(JSONArray profile) {
-            this.profile = Profile.fromJSONArray(profile);
-            return this;
-        }
-
-        Builder setBacktrace(JSONArray backtrace) {
-            this.backtrace = Backtrace.fromJSONArray(backtrace);
-            return this;
-        }
-
-        Builder setErrorType(int value) {
-            this.errorType = Optional.of(ErrorType.fromValue(value));
-            return this;
-        }
-
-        Response build() {
-            return new Response(
-                    token,
-                    responseType,
-                    data,
-                    notes,
-                    profile,
-                    backtrace,
-                    errorType
-            );
-        }
+        return res.setNotes(responseNotes)
+            .setProfile((List<Object>) jsonResp.getOrDefault("p", null))
+            .setBacktrace((List<Object>) jsonResp.getOrDefault("b", null))
+            .setData((List<Object>) jsonResp.getOrDefault("r", new ArrayList<>()))
+            .build();
     }
 
-    static Builder make(long token, ResponseType type){
+    static Builder make(long token, ResponseType type) {
         return new Builder(token, type);
+    }
+
+    ReqlError makeError(Query query) {
+        String msg = data.size() > 0 ?
+            (String) data.get(0)
+            : "Unknown error message";
+        return new ErrorBuilder(msg, type)
+            .setBacktrace(backtrace)
+            .setErrorType(errorType)
+            .setTerm(query)
+            .build();
     }
 
     boolean isWaitComplete() {
@@ -160,26 +116,69 @@ class Response {
         return type == ResponseType.SUCCESS_PARTIAL;
     }
 
-    ReqlError makeError(Query query) {
-        String msg = data.size() > 0 ?
-                (String) data.get(0)
-                : "Unknown error message";
-        return new ErrorBuilder(msg, type)
-                .setBacktrace(backtrace)
-                .setErrorType(errorType)
-                .setTerm(query)
-                .build();
-    }
-
     @Override
     public String toString() {
         return "Response{" +
-                "token=" + token +
-                ", type=" + type +
-                ", notes=" + notes +
-                ", data=" + data +
-                ", profile=" + profile +
-                ", backtrace=" + backtrace +
-                '}';
+            "token=" + token +
+            ", type=" + type +
+            ", notes=" + notes +
+            ", data=" + data +
+            ", profile=" + profile +
+            ", backtrace=" + backtrace +
+            '}';
+    }
+
+    static class Builder {
+        long token;
+        ResponseType responseType;
+        List<ResponseNote> notes = new ArrayList<>();
+        List<Object> data = new ArrayList<>();
+        @Nullable Profile profile;
+        @Nullable Backtrace backtrace;
+        @Nullable ErrorType errorType;
+
+        Builder(long token, ResponseType responseType) {
+            this.token = token;
+            this.responseType = responseType;
+        }
+
+        Builder setNotes(List<ResponseNote> notes) {
+            this.notes.addAll(notes);
+            return this;
+        }
+
+        Builder setData(List<Object> data) {
+            if (data != null) {
+                this.data = data;
+            }
+            return this;
+        }
+
+        Builder setProfile(List<Object> profile) {
+            this.profile = Profile.fromList(profile);
+            return this;
+        }
+
+        Builder setBacktrace(List<Object> backtrace) {
+            this.backtrace = Backtrace.fromList(backtrace);
+            return this;
+        }
+
+        Builder setErrorType(int value) {
+            this.errorType = ErrorType.fromValue(value);
+            return this;
+        }
+
+        Response build() {
+            return new Response(
+                token,
+                responseType,
+                data,
+                notes,
+                profile,
+                backtrace,
+                errorType
+            );
+        }
     }
 }
