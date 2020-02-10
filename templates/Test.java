@@ -126,8 +126,13 @@ public class ${module_name} {
             /* ${item.expected_line.original} */
             ${item.expected_type} expected_ = ${item.expected_line.java};
             /* ${item.line.original} */
+            %if item.testfile == "mutation/write_hook.yaml":
+            logger.info("About to run line #${item.line_num}: ${item.line.java.replace('"', "'").replace('\\', '\\\\').replace('\n', '\\n').replace("(ReqlExpr)", "(ReqlFunction3)")}");
+            Object obtained = runOrCatch(${item.line.java.replace("(ReqlExpr)", "(ReqlFunction3)")},
+            %else:
             logger.info("About to run line #${item.line_num}: ${item.line.java.replace('"', "'").replace('\\', '\\\\').replace('\n', '\\n')}");
             Object obtained = runOrCatch(${item.line.java},
+            %endif
                                           new OptArgs()
             %if item.runopts:
               %for key, val in item.runopts.items():

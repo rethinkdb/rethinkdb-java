@@ -161,8 +161,8 @@ public class MutationWriteHook {
             /* partial({'deleted': 1 }) */
             Partial expected_ = partial(r.hashMap("deleted", 1L));
             /* tbl.set_write_hook(null) */
-            logger.info("About to run line #18: tbl.setWriteHook((ReqlExpr) null)");
-            Object obtained = runOrCatch(tbl.setWriteHook((ReqlExpr) null),
+            logger.info("About to run line #18: tbl.setWriteHook((ReqlFunction3) null)");
+            Object obtained = runOrCatch(tbl.setWriteHook((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -266,8 +266,8 @@ public class MutationWriteHook {
             /* partial({'deleted': 1 }) */
             Partial expected_ = partial(r.hashMap("deleted", 1L));
             /* tbl.set_write_hook(null) */
-            logger.info("About to run line #37: tbl.setWriteHook((ReqlExpr) null)");
-            Object obtained = runOrCatch(tbl.setWriteHook((ReqlExpr) null),
+            logger.info("About to run line #37: tbl.setWriteHook((ReqlFunction3) null)");
+            Object obtained = runOrCatch(tbl.setWriteHook((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
@@ -275,27 +275,6 @@ public class MutationWriteHook {
             logger.info("Finished running line #37");
             } catch (Throwable ae) {
                 logger.error("Whoops, got exception on line #37:" + ae.toString());
-                if(obtained instanceof Throwable) {
-                    ae.addSuppressed((Throwable) obtained);
-                }
-                throw ae;
-            }
-        }
-
-        {
-            // mutation/write_hook.yaml line #41
-            /* err('ReqlQueryLogicError', 'Write hook functions must expect 3 arguments.') */
-            Err expected_ = err("ReqlQueryLogicError", "Write hook functions must expect 3 arguments.");
-            /* tbl.set_write_hook(lambda ctx: 1) */
-            logger.info("About to run line #41: tbl.setWriteHook(ctx -> 1L)");
-            Object obtained = runOrCatch(tbl.setWriteHook(ctx -> 1L),
-                                          new OptArgs()
-                                          ,conn);
-            try {
-                assertEquals(expected_, obtained);
-            logger.info("Finished running line #41");
-            } catch (Throwable ae) {
-                logger.error("Whoops, got exception on line #41:" + ae.toString());
                 if(obtained instanceof Throwable) {
                     ae.addSuppressed((Throwable) obtained);
                 }
@@ -413,8 +392,8 @@ public class MutationWriteHook {
             /* partial({'deleted': 1 }) */
             Partial expected_ = partial(r.hashMap("deleted", 1L));
             /* tbl.set_write_hook(null) */
-            logger.info("About to run line #66: tbl.setWriteHook((ReqlExpr) null)");
-            Object obtained = runOrCatch(tbl.setWriteHook((ReqlExpr) null),
+            logger.info("About to run line #66: tbl.setWriteHook((ReqlFunction3) null)");
+            Object obtained = runOrCatch(tbl.setWriteHook((ReqlFunction3) null),
                                           new OptArgs()
                                           ,conn);
             try {
