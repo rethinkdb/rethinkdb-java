@@ -45,9 +45,19 @@ public class Util {
     }
 
     public static <T, P> T convertToPojo(Object value, Optional<Class<P>> pojoClass) {
-        return !pojoClass.isPresent() || !(value instanceof Map)
-                ? (T) value
-                : (T) RethinkDB.getObjectMapper().convertValue(value, pojoClass.get());
+        if (pojoClass.isPresent()) {
+            if (pojoClass.get().isEnum()) {
+                Enum<?>[] enumConstants = ((Class<Enum<?>>) pojoClass.get()).getEnumConstants();
+                for (Enum<?> enumConst : enumConstants) {
+                    if (enumConst.name().equals(value)) {
+                        return (T) enumConst;
+                    }
+                }
+            } else if (value instanceof Map) {
+                return (T) RethinkDB.getObjectMapper().convertValue(value, pojoClass.get());
+            }
+        }
+        return (T) value;
     }
 
     public static byte[] toUTF8(String s) {
