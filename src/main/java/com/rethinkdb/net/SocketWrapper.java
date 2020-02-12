@@ -43,7 +43,7 @@ class SocketWrapper {
      * @param handshake
      */
     void connect(Handshake handshake) {
-        Long deadline = timeout == null ? null : Util.deadline(timeout);
+        Long deadline = timeout == null ? null : System.currentTimeMillis() + timeout;
         try {
             handshake.reset();
             // establish connection
