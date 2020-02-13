@@ -104,9 +104,14 @@ tasks {
 
                             "developers" {
                                 "developer" {
-                                    "id"("josh-rethinkdb")
-                                    "name"("Josh Kuhn")
-                                    "email"("josh@rethinkdb.com")
+                                    "id"("adriantodt")
+                                    "name"("Adrian Todt")
+                                    "email"("adriantodt.ms@gmail.com")
+                                }
+                                "developer" {
+                                    "id"("boros")
+                                    "name"("Gábor Boros")
+                                    "email"("gabor.boros@prezi.com")
                                 }
                             }
                         }
@@ -198,10 +203,10 @@ tasks {
         group = "code generation"
         description = "Generates java files for the driver."
 
+        enabled = false // TODO enable this once we fix update-terminfo
+
         val metajava = findProperty("build.gen.py.metajava")
         val json_target = findProperty("build.gen.json.target_folder")
-        val proto_folder = findProperty("build.proto.target_folder")
-        val proto_name = findProperty("build.proto.file_name")
         val proto_basic_name = findProperty("build.gen.json.proto_basic")
         val global_info = findProperty("build.json.global_info")
         val java_term_info_name = findProperty("build.gen.json.java_term_info")
@@ -209,8 +214,6 @@ tasks {
         val templates = findProperty("build.gen.src.templates")
         val folders = findProperty("build.gen.src.main.packages")!!.split(',')
 
-        val json_folder = File(buildDir, "rethinkdb_gen/$json_target")
-        val proto_file = File(buildDir, "rethinkdb_gen/$proto_folder/$proto_name")
         val proto_basic = File(buildDir, "rethinkdb_gen/$json_target/$proto_basic_name")
         val java_term_info = File(buildDir, "rethinkdb_gen/$json_target/$java_term_info_name")
         val src_main_gen = File("$src_main/gen")
@@ -220,12 +223,6 @@ tasks {
             delete(src_main_gen)
             folders.forEach { File(src_main_gen, it).mkdirs() }
             exec {
-                //	$(PYTHON) $(METAJAVA) generate-java-classes	\
-                //		--global-info=$(JAVA_GLOBAL_INFO)       \
-                //		--proto-json=$(JAVA_PROTO_JSON)		\
-                //		--java-term-info=$(JAVA_JAVA_TERM_INFO)	\
-                //		--template-dir=$(JAVA_TEMPLATE_DIR)     \
-                //		--package-dir=$(JAVA_PACKAGE_DIR)
                 standardOutput = System.err
                 commandLine("python3", metajava, "generate-java-classes",
                     "--global-info=$global_info",
