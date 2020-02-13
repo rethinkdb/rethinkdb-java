@@ -3,8 +3,6 @@ build/
 .#*
 *.iml
 .idea/
-test-config-override.properties
-gradle.properties
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
