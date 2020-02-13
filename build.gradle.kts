@@ -147,9 +147,95 @@ tasks {
         }
     }
 
+    val generateJsonFiles by creating {
+        group = "code generation"
+        description = "Generates json files for the java file generation."
+
+        val convert_proto = findProperty("build.gen.py.convert_proto")
+        val metajava = findProperty("build.gen.py.metajava")
+        val json_target = findProperty("build.gen.json.target_folder")
+        val proto_folder = findProperty("build.proto.target_folder")
+        val proto_name = findProperty("build.proto.file_name")
+        val proto_basic_name = findProperty("build.gen.json.proto_basic")
+        val term_info_name = findProperty("build.gen.json.term_info")
+        val java_term_info_name = findProperty("build.gen.json.java_term_info")
+
+        val json_folder = File(buildDir, "rethinkdb_gen/$json_target")
+        val proto_file = File(buildDir, "rethinkdb_gen/$proto_folder/$proto_name")
+        val proto_basic = File(buildDir, "rethinkdb_gen/$json_target/$proto_basic_name")
+        val term_info = File(buildDir, "rethinkdb_gen/$json_target/$term_info_name")
+        val java_term_info = File(buildDir, "rethinkdb_gen/$json_target/$java_term_info_name")
+
+        doLast {
+            File(buildDir, "rethinkdb_gen").mkdirs()
+            delete(json_folder)
+            json_folder.mkdirs()
+            exec {
+                standardOutput = System.err
+                commandLine("python3", convert_proto,
+                    proto_file,
+                    proto_basic
+                )
+            }
+            exec {
+                standardOutput = System.err
+                commandLine("python3", metajava, "update-terminfo",
+                    "--proto-json=$proto_basic",
+                    "--term-info=$term_info"
+                )
+            }
+            exec {
+                standardOutput = System.err
+                commandLine("python3", metajava, "generate-java-terminfo",
+                    "--term-info=$term_info",
+                    "--output-file=$java_term_info"
+                )
+            }
+        }
+    }
+
     val genMainJava by creating {
         group = "code generation"
         description = "Generates java files for the driver."
+
+        val metajava = findProperty("build.gen.py.metajava")
+        val json_target = findProperty("build.gen.json.target_folder")
+        val proto_folder = findProperty("build.proto.target_folder")
+        val proto_name = findProperty("build.proto.file_name")
+        val proto_basic_name = findProperty("build.gen.json.proto_basic")
+        val global_info = findProperty("build.json.global_info")
+        val java_term_info_name = findProperty("build.gen.json.java_term_info")
+        val src_main = findProperty("build.gen.src.main")
+        val templates = findProperty("build.gen.src.templates")
+        val folders = findProperty("build.gen.src.main.packages")!!.split(',')
+
+        val json_folder = File(buildDir, "rethinkdb_gen/$json_target")
+        val proto_file = File(buildDir, "rethinkdb_gen/$proto_folder/$proto_name")
+        val proto_basic = File(buildDir, "rethinkdb_gen/$json_target/$proto_basic_name")
+        val java_term_info = File(buildDir, "rethinkdb_gen/$json_target/$java_term_info_name")
+        val src_main_gen = File("$src_main/gen")
+
+
+        doLast {
+            delete(src_main_gen)
+            folders.forEach { File(src_main_gen, it).mkdirs() }
+            exec {
+                //	$(PYTHON) $(METAJAVA) generate-java-classes	\
+                //		--global-info=$(JAVA_GLOBAL_INFO)       \
+                //		--proto-json=$(JAVA_PROTO_JSON)		\
+                //		--java-term-info=$(JAVA_JAVA_TERM_INFO)	\
+                //		--template-dir=$(JAVA_TEMPLATE_DIR)     \
+                //		--package-dir=$(JAVA_PACKAGE_DIR)
+                standardOutput = System.err
+                commandLine("python3", metajava, "generate-java-classes",
+                    "--global-info=$global_info",
+                    "--proto-json=$proto_basic",
+                    "--java-term-info=$java_term_info",
+                    "--template-dir=$templates",
+                    "--package-dir=$src_main"
+                )
+            }
+        }
     }
 
     val genTestJava by creating {
@@ -157,6 +243,7 @@ tasks {
         description = "Generates test files for the driver."
 
         //properties
+        val convert_tests = findProperty("build.gen.py.convert_tests")
         val tests_target = findProperty("build.tests.target_folder")
         val src_test = findProperty("build.gen.src.test")
         val templates = findProperty("build.gen.src.templates")
@@ -166,13 +253,14 @@ tasks {
 
         doLast {
             delete(src_test_gen)
+            src_test_gen.mkdirs()
             exec {
-                setStandardOutput(System.err)
+                standardOutput = System.err
                 commandLine("python3",
                     "scripts/convert_tests.py",
                     "--debug",
-                    "--test-dir=${tests_folder.absolutePath}",
-                    "--test-output-dir=${src_test_gen.absolutePath}",
+                    "--test-dir=$tests_folder",
+                    "--test-output-dir=$src_test_gen",
                     "--template-dir=$templates"
                 )
             }
