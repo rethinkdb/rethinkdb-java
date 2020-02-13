@@ -76,7 +76,7 @@ def main():
     elif args.info:
         logging.root.setLevel(logging.INFO)
 
-    if args.command == 'update-term-info':
+    if args.command == 'update-terminfo':
         update_term_info(args.proto_json, args.term_info)
     elif args.command == 'generate-java-terminfo':
         java_term_info(args.term_info.json, args.output_file)
@@ -122,7 +122,7 @@ class update_term_info(object):
         # Sync up protocol ids (these should never change, but it's best
         # that it's automated since they'd otherwise be specified in two
         # places that would need to be kept in sync.
-        for key, val in new.iteritems():
+        for key, val in new.items():
             if val['id'] != proto_items[key]:
                 logger.warning("Warning: %s changed from %s to %s",
                     key, val['id'], proto_items[key])
