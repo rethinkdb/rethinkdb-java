@@ -19,10 +19,10 @@ repositories {
 dependencies {
     testCompile("junit:junit:4.12")
     testCompile("net.jodah:concurrentunit:0.4.2")
-    testRuntime("ch.qos.logback:logback-classic:1.1.3")
+    testRuntime("ch.qos.logback:logback-classic:1.2.3")
     compile("org.slf4j:slf4j-api:1.7.12")
-    compile("com.googlecode.json-simple:json-simple:1.1.1")
-    compile("com.fasterxml.jackson.core:jackson-databind:2.0.1")
+    compile("org.jetbrains:annotations:17.0.0")
+    compile("com.fasterxml.jackson.core:jackson-databind:2.10.0")
 }
 
 signing {
