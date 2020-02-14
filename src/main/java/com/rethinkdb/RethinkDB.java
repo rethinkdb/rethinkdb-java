@@ -1,5 +1,6 @@
 package com.rethinkdb;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.net.Connection;
@@ -10,7 +11,7 @@ public class RethinkDB extends TopLevel {
      * The Singleton to use to begin interacting with RethinkDB Driver
      */
     public static final RethinkDB r = new RethinkDB();
-    private static ObjectMapper mapper = new ObjectMapper();
+    private static ObjectMapper mapper = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     public Connection.Builder connection() {
         return Connection.build();
     }
