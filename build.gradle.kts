@@ -28,9 +28,6 @@ dependencies {
 signing {
     // Don't sign unless this is a release version
     sign(configurations.archives.get())
-    gradle.taskGraph.whenReady(Action {
-        isRequired = isReleaseVersion && hasTask("uploadArchives")
-    })
 }
 
 
