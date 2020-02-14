@@ -109,9 +109,9 @@ tasks {
                                     "email"("adriantodt.ms@gmail.com")
                                 }
                                 "developer" {
-                                    "id"("boros")
+                                    "id"("gabor-boros")
                                     "name"("Gábor Boros")
-                                    "email"("gabor.boros@prezi.com")
+                                    "email"("gabor.brs@gmail.com")
                                 }
                             }
                         }
