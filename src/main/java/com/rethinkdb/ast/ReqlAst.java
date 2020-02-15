@@ -1,12 +1,16 @@
 package com.rethinkdb.ast;
 
+import com.rethinkdb.gen.ast.Binary;
+import com.rethinkdb.gen.ast.Datum;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.proto.TermType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 /**
@@ -121,10 +125,47 @@ public class ReqlAst {
 
     @Override
     public String toString() {
-        return "ReqlAst{" +
-            "termType=" + termType +
-            ", args=" + args +
-            ", optargs=" + optargs +
-            '}';
+        StringBuilder builder = new StringBuilder();
+        builder.append("<root>\n");
+        astToString(builder, null, "", true);
+        return builder.toString();
+    }
+
+    private void astToString(StringBuilder builder, String name, String indent, boolean tail) {
+        builder.append(indent).append(tail ? "└── " : "├── ");
+
+        if (name != null) {
+            builder.append(name).append("=");
+        }
+        builder.append(getClass().getSimpleName()).append(':');
+
+        if (this instanceof Datum) {
+            Object datum = ((Datum) this).datum;
+            builder.append(' ').append(datum).append(" (").append(datum.getClass().getSimpleName()).append(")");
+        } else if (this instanceof Binary) {
+            builder.append(' ');
+            @Nullable byte[] binaryData = ((Binary) this).binaryData;
+            int length = (int) (binaryData != null ? binaryData.length : 0);
+            builder.append('(').append(length).append(length != 1 ? " bytes" : " byte").append(")");
+        }
+        builder.append('\n');
+        Iterator<ReqlAst> argsIterator = args.iterator();
+        while (argsIterator.hasNext()) {
+            ReqlAst arg = argsIterator.next();
+            arg.astToString(builder, null,
+                indent + (tail ? "    " : "│   "),
+                !argsIterator.hasNext() && optargs.isEmpty());
+        }
+
+        if (!optargs.isEmpty()) {
+            builder.append(indent).append(tail ? "    " : "│   ").append("└── ").append("<optArgs>: \n");
+            Iterator<Entry<String, ReqlAst>> optIterator = optargs.entrySet().iterator();
+            while (optIterator.hasNext()) {
+                Entry<String, ReqlAst> entry = optIterator.next();
+                entry.getValue().astToString(builder, entry.getKey(),
+                    indent + (tail ? "    " : "│   ") + "    ",
+                    !optIterator.hasNext());
+            }
+        }
     }
 }

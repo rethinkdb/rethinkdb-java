@@ -25,6 +25,17 @@ public class TopLevel {
                                   " Use lambda syntax instead");
     }
 
+    public static Object pathspec(Object... path) {
+        if (path.length < 2) {
+            throw new ReqlDriverError("r.pathspec(...) requires at least two parameters.");
+        }
+        Object result = path[path.length - 1];
+        for (int i = path.length - 2; i >= 0; i--) {
+            result = new MapObject<>().with(path[i], result);
+        }
+        return result;
+    }
+
     public MapObject<Object, Object> hashMap(Object key, Object val){
         return new MapObject<>().with(key, val);
     }
@@ -34,7 +45,7 @@ public class TopLevel {
     }
 
 % for type in ["Object", "ReqlFunction0", "ReqlFunction1", "ReqlFunction2", "ReqlFunction3", "ReqlFunction4"]:
-    public List<Object> array(${type} val0, ${type}... vals){
+    public List<Object> array(${type} val0, ${type}... vals) {
         List<Object> res = new ArrayList<>();
         res.add(val0);
         Collections.addAll(res, vals);
@@ -52,10 +63,10 @@ public class TopLevel {
         %if sig['first_arg'] not in ['Db', 'Table']:
     public ${term['classname']} ${methodname}(${
         ', '.join('%s %s' % (arg['type'], arg['var'])
-                  for arg in sig['args'])}){
+                  for arg in sig['args'])}) {
           % if methodname == 'binary':
         <% firstarg = sig['args'][0]['var'] %>
-        if(${firstarg} instanceof byte[]){
+        if (${firstarg} instanceof byte[]) {
             return new ${term['classname']}((byte[]) ${firstarg});
         }else{
           %endif

@@ -123,13 +123,13 @@ tasks {
         description = "Downloads contents from rethinkdb main repository."
 
         //properties
-        val rethinkdb_repo = findProperty("build.rethinkdb_repo")
-        val rethinkdb_branch = findProperty("build.rethinkdb_branch")
-        val checkout_dir = findProperty("build.rethinkdb_checkout_dir")
-        val proto_location = findProperty("build.proto.src_location")
-        val proto_target = findProperty("build.proto.target_folder")
-        val tests_location = findProperty("build.tests.src_location")
-        val tests_target = findProperty("build.tests.target_folder")
+        val rethinkdb_repo = findProperty("build.rethinkdb_repo")!!
+        val rethinkdb_branch = findProperty("build.rethinkdb_branch")!!
+        val checkout_dir = findProperty("build.rethinkdb_checkout_dir")!!
+        val proto_location = findProperty("build.proto.src_location")!!
+        val proto_target = findProperty("build.proto.target_folder")!!
+        val tests_location = findProperty("build.tests.src_location")!!
+        val tests_target = findProperty("build.tests.target_folder")!!
 
         val proto_folder = File(buildDir, "rethinkdb_gen/$proto_target")
         val tests_folder = File(buildDir, "rethinkdb_gen/$tests_target")
@@ -153,14 +153,14 @@ tasks {
         group = "code generation"
         description = "Generates json files for the java file generation."
 
-        val convert_proto = findProperty("build.gen.py.convert_proto")
-        val metajava = findProperty("build.gen.py.metajava")
-        val json_target = findProperty("build.gen.json.target_folder")
-        val proto_folder = findProperty("build.proto.target_folder")
-        val proto_name = findProperty("build.proto.file_name")
-        val proto_basic_name = findProperty("build.gen.json.proto_basic")
-        val term_info_name = findProperty("build.gen.json.term_info")
-        val java_term_info_name = findProperty("build.gen.json.java_term_info")
+        val convert_proto = findProperty("build.gen.py.convert_proto")!!
+        val metajava = findProperty("build.gen.py.metajava")!!
+        val json_target = findProperty("build.gen.json.target_folder")!!
+        val proto_folder = findProperty("build.proto.target_folder")!!
+        val proto_name = findProperty("build.proto.file_name")!!
+        val proto_basic_name = findProperty("build.gen.json.proto_basic")!!
+        val term_info_name = findProperty("build.gen.json.term_info")!!
+        val java_term_info_name = findProperty("build.gen.json.java_term_info")!!
 
         val json_folder = File(buildDir, "rethinkdb_gen/$json_target")
         val proto_file = File(buildDir, "rethinkdb_gen/$proto_folder/$proto_name")
@@ -200,15 +200,17 @@ tasks {
         group = "code generation"
         description = "Generates java files for the driver."
 
-        enabled = false // TODO enable this once we fix update-terminfo
+        val localFiles = findProperty("build.gen.use_local_files")!!.toBoolean()
 
-        val metajava = findProperty("build.gen.py.metajava")
-        val json_target = findProperty("build.gen.json.target_folder")
-        val proto_basic_name = findProperty("build.gen.json.proto_basic")
-        val global_info = findProperty("build.json.global_info")
-        val java_term_info_name = findProperty("build.gen.json.java_term_info")
-        val src_main = findProperty("build.gen.src.main")
-        val templates = findProperty("build.gen.src.templates")
+        enabled = localFiles // TODO enable this once we fix update-terminfo
+
+        val metajava = findProperty("build.gen.py.metajava")!!
+        val json_target = if (localFiles) "../../scripts" else findProperty("build.gen.json.target_folder")!!
+        val proto_basic_name = findProperty("build.gen.json.proto_basic")!!
+        val global_info = findProperty("build.json.global_info")!!
+        val java_term_info_name = findProperty("build.gen.json.java_term_info")!!
+        val src_main = findProperty("build.gen.src.main")!!
+        val templates = findProperty("build.gen.src.templates")!!
         val folders = findProperty("build.gen.src.main.packages")!!.split(',')
 
         val proto_basic = File(buildDir, "rethinkdb_gen/$json_target/$proto_basic_name")
@@ -237,10 +239,10 @@ tasks {
         description = "Generates test files for the driver."
 
         //properties
-        val convert_tests = findProperty("build.gen.py.convert_tests")
-        val tests_target = findProperty("build.tests.target_folder")
-        val src_test = findProperty("build.gen.src.test")
-        val templates = findProperty("build.gen.src.templates")
+        val convert_tests = findProperty("build.gen.py.convert_tests")!!
+        val tests_target = findProperty("build.tests.target_folder")!!
+        val src_test = findProperty("build.gen.src.test")!!
+        val templates = findProperty("build.gen.src.templates")!!
 
         val tests_folder = File(buildDir, "rethinkdb_gen/$tests_target")
         val src_test_gen = File("$src_test/gen")
