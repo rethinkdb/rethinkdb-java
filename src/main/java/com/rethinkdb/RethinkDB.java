@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.net.Connection;
 
+import java.net.URI;
+
 public class RethinkDB extends TopLevel {
     /**
      * The Singleton to use to begin interacting with RethinkDB Driver
@@ -45,5 +47,13 @@ public class RethinkDB extends TopLevel {
 
     public Connection.Builder connection() {
         return new Connection.Builder();
+    }
+
+    public Connection.Builder connection(String dburl) {
+        return connection(URI.create(dburl));
+    }
+
+    public Connection.Builder connection(URI uri) {
+        return new Connection.Builder(uri);
     }
 }

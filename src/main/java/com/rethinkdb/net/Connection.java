@@ -13,6 +13,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketAddress;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -335,6 +336,29 @@ public class Connection implements Closeable {
         private @Nullable String authKey;
         private @Nullable String user;
         private @Nullable String password;
+
+        public Builder() {}
+
+        public Builder(URI uri) {
+            if (!uri.getScheme().equals("rethinkdb")) {
+                throw new IllegalArgumentException("Schema of the URL is not 'rethinkdb'.");
+            }
+            String host = uri.getHost().trim();
+            if (!host.isEmpty()) {
+                this.hostname = host;
+            }
+            int port = uri.getPort();
+            if (port != -1) {
+                this.port = port;
+            }
+            String path = uri.getPath();
+            if (path.charAt(0) == '/') {
+                path = path.substring(1);
+            }
+            if (!path.isEmpty()) {
+                this.dbname = path;
+            }
+        }
 
         public Builder clone() throws CloneNotSupportedException {
             Builder c = (Builder) super.clone();
