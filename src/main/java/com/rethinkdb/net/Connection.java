@@ -22,22 +22,22 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Connection implements Closeable {
-    private final ConnectionSocket.Factory socketFactory;
-    private final ResponsePump.Factory pumpFactory;
-    private final String hostname;
-    private final int port;
-    private final @Nullable SSLContext sslContext;
-    private final @Nullable Long timeout;
-    private final @Nullable String user;
-    private final @Nullable String password;
+    protected final ConnectionSocket.Factory socketFactory;
+    protected final ResponsePump.Factory pumpFactory;
+    protected final String hostname;
+    protected final int port;
+    protected final @Nullable SSLContext sslContext;
+    protected final @Nullable Long timeout;
+    protected final @Nullable String user;
+    protected final @Nullable String password;
 
-    private final AtomicLong nextToken = new AtomicLong();
-    private final Set<ResponseHandler<?>> tracked = ConcurrentHashMap.newKeySet();
-    private final Lock writeLock = new ReentrantLock();
+    protected final AtomicLong nextToken = new AtomicLong();
+    protected final Set<ResponseHandler<?>> tracked = ConcurrentHashMap.newKeySet();
+    protected final Lock writeLock = new ReentrantLock();
 
-    private @Nullable String dbname;
-    private @Nullable ConnectionSocket socket;
-    private @Nullable ResponsePump pump;
+    protected @Nullable String dbname;
+    protected @Nullable ConnectionSocket socket;
+    protected @Nullable ResponsePump pump;
 
     public Connection(Builder c) {
         if (c.authKey != null && c.user != null) {
@@ -186,7 +186,7 @@ public class Connection implements Closeable {
      * @param query the query to execute.
      * @return a completable future.
      */
-    private Mono<Response> sendQuery(Query query) {
+    protected Mono<Response> sendQuery(Query query) {
         if (socket == null || !socket.isOpen()) {
             throw new ReqlDriverError("Client not connected.");
         }
@@ -210,7 +210,7 @@ public class Connection implements Closeable {
      *
      * @param query the query to execute.
      */
-    private void runQueryNoreply(Query query) {
+    protected void runQueryNoreply(Query query) {
         if (socket == null || !socket.isOpen()) {
             throw new ReqlDriverError("Client not connected.");
         }
@@ -227,12 +227,12 @@ public class Connection implements Closeable {
         }
     }
 
-    private <T> Flux<T> runQuery(Query query, @Nullable TypeReference<T> typeRef) {
+    protected <T> Flux<T> runQuery(Query query, @Nullable TypeReference<T> typeRef) {
         return sendQuery(query).onErrorMap(ReqlDriverError::new)
             .flatMapMany(res -> Flux.create(new ResponseHandler<>(this, query, res, typeRef)));
     }
 
-    private void handleOptArgs(OptArgs optArgs) {
+    protected void handleOptArgs(OptArgs optArgs) {
         if (!optArgs.containsKey("db") && dbname != null) {
             // Only override the db global arg if the user hasn't
             // specified one already and one is specified on the connection
