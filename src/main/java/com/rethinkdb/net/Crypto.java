@@ -139,27 +139,23 @@ class Crypto {
         return decoder.decode(string);
     }
 
-    static @Nullable SSLContext handleCertfile(@Nullable InputStream certFile, @Nullable SSLContext sslContext) {
-        if (certFile != null) {
-            try {
-                final CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                final X509Certificate caCert = (X509Certificate) cf.generateCertificate(certFile);
+    static SSLContext readCertFile(@Nullable InputStream certFile) {
+        try {
+            final CertificateFactory cf = CertificateFactory.getInstance("X.509");
+            final X509Certificate caCert = (X509Certificate) cf.generateCertificate(certFile);
 
-                final TrustManagerFactory tmf = TrustManagerFactory
-                    .getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-                ks.load(null); // You don't need the KeyStore instance to come from a file.
-                ks.setCertificateEntry("caCert", caCert);
-                tmf.init(ks);
+            final TrustManagerFactory tmf = TrustManagerFactory
+                .getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            ks.load(null); // You don't need the KeyStore instance to come from a file.
+            ks.setCertificateEntry("caCert", caCert);
+            tmf.init(ks);
 
-                final SSLContext ssc = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
-                ssc.init(null, tmf.getTrustManagers(), null);
-                return ssc;
-            } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
-                throw new ReqlDriverError(e);
-            }
-        } else {
-            return sslContext;
+            final SSLContext ssc = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
+            ssc.init(null, tmf.getTrustManagers(), null);
+            return ssc;
+        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
+            throw new ReqlDriverError(e);
         }
     }
 }

@@ -14,30 +14,28 @@ import static com.rethinkdb.net.Crypto.*;
 import static com.rethinkdb.net.Util.toJSON;
 import static com.rethinkdb.net.Util.toUTF8;
 
-public class Handshake {
-    static final Version VERSION = Version.V1_0;
-    static final Long SUB_PROTOCOL_VERSION = 0L;
-    static final Protocol PROTOCOL = Protocol.JSON;
+abstract class HandshakeProtocol {
+    public static final Version VERSION = Version.V1_0;
+    public static final Long SUB_PROTOCOL_VERSION = 0L;
+    public static final Protocol PROTOCOL = Protocol.JSON;
 
-    private static final String CLIENT_KEY = "Client Key";
-    private static final String SERVER_KEY = "Server Key";
+    public static final String CLIENT_KEY = "Client Key";
+    public static final String SERVER_KEY = "Server Key";
 
-    private final String username;
-    private final String password;
-    private ProtocolState state;
-
-    public Handshake(String username, String password) {
-        this.username = username;
-        this.password = password;
-        this.state = new InitialState(username, password);
+    public static HandshakeProtocol start(String username, String password) {
+        return new InitialState(username, password);
     }
 
-    public ByteBuffer nextMessage(String response) {
-        this.state = this.state.nextState(response);
-        return this.state.toSend();
-    }
+    private HandshakeProtocol() {}
 
-    private void throwIfFailure(Map<String, Object> json) {
+    public abstract HandshakeProtocol nextState(String response);
+
+    @Nullable
+    public abstract ByteBuffer toSend();
+
+    public abstract boolean isFinished();
+
+    public static void throwIfFailure(Map<String, Object> json) {
         if (!(boolean) json.get("success")) {
             Long errorCode = (Long) json.get("error_code");
             if (errorCode >= 10 && errorCode <= 20) {
@@ -48,20 +46,7 @@ public class Handshake {
         }
     }
 
-    public void reset() {
-        this.state = new InitialState(this.username, this.password);
-    }
-
-    private interface ProtocolState {
-        ProtocolState nextState(String response);
-
-        @Nullable
-        ByteBuffer toSend();
-
-        boolean isFinished();
-    }
-
-    private class InitialState implements ProtocolState {
+    public static class InitialState extends HandshakeProtocol {
         private final String nonce;
         private final String username;
         private final byte[] password;
@@ -73,7 +58,7 @@ public class Handshake {
         }
 
         @Override
-        public ProtocolState nextState(String response) {
+        public HandshakeProtocol nextState(String response) {
             if (response != null) {
                 throw new ReqlDriverError("Unexpected response");
             }
@@ -110,7 +95,7 @@ public class Handshake {
         }
     }
 
-    private class WaitingForProtocolRange implements ProtocolState {
+    public static class WaitingForProtocolRange extends HandshakeProtocol {
         private final String nonce;
         private final ByteBuffer message;
         private final ScramAttributes clientFirstMessageBare;
@@ -128,7 +113,7 @@ public class Handshake {
         }
 
         @Override
-        public ProtocolState nextState(String response) {
+        public HandshakeProtocol nextState(String response) {
             Map<String, Object> json = toJSON(response);
             throwIfFailure(json);
             long minVersion = (long) json.get("min_protocol_version");
@@ -152,7 +137,7 @@ public class Handshake {
         }
     }
 
-    private class WaitingForAuthResponse implements ProtocolState {
+    public static class WaitingForAuthResponse extends HandshakeProtocol {
         private final String nonce;
         private final byte[] password;
         private final ScramAttributes clientFirstMessageBare;
@@ -165,7 +150,7 @@ public class Handshake {
         }
 
         @Override
-        public ProtocolState nextState(String response) {
+        public HandshakeProtocol nextState(String response) {
             Map<String, Object> json = toJSON(response);
             throwIfFailure(json);
             String serverFirstMessage = (String) json.get("authentication");
@@ -227,9 +212,9 @@ public class Handshake {
         }
     }
 
-    private class HandshakeSuccess implements ProtocolState {
+    public static class HandshakeSuccess extends HandshakeProtocol {
         @Override
-        public ProtocolState nextState(String response) {
+        public HandshakeProtocol nextState(String response) {
             return this;
         }
 
@@ -244,7 +229,7 @@ public class Handshake {
         }
     }
 
-    private class WaitingForAuthSuccess implements ProtocolState {
+    public static class WaitingForAuthSuccess extends HandshakeProtocol {
         private final byte[] serverSignature;
         private final ByteBuffer message;
 
@@ -254,7 +239,7 @@ public class Handshake {
         }
 
         @Override
-        public ProtocolState nextState(String response) {
+        public HandshakeProtocol nextState(String response) {
             Map<String, Object> json = toJSON(response);
             throwIfFailure(json);
             ScramAttributes auth = ScramAttributes
@@ -276,11 +261,7 @@ public class Handshake {
         }
     }
 
-    public boolean isFinished() {
-        return this.state.isFinished();
-    }
-
-    static class ScramAttributes {
+    public static class ScramAttributes {
         @Nullable String _authIdentity; // a
         @Nullable String _username;     // n
         @Nullable String _nonce;        // r

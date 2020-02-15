@@ -64,7 +64,7 @@ public class ResponseHandler<T> implements Consumer<FluxSink<T>> {
             this.sink.set(sink);
             sink.onCancel(() -> {
                 connection.loseTrackOf(this);
-                connection.stop(firstRes.token);
+                connection.sendStop(firstRes.token);
             });
             sink.onDispose(() -> connection.loseTrackOf(this));
             connection.keepTrackOf(this);
@@ -83,7 +83,7 @@ public class ResponseHandler<T> implements Consumer<FluxSink<T>> {
             // great, we should make a CONTINUE request.
 
             // TODO isolate this into methods
-            Mono.fromFuture(connection.continueResponse(lastRes.token)).subscribe(
+            connection.sendContinue(lastRes.token).subscribe(
                 nextRes -> { // Okay, let's process this response.
                     boolean shouldContinue = currentResponse.compareAndSet(lastRes, nextRes);
                     if (nextRes.isSequence()) {

@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,12 @@ class Response {
         this.errorType = errorType;
     }
 
-    public static Response parseFrom(long token, ByteBuffer buf) {
+    public static Response readFrom(ConnectionSocket socket) {
+        final ByteBuffer header = socket.read(12);
+        final long token = header.getLong();
+        final int responseLength = header.getInt();
+        final ByteBuffer buf = socket.read(responseLength).order(ByteOrder.LITTLE_ENDIAN);
+
         if (Response.logger.isDebugEnabled()) {
             Response.logger.debug(
                 "JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
