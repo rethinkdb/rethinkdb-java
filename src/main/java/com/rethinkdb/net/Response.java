@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +58,12 @@ class Response {
 
         if (Response.logger.isDebugEnabled()) {
             Response.logger.debug(
-                "JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
+                "JSON Recv: Token: {} {}", token, new String(
+                    buf.array(),
+                    buf.arrayOffset() + buf.position(),
+                    buf.remaining(),
+                    StandardCharsets.UTF_8
+                ));
         }
         Map<String, Object> jsonResp = Util.toJSON(buf);
         ResponseType responseType = ResponseType.fromValue(((Long) jsonResp.get("t")).intValue());

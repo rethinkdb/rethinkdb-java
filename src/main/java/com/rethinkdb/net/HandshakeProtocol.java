@@ -7,13 +7,17 @@ import com.rethinkdb.gen.proto.Version;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Map;
 
 import static com.rethinkdb.net.Crypto.*;
 import static com.rethinkdb.net.Util.toJSON;
-import static com.rethinkdb.net.Util.toUTF8;
 
+/**
+ * Internal class used by {@link Connection#connect()} to do a proper handshake with the server.
+ */
 abstract class HandshakeProtocol {
     public static final Version VERSION = Version.V1_0;
     public static final Long SUB_PROTOCOL_VERSION = 0L;
@@ -26,7 +30,8 @@ abstract class HandshakeProtocol {
         return new InitialState(username, password);
     }
 
-    private HandshakeProtocol() {}
+    private HandshakeProtocol() {
+    }
 
     public abstract HandshakeProtocol nextState(String response);
 
@@ -53,7 +58,7 @@ abstract class HandshakeProtocol {
 
         InitialState(String username, String password) {
             this.username = username;
-            this.password = toUTF8(password);
+            this.password = password.getBytes(StandardCharsets.UTF_8);
             this.nonce = makeNonce();
         }
 
@@ -66,18 +71,20 @@ abstract class HandshakeProtocol {
             ScramAttributes clientFirstMessageBare = ScramAttributes.create()
                 .username(username)
                 .nonce(nonce);
-            byte[] jsonBytes = toUTF8(
-                "{" +
-                    "\"protocol_version\":" + SUB_PROTOCOL_VERSION + "," +
-                    "\"authentication_method\":\"SCRAM-SHA-256\"," +
-                    "\"authentication\":" + "\"n,," + clientFirstMessageBare + "\"" +
-                    "}"
-            );
-            ByteBuffer msg = Util.leByteBuffer(
-                Integer.BYTES +    // size of VERSION
-                    jsonBytes.length + // json auth payload
-                    1                  // terminating null byte
-            ).putInt(VERSION.value)
+            byte[] jsonBytes = ("{" +
+                "\"protocol_version\":" + SUB_PROTOCOL_VERSION + "," +
+                "\"authentication_method\":\"SCRAM-SHA-256\"," +
+                "\"authentication\":" + "\"n,," + clientFirstMessageBare + "\"" +
+                "}").getBytes(StandardCharsets.UTF_8);
+            // Creating the ByteBuffer over an underlying array makes
+            // it easier to turn into a string later.
+            //return ByteBuffer.wrap(new byte[capacity]).order(ByteOrder.LITTLE_ENDIAN);
+            // size of VERSION
+            // json auth payload
+            // terminating null byte
+            ByteBuffer msg = ByteBuffer.allocate(Integer.BYTES +    // size of VERSION
+                jsonBytes.length + // json auth payload
+                1).order(ByteOrder.LITTLE_ENDIAN).putInt(VERSION.value)
                 .put(jsonBytes)
                 .put(new byte[1]);
             return new WaitingForProtocolRange(
@@ -194,8 +201,9 @@ abstract class HandshakeProtocol {
 
             ScramAttributes auth = clientFinalMessageWithoutProof
                 .clientProof(clientProof);
-            byte[] authJson = toUTF8("{\"authentication\":\"" + auth + "\"}");
-            ByteBuffer message = Util.leByteBuffer(authJson.length + 1)
+            byte[] authJson = ("{\"authentication\":\"" + auth + "\"}").getBytes(StandardCharsets.UTF_8);
+
+            ByteBuffer message = ByteBuffer.allocate(authJson.length + 1).order(ByteOrder.LITTLE_ENDIAN)
                 .put(authJson)
                 .put(new byte[1]);
             return new WaitingForAuthSuccess(serverSignature, message);
@@ -261,7 +269,10 @@ abstract class HandshakeProtocol {
         }
     }
 
-    public static class ScramAttributes {
+    /**
+     * Salted Challenge Response Authentication Mechanism (SCRAM) attributes
+     */
+    static class ScramAttributes {
         @Nullable String _authIdentity; // a
         @Nullable String _username;     // n
         @Nullable String _nonce;        // r
@@ -387,22 +398,40 @@ abstract class HandshakeProtocol {
         }
 
         // Getters
-        String authIdentity() { return _authIdentity; }
+        String authIdentity() {
+            return _authIdentity;
+        }
 
-        String username() { return _username; }
+        String username() {
+            return _username;
+        }
 
-        String nonce() { return _nonce; }
+        String nonce() {
+            return _nonce;
+        }
 
-        String headerAndChannelBinding() { return _headerAndChannelBinding; }
+        String headerAndChannelBinding() {
+            return _headerAndChannelBinding;
+        }
 
-        byte[] salt() { return _salt; }
+        byte[] salt() {
+            return _salt;
+        }
 
-        Integer iterationCount() { return _iterationCount; }
+        Integer iterationCount() {
+            return _iterationCount;
+        }
 
-        String clientProof() { return _clientProof; }
+        String clientProof() {
+            return _clientProof;
+        }
 
-        byte[] serverSignature() { return _serverSignature; }
+        byte[] serverSignature() {
+            return _serverSignature;
+        }
 
-        String error() { return _error; }
+        String error() {
+            return _error;
+        }
     }
 }

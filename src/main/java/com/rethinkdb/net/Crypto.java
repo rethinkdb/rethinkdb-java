@@ -11,6 +11,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -20,9 +21,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static com.rethinkdb.net.Util.fromUTF8;
-import static com.rethinkdb.net.Util.toUTF8;
 
 class Crypto {
     private static final String DEFAULT_SSL_PROTOCOL = "TLSv1.2";
@@ -90,7 +88,7 @@ class Crypto {
             Mac mac = Mac.getInstance(HMAC_SHA_256);
             SecretKeySpec secretKey = new SecretKeySpec(key, HMAC_SHA_256);
             mac.init(secretKey);
-            return mac.doFinal(toUTF8(string));
+            return mac.doFinal(string.getBytes(StandardCharsets.UTF_8));
         } catch (InvalidKeyException | NoSuchAlgorithmException e) {
             throw new ReqlDriverError(e);
         }
@@ -102,7 +100,9 @@ class Crypto {
             return cachedValue;
         }
         final PBEKeySpec spec = new PBEKeySpec(
-            fromUTF8(password).toCharArray(), salt, iterationCount, 256);
+            new String(password, StandardCharsets.UTF_8).toCharArray(),
+            salt, iterationCount, 256
+        );
         final SecretKeyFactory skf;
         try {
             skf = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM);
@@ -132,7 +132,7 @@ class Crypto {
     }
 
     static String toBase64(byte[] bytes) {
-        return fromUTF8(encoder.encode(bytes));
+        return new String(encoder.encode(bytes), StandardCharsets.UTF_8);
     }
 
     static byte[] fromBase64(String string) {
