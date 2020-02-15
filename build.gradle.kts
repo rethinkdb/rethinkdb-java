@@ -23,6 +23,7 @@ dependencies {
     compile("org.slf4j:slf4j-api:1.7.12")
     compile("org.jetbrains:annotations:17.0.0")
     compile("com.fasterxml.jackson.core:jackson-databind:2.10.0")
+    compile("io.projectreactor:reactor-core:3.3.2.RELEASE")
 }
 
 signing {

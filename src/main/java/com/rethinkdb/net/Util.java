@@ -1,5 +1,6 @@
 package com.rethinkdb.net;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 
@@ -56,17 +57,18 @@ public class Util {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T, P> T convertToPojo(Object value, Class<P> pojoClass) {
-        if (pojoClass != null) {
-            if (pojoClass.isEnum()) {
-                Enum<?>[] enumConstants = ((Class<Enum<?>>) pojoClass).getEnumConstants();
+    public static <T> T convertToPojo(Object value, TypeReference<T> typeRef) {
+        if (typeRef != null) {
+            Class<?> rawClass = RethinkDB.getInternalMapper().getTypeFactory().constructType(typeRef).getRawClass();
+            if (rawClass.isEnum()) {
+                Enum<?>[] enumConstants = ((Class<Enum<?>>) rawClass).getEnumConstants();
                 for (Enum<?> enumConst : enumConstants) {
                     if (enumConst.name().equals(value)) {
                         return (T) enumConst;
                     }
                 }
             } else if (value instanceof Map) {
-                return (T) RethinkDB.getPOJOMapper().convertValue(value, pojoClass);
+                return (T) RethinkDB.getPOJOMapper().convertValue(value, typeRef);
             }
         }
         return (T) value;

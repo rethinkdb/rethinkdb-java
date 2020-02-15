@@ -1,11 +1,14 @@
 package com.rethinkdb.ast;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.proto.TermType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
+import reactor.core.publisher.Flux;
 
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -54,10 +57,9 @@ public class ReqlAst {
      * which may be iterated to get a sequence of atom results
      *
      * @param conn The connection to run this query
-     * @param <T>  The type of result
      * @return The result of this query
      */
-    public <T> T run(Connection conn) {
+    public Flux<Object> run(Connection conn) {
         return conn.run(this, new OptArgs(), null);
     }
 
@@ -69,46 +71,76 @@ public class ReqlAst {
      *
      * @param conn    The connection to run this query
      * @param runOpts The options to run this query with
-     * @param <T>     The type of result
      * @return The result of this query
      */
-    public <T> T run(Connection conn, OptArgs runOpts) {
+    public Flux<Object> run(Connection conn, OptArgs runOpts) {
         return conn.run(this, runOpts, null);
     }
 
     /**
      * Runs this query via connection {@code conn} with default options and returns an atom result
      * or a sequence result as a cursor. The atom result representing a JSON object is converted
-     * to an object of type {@code Class<P>} specified with {@code pojoClass}. The cursor
+     * to an object of type {@code Class<T>} specified with {@code typeRef}. The cursor
      * is a {@code com.rethinkdb.net.Cursor} which may be iterated to get a sequence of atom results
-     * of type {@code Class<P>}
+     * of type {@code Class<T>}
      *
-     * @param conn      The connection to run this query
-     * @param pojoClass The class of POJO to convert to
      * @param <T>       The type of result
-     * @param <P>       The type of POJO to convert to
+     * @param conn      The connection to run this query
+     * @param typeRef The class of POJO to convert to
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
-    public <T, P> T run(Connection conn, Class<P> pojoClass) {
-        return conn.run(this, new OptArgs(), pojoClass);
+    public <T> Flux<T> run(Connection conn, Class<T> typeRef) {
+        return conn.run(this, new OptArgs(), new ClassReference<>(typeRef));
     }
 
     /**
      * Runs this query via connection {@code conn} with options {@code runOpts} and returns an atom result
      * or a sequence result as a cursor. The atom result representing a JSON object is converted
-     * to an object of type {@code Class<P>} specified with {@code pojoClass}. The cursor
+     * to an object of type {@code Class<T>} specified with {@code typeRef}. The cursor
      * is a {@code com.rethinkdb.net.Cursor} which may be iterated to get a sequence of atom results
-     * of type {@code Class<P>}
+     * of type {@code Class<T>}
      *
+     * @param <T>       The type of result
      * @param conn      The connection to run this query
      * @param runOpts   The options to run this query with
-     * @param pojoClass The class of POJO to convert to
-     * @param <T>       The type of result
-     * @param <P>       The type of POJO to convert to
+     * @param typeRef The class of POJO to convert to
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
-    public <T, P> T run(Connection conn, OptArgs runOpts, Class<P> pojoClass) {
-        return conn.run(this, runOpts, pojoClass);
+    public <T> Flux<T> run(Connection conn, OptArgs runOpts, Class<T> typeRef) {
+        return conn.run(this, runOpts, new ClassReference<>(typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns an atom result
+     * or a sequence result as a cursor. The atom result representing a JSON object is converted
+     * to an object of type {@code Class<T>} specified with {@code typeRef}. The cursor
+     * is a {@code com.rethinkdb.net.Cursor} which may be iterated to get a sequence of atom results
+     * of type {@code Class<T>}
+     *
+     * @param <T>       The type of result
+     * @param conn      The connection to run this query
+     * @param typeRef The class of POJO to convert to
+     * @return The result of this query (either a {@code P or a Cursor<P>}
+     */
+    public <T> Flux<T> run(Connection conn, TypeReference<T> typeRef) {
+        return conn.run(this, new OptArgs(), typeRef);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns an atom result
+     * or a sequence result as a cursor. The atom result representing a JSON object is converted
+     * to an object of type {@code Class<T>} specified with {@code typeRef}. The cursor
+     * is a {@code com.rethinkdb.net.Cursor} which may be iterated to get a sequence of atom results
+     * of type {@code Class<T>}
+     *
+     * @param <T>       The type of result
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param typeRef The class of POJO to convert to
+     * @return The result of this query (either a {@code P or a Cursor<P>}
+     */
+    public <T> Flux<T> run(Connection conn, OptArgs runOpts, TypeReference<T> typeRef) {
+        return conn.run(this, runOpts, typeRef);
     }
 
     public void runNoReply(Connection conn) {
@@ -126,5 +158,18 @@ public class ReqlAst {
             ", args=" + args +
             ", optargs=" + optargs +
             '}';
+    }
+
+    static class ClassReference<T> extends TypeReference<T> {
+        private Class<T> c;
+
+        ClassReference(Class<T> c) {
+            this.c = c;
+        }
+
+        @Override
+        public Type getType() {
+            return c;
+        }
     }
 }

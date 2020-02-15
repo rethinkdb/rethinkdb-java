@@ -5,7 +5,6 @@ import com.rethinkdb.gen.exc.ReqlQueryLogicError;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
-import com.rethinkdb.net.Cursor;
 import net.jodah.concurrentunit.Waiter;
 import org.junit.*;
 import org.junit.rules.ExpectedException;

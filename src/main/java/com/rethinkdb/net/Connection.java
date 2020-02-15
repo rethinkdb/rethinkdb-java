@@ -1,5 +1,6 @@
 package com.rethinkdb.net;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.gen.ast.Db;
@@ -7,14 +8,16 @@ import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.net.ssl.SSLContext;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketAddress;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -35,7 +38,6 @@ public class Connection implements Closeable {
     // network stuff
     private @Nullable SocketWrapper socket;
 
-    private Map<Long, CursorImpl<?>> cursorCache = new ConcurrentHashMap<>();
 
     // execution stuff
     private ExecutorService exec;
@@ -154,10 +156,12 @@ public class Connection implements Closeable {
             nextToken.set(0);
 
             // clear cursor cache
-            for (CursorImpl<?> cursor : cursorCache.values()) {
-                cursor.setError("Connection is closed.");
+            for (ResponseHandler<?> handler : tracked) {
+                try {
+                    handler.onConnectionClosed();
+                } catch (InterruptedException ignored) {
+                }
             }
-            cursorCache.clear();
 
             // handle current awaiters
             this.awaiters.values().forEach(awaiter -> {
@@ -197,7 +201,7 @@ public class Connection implements Closeable {
      * @param query the query to execute.
      * @return a completable future.
      */
-    private Future<Response> sendQuery(Query query) {
+    private CompletableFuture<Response> sendQuery(Query query) {
         // check if response pump is running
         if (!exec.isShutdown() && !exec.isTerminated()) {
             final CompletableFuture<Response> awaiter = new CompletableFuture<>();
@@ -242,44 +246,16 @@ public class Connection implements Closeable {
         throw new ReqlDriverError("Can't write query because response pump is not running.");
     }
 
-    @SuppressWarnings("unchecked")
-    private <T, P> T runQuery(Query query, @Nullable Class<P> pojoClass) {
-        Response res;
-        try {
-            res = sendQuery(query).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new ReqlDriverError(e);
-        }
-
-        if (res.isAtom()) {
-            try {
-                Converter.FormatOptions fmt = new Converter.FormatOptions(query.globalOptions);
-                Object value = ((List) Converter.convertPseudotypes(res.data, fmt)).get(0);
-                return Util.convertToPojo(value, pojoClass);
-            } catch (IndexOutOfBoundsException ex) {
-                throw new ReqlDriverError("Atom response was empty!", ex);
-            }
-        } else if (res.isPartial() || res.isSequence()) {
-            return (T) new CursorImpl<>(this, query, res, (Class<T>) pojoClass);
-        } else if (res.isWaitComplete()) {
-            return null;
-        } else {
-            throw res.makeError(query);
-        }
+    private <T> Flux<T> runQuery(Query query, @Nullable TypeReference<T> typeRef) {
+        return Mono.fromFuture(sendQuery(query)).onErrorMap(ReqlDriverError::new)
+            .flatMapMany(res -> Flux.create(new ResponseHandler<>(this, query, res, typeRef)));
     }
 
     private long newToken() {
         return nextToken.incrementAndGet();
     }
 
-    void addToCache(long token, CursorImpl<?> cursor) {
-        cursorCache.put(token, cursor);
-    }
-
-    void removeFromCache(long token) {
-        cursorCache.remove(token);
-    }
-
+    // unused for some reason
     public void noreplyWait() {
         runQuery(Query.noreplyWait(newToken()), null);
     }
@@ -296,13 +272,13 @@ public class Connection implements Closeable {
         }
     }
 
-    public <T, P> T run(ReqlAst term, OptArgs globalOpts, @Nullable Class<P> pojoClass) {
+    public <T> Flux<T> run(ReqlAst term, OptArgs globalOpts, @Nullable TypeReference<T> typeRef) {
         setDefaultDB(globalOpts);
         Query q = Query.start(newToken(), term, globalOpts);
         if (globalOpts.containsKey("noreply")) {
             throw new ReqlDriverError("Don't provide the noreply option as an optarg. Use `.runNoReply` instead of `.run`");
         }
-        return runQuery(q, pojoClass);
+        return runQuery(q, typeRef);
     }
 
     public void runNoReply(ReqlAst term, OptArgs globalOpts) {
@@ -311,15 +287,25 @@ public class Connection implements Closeable {
         runQueryNoreply(Query.start(newToken(), term, globalOpts));
     }
 
-    Future<Response> continue_(Cursor cursor) {
-        return sendQuery(Query.continue_(cursor.connectionToken()));
+    CompletableFuture<Response> continueResponse(long token) {
+        return sendQuery(Query.continue_(token));
     }
 
-    void stop(Cursor cursor) {
+    void stop(long token) {
         // While the server does reply to the stop request, we ignore that reply.
         // This works because the response pump in `connect` ignores replies for which
         // no waiter exists.
-        runQueryNoreply(Query.stop(cursor.connectionToken()));
+        runQueryNoreply(Query.stop(token));
+    }
+
+    Set<ResponseHandler<?>> tracked = ConcurrentHashMap.newKeySet();
+
+    public void loseTrackOf(ResponseHandler<?> r) {
+        tracked.add(r);
+    }
+
+    public void keepTrackOf(ResponseHandler<?> r) {
+        tracked.remove(r);
     }
 
     /**

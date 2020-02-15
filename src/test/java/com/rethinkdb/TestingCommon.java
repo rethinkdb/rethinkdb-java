@@ -3,7 +3,6 @@ package com.rethinkdb;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
-import com.rethinkdb.net.Cursor;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
