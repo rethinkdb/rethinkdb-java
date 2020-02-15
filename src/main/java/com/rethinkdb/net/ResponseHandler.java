@@ -133,7 +133,13 @@ public class ResponseHandler<T> implements Consumer<FluxSink<T>> {
     private int emitData(final FluxSink<T> sink) {
         List<Object> objects = (List<Object>) Converter.convertPseudotypes(firstRes.data, fmt);
         for (Object each : objects) {
-            sink.next(Util.convertToPojo(each, typeRef));
+            if (firstRes.isAtom() && each instanceof List) {
+                for (Object o : ((List<Object>) each)) {
+                    sink.next(Util.convertToPojo(o, typeRef));
+                }
+            } else {
+                sink.next(Util.convertToPojo(each, typeRef));
+            }
         }
         return objects.size();
     }

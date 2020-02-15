@@ -38,6 +38,7 @@ public class Connection implements Closeable {
     // network stuff
     private @Nullable SocketWrapper socket;
 
+    Set<ResponseHandler<?>> tracked = ConcurrentHashMap.newKeySet();
 
     // execution stuff
     private ExecutorService exec;
@@ -255,7 +256,6 @@ public class Connection implements Closeable {
         return nextToken.incrementAndGet();
     }
 
-    // unused for some reason
     public void noreplyWait() {
         runQuery(Query.noreplyWait(newToken()), null);
     }
@@ -297,8 +297,6 @@ public class Connection implements Closeable {
         // no waiter exists.
         runQueryNoreply(Query.stop(token));
     }
-
-    Set<ResponseHandler<?>> tracked = ConcurrentHashMap.newKeySet();
 
     public void loseTrackOf(ResponseHandler<?> r) {
         tracked.add(r);
