@@ -16,29 +16,29 @@ import org.jetbrains.annotations.Nullable;
 
 public class Binary extends ReqlExpr {
 
-    @Nullable byte[] b64Data;
-    public Binary(byte[] bytes){
+    public @Nullable byte[] binaryData;
+    public Binary(byte[] bytes) {
         this(new Arguments());
-        b64Data = bytes;
+        binaryData = bytes;
     }
     public Binary(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Binary(Arguments args){
+    public Binary(Arguments args) {
         this(args, null);
     }
     public Binary(Arguments args, OptArgs optargs) {
         this(TermType.BINARY, args, optargs);
     }
-    protected Binary(TermType termType, Arguments args, OptArgs optargs){
+    protected Binary(TermType termType, Arguments args, OptArgs optargs) {
         super(termType, args, optargs);
     }
 
 
     @Override
     public Object build(){
-        if(b64Data != null){
-            return Converter.toBinary(b64Data);
+        if (binaryData != null) {
+            return Converter.toBinary(binaryData);
         }else{
             return super.build();
         }

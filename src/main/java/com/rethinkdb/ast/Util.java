@@ -18,6 +18,7 @@ import java.util.Map;
 
 
 public class Util {
+    public static int startingDepth = 100;
     private Util() {}
 
     /**
@@ -27,7 +28,7 @@ public class Util {
      * @return ReqlAst
      */
     public static ReqlAst toReqlAst(Object val) {
-        return toReqlAst(val, 100);
+        return toReqlAst(val, startingDepth);
     }
 
     public static ReqlExpr toReqlExpr(Object val) {
@@ -67,10 +68,13 @@ public class Util {
         if (val instanceof Map) {
             Map<String, ReqlAst> obj = new MapObject<>();
             ((Map<Object, Object>) val).forEach((key, value) -> {
-                if (!(key instanceof String)) {
+                if (key.getClass().isEnum()) {
+                    obj.put(((Enum<?>) key).name(), toReqlAst(value, remainingDepth - 1));
+                } else if (key instanceof String) {
+                    obj.put((String) key, toReqlAst(value, remainingDepth - 1));
+                } else {
                     throw new ReqlDriverCompileError("Object keys can only be strings");
                 }
-                obj.put((String) key, toReqlAst(value));
             });
             return MakeObj.fromMap(obj);
         }
@@ -118,6 +122,6 @@ public class Util {
         }
 
         // val is a non-null POJO, let's use jackson
-        return toReqlAst(RethinkDB.getPOJOMapper().convertValue(val, Map.class));
+        return toReqlAst(RethinkDB.getPOJOMapper().convertValue(val, Map.class), remainingDepth - 1);
     }
 }

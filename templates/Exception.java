@@ -38,10 +38,6 @@ public class ${camel(classname)} extends ${camel(superclass)} {
         return backtrace;
     }
 
-    public @Nullable Backtrace getBacktrace() {
-        return backtrace;
-    }
-
     public ${camel(classname)} setBacktrace(Backtrace backtrace) {
         this.backtrace = backtrace;
         return this;
