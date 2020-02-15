@@ -340,22 +340,24 @@ public final class TestingCommon {
     }
 
     public static ArrayList fetch(Object cursor_, long limit) throws Exception {
-        if(limit < 0) {
-            limit = Long.MAX_VALUE;
-        }
-        Cursor cursor = (Cursor) cursor_;
-        long total = 0;
-        ArrayList result = new ArrayList((int) limit);
-        for(long i = 0; i < limit; i++) {
-            if(!cursor.hasNext()){
-                break;
-            }
-            result.add(cursor.next(500));
-        }
-        return result;
+        System.out.println(cursor_);
+        return new ArrayList();
+//        if(limit < 0) {
+//            limit = Long.MAX_VALUE;
+//        }
+//        Cursor cursor = (Cursor) cursor_;
+//        long total = 0;
+//        ArrayList result = new ArrayList((int) limit);
+//        for(long i = 0; i < limit; i++) {
+//            if(!cursor.hasNext()){
+//                break;
+//            }
+//            result.add(cursor.next(500));
+//        }
+//        return result;
     }
 
-    public static ArrayList fetch(Cursor cursor) throws Exception {
+    public static ArrayList fetch(Object cursor) throws Exception {
         return fetch(cursor, -1);
     }
 
@@ -367,14 +369,7 @@ public final class TestingCommon {
             return query;
         }
         try {
-            Object res = ((ReqlAst)query).run(conn, runopts);
-            if(res instanceof Cursor) {
-                ArrayList ret = new ArrayList();
-                ((Cursor) res).forEachRemaining(ret::add);
-                return ret;
-            }else{
-                return res;
-            }
+            return ((TestingFramework.TestingConnection) conn).internalRun(((ReqlAst)query), runopts).block();
         } catch (Exception e) {
             return e;
         }

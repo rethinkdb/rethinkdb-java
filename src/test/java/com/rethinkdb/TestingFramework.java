@@ -1,8 +1,20 @@
 package com.rethinkdb;
 
-import com.rethinkdb.net.Connection;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.rethinkdb.ast.Query;
+import com.rethinkdb.ast.ReqlAst;
+import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.model.OptArgs;
+import com.rethinkdb.net.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -83,7 +95,31 @@ public class TestingFramework {
      * i.e. connection secured with SSL.
      */
     public static Connection createConnection(Connection.Builder builder) throws Exception {
-        return builder.connect();
+        return new TestingConnection(builder).connect();
     }
 
+    /**
+     * This injects a method that complies with what the test framework is awaiting.
+     */
+    public static class TestingConnection extends Connection {
+        public TestingConnection(Builder c) {
+            super(c);
+        }
+
+        public Mono<Object> internalRun(ReqlAst term, OptArgs optArgs) {
+            handleOptArgs(optArgs);
+            Query q = Query.start(nextToken.incrementAndGet(), term, optArgs);
+            if (optArgs.containsKey("noreply")) {
+                throw new ReqlDriverError("Don't provide the noreply option as an optarg. Use `.runNoReply` instead of `.run`");
+            }
+            return sendQuery(q).onErrorMap(ReqlDriverError::new).flatMap(res -> {
+                Flux<Object> flux = Flux.create(new ResponseHandler<>(this, q, res, null));
+                if (res.isAtom()) {
+                    return flux.next();
+                } else {
+                    return flux.collectList();
+                }
+            });
+        }
+    }
 }

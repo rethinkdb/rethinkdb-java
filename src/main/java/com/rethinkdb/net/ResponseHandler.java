@@ -15,18 +15,18 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public class ResponseHandler<T> implements Consumer<FluxSink<T>> {
-    private final Connection connection;
-    private final Query query;
-    private final Response firstRes;
-    private final TypeReference<T> typeRef;
-    private final Converter.FormatOptions fmt;
+    protected final Connection connection;
+    protected final Query query;
+    protected final Response firstRes;
+    protected final TypeReference<T> typeRef;
+    protected final Converter.FormatOptions fmt;
 
     // This gets used if it's a partial request.
-    private final Semaphore requesting = new Semaphore(1);
-    private final Semaphore emitting = new Semaphore(1);
-    private final AtomicLong requestCount = new AtomicLong();
-    private final AtomicReference<Response> currentResponse = new AtomicReference<>();
-    private final AtomicReference<FluxSink<T>> sink = new AtomicReference<>();
+    protected final Semaphore requesting = new Semaphore(1);
+    protected final Semaphore emitting = new Semaphore(1);
+    protected final AtomicLong requestCount = new AtomicLong();
+    protected final AtomicReference<Response> currentResponse = new AtomicReference<>();
+    protected final AtomicReference<FluxSink<T>> sink = new AtomicReference<>();
 
     public ResponseHandler(Connection connection, Query query, Response firstRes, TypeReference<T> typeRef) {
         this.connection = connection;
@@ -77,7 +77,7 @@ public class ResponseHandler<T> implements Consumer<FluxSink<T>> {
         sink.error(firstRes.makeError(query));
     }
 
-    private void onRequest(FluxSink<T> sink, long amount) {
+    protected void onRequest(FluxSink<T> sink, long amount) {
         final Response lastRes = currentResponse.get();
         if (lastRes.isPartial() && requestCount.addAndGet(amount) > 0 && requesting.tryAcquire()) {
             // great, we should make a CONTINUE request.
@@ -117,7 +117,7 @@ public class ResponseHandler<T> implements Consumer<FluxSink<T>> {
         }
     }
 
-    void onConnectionClosed() throws InterruptedException {
+    protected void onConnectionClosed() throws InterruptedException {
         // This will spin wait for a bit until it is not null
         while (sink.compareAndSet(null, null)) Thread.yield();
         FluxSink<T> sink = this.sink.get();
@@ -130,10 +130,10 @@ public class ResponseHandler<T> implements Consumer<FluxSink<T>> {
     }
 
     @SuppressWarnings("unchecked")
-    private int emitData(final FluxSink<T> sink) {
+    protected int emitData(final FluxSink<T> sink) {
         List<Object> objects = (List<Object>) Converter.convertPseudotypes(firstRes.data, fmt);
         for (Object each : objects) {
-            if (firstRes.isAtom() && each instanceof List) {
+            if (connection.unwrapLists && firstRes.isAtom() && each instanceof List) {
                 for (Object o : ((List<Object>) each)) {
                     sink.next(Util.convertToPojo(o, typeRef));
                 }

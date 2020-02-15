@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-class Response {
+public class Response {
     private static final Logger logger = LoggerFactory.getLogger(Query.class);
 
     public final long token;
@@ -86,11 +86,11 @@ class Response {
             .build();
     }
 
-    static Builder make(long token, ResponseType type) {
+    public static Builder make(long token, ResponseType type) {
         return new Builder(token, type);
     }
 
-    ReqlError makeError(Query query) {
+    public ReqlError makeError(Query query) {
         String msg = data.size() > 0 ?
             (String) data.get(0)
             : "Unknown error message";
@@ -101,30 +101,30 @@ class Response {
             .build();
     }
 
-    boolean isWaitComplete() {
+    public boolean isWaitComplete() {
         return type == ResponseType.WAIT_COMPLETE;
     }
 
     /* Whether the response is any kind of feed */
-    boolean isFeed() {
+    public boolean isFeed() {
         return notes.stream().anyMatch(ResponseNote::isFeed);
     }
 
     /* Whether the response is any kind of error */
-    boolean isError() {
+    public boolean isError() {
         return type.isError();
     }
 
     /* What type of success the response contains */
-    boolean isAtom() {
+    public boolean isAtom() {
         return type == ResponseType.SUCCESS_ATOM;
     }
 
-    boolean isSequence() {
+    public boolean isSequence() {
         return type == ResponseType.SUCCESS_SEQUENCE;
     }
 
-    boolean isPartial() {
+    public boolean isPartial() {
         return type == ResponseType.SUCCESS_PARTIAL;
     }
 
@@ -140,7 +140,7 @@ class Response {
             '}';
     }
 
-    static class Builder {
+    public static class Builder {
         long token;
         ResponseType responseType;
         List<ResponseNote> notes = new ArrayList<>();

@@ -8,12 +8,11 @@ import com.rethinkdb.net.Connection;
 import net.jodah.concurrentunit.Waiter;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
+import reactor.core.publisher.Flux;
 
 import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -67,62 +66,62 @@ public class RethinkDBTest{
 
     @Test
     public void testBooleans() throws Exception {
-        Boolean t = r.expr(true).run(conn);
+        Boolean t = r.expr(true).run(conn).cast(Boolean.class).blockFirst();
         Assert.assertEquals(true, t.booleanValue());
 
-        Boolean f = r.expr(false).run(conn);
+        Boolean f = r.expr(false).run(conn).cast(Boolean.class).blockFirst();
         Assert.assertEquals(false, f.booleanValue());
 
-        String trueType = r.expr(true).typeOf().run(conn);
+        String trueType = r.expr(true).typeOf().run(conn).cast(String.class).blockFirst();
         Assert.assertEquals("BOOL", trueType);
 
-        String falseString = r.expr(false).coerceTo("string").run(conn);
+        String falseString = r.expr(false).coerceTo("string").run(conn).cast(String.class).blockFirst();
         Assert.assertEquals("false", falseString);
 
-        Boolean boolCoerce = r.expr(true).coerceTo("bool").run(conn);
+        Boolean boolCoerce = r.expr(true).coerceTo("bool").run(conn).cast(Boolean.class).blockFirst();
         Assert.assertEquals(true, boolCoerce.booleanValue());
     }
 
     @Test
     public void testNull() {
-        Object o = r.expr(null).run(conn);
+        Object o = r.expr(null).run(conn).blockFirst();
         Assert.assertEquals(null, o);
 
-        String nullType = r.expr(null).typeOf().run(conn);
+        String nullType = r.expr(null).typeOf().run(conn).cast(String.class).blockFirst();
         Assert.assertEquals("NULL", nullType);
 
-        String nullCoerce = r.expr(null).coerceTo("string").run(conn);
+        String nullCoerce = r.expr(null).coerceTo("string").run(conn).cast(String.class).blockFirst();
         Assert.assertEquals("null", nullCoerce);
 
-        Object n = r.expr(null).coerceTo("null").run(conn);
+        Object n = r.expr(null).coerceTo("null").run(conn).blockFirst();
         Assert.assertEquals(null, n);
     }
 
     @Test
     public void testString() {
-        String str = r.expr("str").run(conn);
+        String str = r.expr("str").run(conn).cast(String.class).blockFirst();
         Assert.assertEquals("str", str);
 
-        String unicode = r.expr("こんにちは").run(conn);
+        String unicode = r.expr("こんにちは").run(conn).cast(String.class).blockFirst();
         Assert.assertEquals("こんにちは", unicode);
 
-        String strType = r.expr("foo").typeOf().run(conn);
+        String strType = r.expr("foo").typeOf().run(conn).cast(String.class).blockFirst();
         Assert.assertEquals("STRING", strType);
 
-        String strCoerce = r.expr("foo").coerceTo("string").run(conn);
+        String strCoerce = r.expr("foo").coerceTo("string").run(conn).cast(String.class).blockFirst();
         Assert.assertEquals("foo", strCoerce);
 
-        Number nmb12 = r.expr("-1.2").coerceTo("NUMBER").run(conn);
+        Number nmb12 = r.expr("-1.2").coerceTo("NUMBER").run(conn).cast(Number.class).blockFirst();
         Assert.assertEquals(-1.2, nmb12);
 
-        Long nmb10 = r.expr("0xa").coerceTo("NUMBER").run(conn);
+        Long nmb10 = r.expr("0xa").coerceTo("NUMBER").run(conn).cast(Long.class).blockFirst();
         Assert.assertEquals(10L, nmb10.longValue());
     }
 
     @Test
     public void testDate() {
         OffsetDateTime date = OffsetDateTime.now();
-        OffsetDateTime result = r.expr(date).run(conn);
+        OffsetDateTime result = r.expr(date).run(conn).cast(OffsetDateTime.class).blockFirst();
         Assert.assertEquals(date, result);
     }
 
@@ -147,62 +146,67 @@ public class RethinkDBTest{
         r.expr("inf").coerceTo("NUMBER").run(conn);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSplitEdgeCases() {
-        List<String> emptySplitNothing = r.expr("").split().run(conn);
+        List<String> emptySplitNothing = r.expr("").split().run(conn).cast(List.class).blockFirst();
         Assert.assertEquals(emptySplitNothing, Arrays.asList());
 
-        List<String> nullSplit = r.expr("").split(null).run(conn);
+        List<String> nullSplit = r.expr("").split(null).run(conn).cast(List.class).blockFirst();
         Assert.assertEquals(nullSplit, Arrays.asList());
 
-        List<String> emptySplitSpace = r.expr("").split(" ").run(conn);
+        List<String> emptySplitSpace = r.expr("").split(" ").run(conn).cast(List.class).blockFirst();
         Assert.assertEquals(Arrays.asList(""), emptySplitSpace);
 
-        List<String> emptySplitEmpty = r.expr("").split("").run(conn);
+        List<String> emptySplitEmpty = r.expr("").split("").run(conn).cast(List.class).blockFirst();
         assertEquals(Arrays.asList(), emptySplitEmpty);
 
-        List<String> emptySplitNull5 = r.expr("").split(null, 5).run(conn);
+        List<String> emptySplitNull5 = r.expr("").split(null, 5).run(conn).cast(List.class).blockFirst();
         assertEquals(Arrays.asList(), emptySplitNull5);
 
-        List<String> emptySplitSpace5 = r.expr("").split(" ", 5).run(conn);
+        List<String> emptySplitSpace5 = r.expr("").split(" ", 5).run(conn).cast(List.class).blockFirst();
         assertEquals(Arrays.asList(""), emptySplitSpace5);
 
-        List<String> emptySplitEmpty5 = r.expr("").split("", 5).run(conn);
+        List<String> emptySplitEmpty5 = r.expr("").split("", 5).run(conn).cast(List.class).blockFirst();
         assertEquals(Arrays.asList(), emptySplitEmpty5);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSplitWithNullOrWhitespace() {
-        List<String> extraWhitespace = r.expr("aaaa bbbb  cccc ").split().run(conn);
+        List<String> extraWhitespace = r.expr("aaaa bbbb  cccc ").split().run(conn).cast(List.class).blockFirst();
         assertEquals(Arrays.asList("aaaa", "bbbb", "cccc"), extraWhitespace);
 
-        List<String> extraWhitespaceNull = r.expr("aaaa bbbb  cccc ").split(null).run(conn);
+        List<String> extraWhitespaceNull = r.expr("aaaa bbbb  cccc ").split(null).run(conn).cast(List.class).blockFirst();
         assertEquals(Arrays.asList("aaaa", "bbbb", "cccc"), extraWhitespaceNull);
 
-        List<String> extraWhitespaceSpace = r.expr("aaaa bbbb  cccc ").split(" ").run(conn);
+        List<String> extraWhitespaceSpace = r.expr("aaaa bbbb  cccc ").split(" ").run(conn).cast(List.class).blockFirst();
         assertEquals(Arrays.asList("aaaa", "bbbb", "", "cccc", ""), extraWhitespaceSpace);
 
-        List<String> extraWhitespaceEmpty = r.expr("aaaa bbbb  cccc ").split("").run(conn);
+        List<String> extraWhitespaceEmpty = r.expr("aaaa bbbb  cccc ").split("").run(conn).cast(List.class).blockFirst();
         assertEquals(Arrays.asList("a", "a", "a", "a", " ",
                 "b", "b", "b", "b", " ", " ", "c", "c", "c", "c", " "), extraWhitespaceEmpty);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSplitWithString() {
-        List<String> b = r.expr("aaaa bbbb  cccc ").split("b").run(conn);
+        List<String> b = r.expr("aaaa bbbb  cccc ").split("b").run(conn).cast(List.class).blockFirst();
         assertEquals(Arrays.asList("aaaa ", "", "", "", "  cccc "), b);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testTableInsert(){
         MapObject foo = new MapObject()
                 .with("hi", "There")
                 .with("yes", 7)
                 .with("no", null );
-        Map<String, Object> result = r.db(dbName).table(tableName).insert(foo).run(conn);
+        Map<String, Object> result = r.db(dbName).table(tableName).insert(foo).run(conn).cast(Map.class).blockFirst();
         assertEquals(1L, result.get("inserted"));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testDbGlobalArgInserted() {
         final String tblName = "test_global_optargs";
@@ -221,22 +225,22 @@ public class RethinkDBTest{
         try {
             // no optarg set, no default db
             conn.use(null);
-            Map x1 = r.table(tblName).get(1).run(conn);
+            Map x1 = r.table(tblName).get(1).run(conn).cast(Map.class).blockFirst();
             assertEquals("test", x1.get("dbName"));
 
             // no optarg set, default db set
             conn.use("conn_default");
-            Map x2 = r.table(tblName).get(1).run(conn);
+            Map x2 = r.table(tblName).get(1).run(conn).cast(Map.class).blockFirst();
             assertEquals("conn_default", x2.get("dbName"));
 
             // optarg set, no default db
             conn.use(null);
-            Map x3 = r.table(tblName).get(1).run(conn, OptArgs.of("db", "optargs"));
+            Map x3 = r.table(tblName).get(1).run(conn, OptArgs.of("db", "optargs")).cast(Map.class).blockFirst();
             assertEquals("optargs", x3.get("dbName"));
 
             // optarg set, default db
             conn.use("conn_default");
-            Map x4 = r.table(tblName).get(1).run(conn, OptArgs.of("db", "optargs"));
+            Map x4 = r.table(tblName).get(1).run(conn, OptArgs.of("db", "optargs")).cast(Map.class).blockFirst();
             assertEquals("optargs", x4.get("dbName"));
 
         } finally {
@@ -251,62 +255,42 @@ public class RethinkDBTest{
         r.db(dbName).table(tableName).insert(new MapObject().with("field", "123")).run(conn);
         r.db(dbName).table(tableName).insert(new MapObject().with("field", "456")).run(conn);
 
-        Cursor<Map<String, String>> allEntries = r.db(dbName).table(tableName).run(conn);
-        assertEquals(2, allEntries.toList().size());
+        Flux<Object> allEntries = r.db(dbName).table(tableName).run(conn);
+        assertEquals(2, allEntries.count().block().longValue());
 
         // The following won't work, because r.row is not implemented in the Java driver. Use lambda syntax instead
         // Cursor<Map<String, String>> oneEntryRow = r.db(dbName).table(tableName).filter(r.row("field").eq("456")).run(conn);
         // assertEquals(1, oneEntryRow.toList().size());
 
-        Cursor<Map<String, String>> oneEntryLambda = r.db(dbName).table(tableName).filter(table -> table.getField("field").eq("456")).run(conn);
-        assertEquals(1, oneEntryLambda.toList().size());
-    }
-
-    @Test
-    public void testCursorTryWithResources() {
-        r.db(dbName).table(tableName).insert(new MapObject().with("field", "123")).run(conn);
-        r.db(dbName).table(tableName).insert(new MapObject().with("field", "456")).run(conn);
-
-        try(Cursor<Map<String, String>> allEntries = r.db(dbName).table(tableName).run(conn)) {
-            assertEquals(2, allEntries.toList().size());
-        }
+        Flux<Object> oneEntryLambda = r.db(dbName).table(tableName).filter(table -> table.getField("field").eq("456")).run(conn);
+        assertEquals(1, oneEntryLambda.count().block().intValue());
     }
 
     @Test
     public void testTableSelectOfPojo() {
         TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true));
-        Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn);
+        Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn).cast(Map.class).blockFirst();
         assertEquals(1L, pojoResult.get("inserted"));
 
         String key = (String) ((List) pojoResult.get("generated_keys")).get(0);
-        TestPojo result = r.db(dbName).table(tableName).get(key).run(conn, TestPojo.class);
+        TestPojo result = r.db(dbName).table(tableName).get(key).run(conn, TestPojo.class).blockFirst();
 
         assertEquals("foo", result.getStringProperty());
         assertTrue(42L == result.getPojoProperty().getLongProperty());
         assertEquals(true, result.getPojoProperty().getBooleanProperty());
     }
 
-    @Test(expected = ClassCastException.class)
-    public void testTableSelectOfPojo_withNoPojoClass_throwsException() {
-        TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true));
-        Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn);
-        assertEquals(1L, pojoResult.get("inserted"));
-
-        String key = (String) ((List) pojoResult.get("generated_keys")).get(0);
-        TestPojo result = r.db(dbName).table(tableName).get(key).run(conn /* TestPojo.class is not specified */);
-    }
-
     @Test
     public void testTableSelectOfPojoCursor() {
         TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
         TestPojo pojoTwo = new TestPojo("bar", new TestPojoInner(53L, false));
-        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
-        Map<String, Object> pojoTwoResult = r.db(dbName).table(tableName).insert(pojoTwo).run(conn);
+        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn).cast(Map.class).blockFirst();
+        Map<String, Object> pojoTwoResult = r.db(dbName).table(tableName).insert(pojoTwo).run(conn).cast(Map.class).blockFirst();
         assertEquals(1L, pojoOneResult.get("inserted"));
         assertEquals(1L, pojoTwoResult.get("inserted"));
 
-        Cursor<TestPojo> cursor = r.db(dbName).table(tableName).run(conn, TestPojo.class);
-        List<TestPojo> result = cursor.toList();
+        Flux<TestPojo> cursor = r.db(dbName).table(tableName).run(conn, TestPojo.class);
+        List<TestPojo> result = Objects.requireNonNull(cursor.collectList().block());
         assertEquals(2L, result.size());
 
         TestPojo pojoOneSelected = "foo".equals(result.get(0).getStringProperty()) ? result.get(0) : result.get(1);
@@ -321,21 +305,6 @@ public class RethinkDBTest{
         assertEquals(false, pojoTwoSelected.getPojoProperty().getBooleanProperty());
     }
 
-    @Test(expected = ClassCastException.class)
-    public void testTableSelectOfPojoCursor_withNoPojoClass_throwsException() {
-        TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
-        TestPojo pojoTwo = new TestPojo("bar", new TestPojoInner(53L, false));
-        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn);
-        Map<String, Object> pojoTwoResult = r.db(dbName).table(tableName).insert(pojoTwo).run(conn);
-        assertEquals(1L, pojoOneResult.get("inserted"));
-        assertEquals(1L, pojoTwoResult.get("inserted"));
-
-        Cursor<TestPojo> cursor = r.db(dbName).table(tableName).run(conn /* TestPojo.class is not specified */);
-        List<TestPojo> result = cursor.toList();
-
-        TestPojo pojoSelected = result.get(0);
-    }
-
     @Test(timeout=40000)
     public void testConcurrentWrites() throws TimeoutException, InterruptedException {
         final int total = 500;
@@ -344,7 +313,7 @@ public class RethinkDBTest{
         for (int i = 0; i < total; i++)
             new Thread(() -> {
                 final TestPojo pojo = new TestPojo("writezz", new TestPojoInner(10L, true));
-                final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn);
+                final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn).cast(Map.class).blockFirst();
                 waiter.assertEquals(1L, result.get("inserted"));
                 writeCounter.getAndIncrement();
                 waiter.resume();
@@ -362,17 +331,17 @@ public class RethinkDBTest{
 
         // write to the database and retrieve the id
         final TestPojo pojo = new TestPojo("readzz", new TestPojoInner(10L, true));
-        final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).optArg("return_changes", true).run(conn);
+        final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).optArg("return_changes", true).run(conn).cast(Map.class).blockFirst();
         final String id = ((List) result.get("generated_keys")).get(0).toString();
 
         final Waiter waiter = new Waiter();
         for (int i = 0; i < total; i++)
             new Thread(() -> {
                 // make sure there's only one
-                final Cursor<TestPojo> cursor = r.db(dbName).table(tableName).run(conn, TestPojo.class);
-                assertEquals(1, cursor.toList().size());
+                final Flux<TestPojo> cursor = r.db(dbName).table(tableName).run(conn, TestPojo.class);
+                assertEquals(1, cursor.count().block().intValue());
                 // read that one
-                final TestPojo readPojo = r.db(dbName).table(tableName).get(id).run(conn, TestPojo.class);
+                final TestPojo readPojo = r.db(dbName).table(tableName).get(id).run(conn, TestPojo.class).blockFirst();
                 waiter.assertNotNull(readPojo);
                 // assert inserted values
                 waiter.assertEquals("readzz", readPojo.getStringProperty());
@@ -394,15 +363,15 @@ public class RethinkDBTest{
         for (int i = 0; i < total; i++)
             new Thread(() -> {
                 final TestPojo pojo = new TestPojo("writezz", new TestPojoInner(10L, true));
-                final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn);
+                final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn).cast(Map.class).blockFirst();
                 waiter.assertEquals(1L, result.get("inserted"));
                 waiter.resume();
             }).start();
 
         waiter.await(2500, total);
 
-        final Cursor<TestPojo> all = r.db(dbName).table(tableName).run(conn);
-        assertEquals(total, all.toList().size());
+        final Flux<TestPojo> all = r.db(dbName).table(tableName).run(conn, TestPojo.class);
+        assertEquals(total, all.count().block().intValue());
     }
 
     @Test
@@ -412,19 +381,13 @@ public class RethinkDBTest{
 
     @Test
     public void test_Changefeeds_Cursor_Close_cause_new_cursor_cause_memory_leak() throws Exception {
-        Field f_cursorCache = Connection.class.getDeclaredField("cursorCache");
+        Field f_cursorCache = Connection.class.getDeclaredField("tracked");
         f_cursorCache.setAccessible(true);
 
-        Map<Long, Cursor> cursorCache = (Map<Long, Cursor>) f_cursorCache.get(conn);
+        Set<?> cursorCache = (Set<?>) f_cursorCache.get(conn);
         assertEquals(0, cursorCache.size());
 
-        Cursor c = r.db(dbName).table(tableName).changes().run(conn);
-
-        try {
-            c.next(1000);
-        } catch (TimeoutException ex) {
-        }
-        c.close();
+        Flux f = r.db(dbName).table(tableName).changes().run(conn);
 
         assertEquals(0, cursorCache.size());
     }

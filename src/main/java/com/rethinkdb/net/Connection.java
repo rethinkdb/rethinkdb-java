@@ -30,6 +30,7 @@ public class Connection implements Closeable {
     protected final @Nullable Long timeout;
     protected final @Nullable String user;
     protected final @Nullable String password;
+    protected final boolean unwrapLists;
 
     protected final AtomicLong nextToken = new AtomicLong();
     protected final Set<ResponseHandler<?>> tracked = ConcurrentHashMap.newKeySet();
@@ -52,6 +53,7 @@ public class Connection implements Closeable {
         this.timeout = c.timeout;
         this.user = c.user != null ? c.user : "admin";
         this.password = c.password != null ? c.password : c.authKey != null ? c.authKey : "";
+        this.unwrapLists = c.unwrapLists;
     }
 
     public @Nullable String db() {
@@ -157,22 +159,22 @@ public class Connection implements Closeable {
 
     // package-private methods
 
-    void sendStop(long token) {
+    protected void sendStop(long token) {
         // While the server does reply to the stop request, we ignore that reply.
         // This works because the response pump in `connect` ignores replies for which
         // no waiter exists.
         runQueryNoreply(Query.stop(token));
     }
 
-    Mono<Response> sendContinue(long token) {
+    protected Mono<Response> sendContinue(long token) {
         return sendQuery(Query.continue_(token));
     }
 
-    void loseTrackOf(ResponseHandler<?> r) {
+    protected void loseTrackOf(ResponseHandler<?> r) {
         tracked.add(r);
     }
 
-    void keepTrackOf(ResponseHandler<?> r) {
+    protected void keepTrackOf(ResponseHandler<?> r) {
         tracked.remove(r);
     }
 
@@ -261,6 +263,7 @@ public class Connection implements Closeable {
         private @Nullable String authKey;
         private @Nullable String user;
         private @Nullable String password;
+        private boolean unwrapLists = false;
 
         public Builder copyOf() {
             Builder c = new Builder();
@@ -274,6 +277,7 @@ public class Connection implements Closeable {
             c.authKey = authKey;
             c.user = user;
             c.password = password;
+            c.unwrapLists = unwrapLists;
             return c;
         }
 
@@ -320,6 +324,11 @@ public class Connection implements Closeable {
 
         public Builder sslContext(SSLContext val) {
             sslContext = val;
+            return this;
+        }
+
+        public Builder unwrapLists(boolean val) {
+            unwrapLists = val;
             return this;
         }
 
