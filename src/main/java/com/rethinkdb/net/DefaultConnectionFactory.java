@@ -221,7 +221,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
                     }
                 }
             }, "RethinkDB-" + socket + "-ResponsePump");
-
+            thread.start();
         }
 
         @Override

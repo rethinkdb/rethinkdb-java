@@ -132,7 +132,9 @@ public class Connection implements Closeable {
     public void close(boolean shouldNoreplyWait) {
         // disconnect
         try {
-            noreplyWait();
+            if (shouldNoreplyWait) {
+                noreplyWait();
+            }
         } finally {
             // reset token
             nextToken.set(0);
@@ -231,7 +233,8 @@ public class Connection implements Closeable {
 
     protected <T> Flux<T> runQuery(Query query, @Nullable TypeReference<T> typeRef) {
         return sendQuery(query).onErrorMap(ReqlDriverError::new)
-            .flatMapMany(res -> Flux.create(new ResponseHandler<>(this, query, res, typeRef)));
+            .flatMapMany(res -> Flux.create(new ResponseHandler<>(this, query, res, typeRef)))
+            .cache();
     }
 
     protected void handleOptArgs(OptArgs optArgs) {

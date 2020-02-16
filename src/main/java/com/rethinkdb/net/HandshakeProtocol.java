@@ -27,7 +27,7 @@ abstract class HandshakeProtocol {
     public static final String SERVER_KEY = "Server Key";
 
     public static HandshakeProtocol start(String username, String password) {
-        return new InitialState(username, password);
+        return new InitialState(username, password).nextState(null);
     }
 
     private HandshakeProtocol() {
