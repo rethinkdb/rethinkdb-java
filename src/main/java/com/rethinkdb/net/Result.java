@@ -142,7 +142,8 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     public T next(long timeout, TimeUnit unit) throws TimeoutException {
         try {
             Object next = rawQueue.poll(timeout, unit);
-            return RethinkDB.getPOJOMapper().convertValue(next, typeRef);
+            onStateUpdate();
+            return Util.convertToPojo(next, typeRef);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -153,7 +154,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         try {
             Object next = rawQueue.take();
             onStateUpdate();
-            return RethinkDB.getPOJOMapper().convertValue(next, typeRef);
+            return Util.convertToPojo(next, typeRef);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

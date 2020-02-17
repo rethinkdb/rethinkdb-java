@@ -128,6 +128,8 @@ public class Response {
         return type == ResponseType.SUCCESS_PARTIAL;
     }
 
+    public boolean isServerInfo() { return type == ResponseType.SERVER_INFO; }
+
     @Override
     public String toString() {
         return "Response{" +

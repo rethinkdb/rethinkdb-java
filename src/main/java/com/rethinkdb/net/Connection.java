@@ -7,6 +7,7 @@ import com.rethinkdb.gen.ast.Db;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
+import com.rethinkdb.model.Server;
 import org.jetbrains.annotations.Nullable;
 
 import javax.net.ssl.SSLContext;
@@ -124,6 +125,19 @@ public class Connection implements Closeable {
                              @Nullable Result.FetchMode fetchMode,
                              @Nullable TypeReference<T> typeRef) {
         return runAsync(term, optArgs, fetchMode, typeRef).join();
+    }
+
+    public CompletableFuture<Server> serverAsync() {
+        return sendQuery(Query.serverInfo(nextToken.incrementAndGet())).thenApply(res -> {
+            if (res.isServerInfo()) {
+                return Util.convertToPojo(res.data.get(0), new TypeReference<Server>() {});
+            }
+            throw new ReqlDriverError("Did not receive a SERVER_INFO response.");
+        });
+    }
+
+    public Server server() {
+        return serverAsync().join();
     }
 
     public CompletableFuture<Void> noreplyWaitAsync() {

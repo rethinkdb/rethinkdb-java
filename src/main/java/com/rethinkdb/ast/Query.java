@@ -56,6 +56,10 @@ public class Query {
         return new Query(QueryType.NOREPLY_WAIT, token, null, new OptArgs());
     }
 
+    public static Query serverInfo(long token) {
+        return new Query(QueryType.SERVER_INFO, token, null, new OptArgs());
+    }
+
     public ByteBuffer serialize() {
         try {
             List<Object> queryArr = new ArrayList<>();

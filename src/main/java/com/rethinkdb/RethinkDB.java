@@ -56,4 +56,8 @@ public class RethinkDB extends TopLevel {
     public Connection.Builder connection(URI uri) {
         return new Connection.Builder(uri);
     }
+
+    public static void main(String[] args) {
+        System.out.println(r.connection().connect().server());
+    }
 }

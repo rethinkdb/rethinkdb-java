@@ -118,7 +118,7 @@ public class Util {
         }
 
         if (val.getClass().isEnum()) {
-            return new Datum(val.toString());
+            return new Datum(((Enum<?>) val).name());
         }
 
         // val is a non-null POJO, let's use jackson
