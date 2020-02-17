@@ -337,26 +337,74 @@ public class Connection implements Closeable {
         private @Nullable String user;
         private @Nullable String password;
 
-        public Builder() {}
+        public Builder() {
+        }
 
         public Builder(URI uri) {
-            if (!uri.getScheme().equals("rethinkdb")) {
+            if (!"rethinkdb".equals(uri.getScheme())) {
                 throw new IllegalArgumentException("Schema of the URL is not 'rethinkdb'.");
             }
-            String host = uri.getHost().trim();
-            if (!host.isEmpty()) {
-                this.hostname = host;
-            }
+
+            String userInfo = uri.getUserInfo();
+            String host = uri.getHost();
             int port = uri.getPort();
+            String path = uri.getPath();
+            String query = uri.getQuery();
+
+            if (userInfo != null && !userInfo.isEmpty()) {
+                String[] split = userInfo.split(":");
+                if (split.length > 2) {
+                    throw new IllegalArgumentException("Invalid user info.");
+                }
+                if (split.length > 0) {
+                    this.user = split[0];
+                }
+                if (split.length > 1) {
+                    this.password = split[1];
+                }
+            }
+            if (host != null && !host.isEmpty()) {
+                this.hostname = host.trim();
+            }
             if (port != -1) {
                 this.port = port;
             }
-            String path = uri.getPath();
-            if (path.charAt(0) == '/') {
-                path = path.substring(1);
+            if (path != null) {
+                if (path.charAt(0) == '/') {
+                    path = path.substring(1);
+                }
+                if (!path.isEmpty()) {
+                    this.dbname = path;
+                }
             }
-            if (!path.isEmpty()) {
-                this.dbname = path;
+            if (query != null) {
+                String[] kvs = query.split("&");
+                for (String kv : kvs) {
+                    String[] split = kv.split("=");
+                    if (split.length != 2) {
+                        throw new IllegalArgumentException("Invalid query.");
+                    }
+                    switch (split[0]) {
+                        case "auth_key": {
+                            String authKey = split[1];
+                            if (authKey.isEmpty()) {
+                                throw new IllegalArgumentException("Invalid query value.");
+                            }
+                            if (authKey.charAt(0) == '\'' && authKey.charAt(authKey.length() - 1) == '\'') {
+                                authKey = authKey.substring(1, authKey.length() - 1).replace("\\'", "'");
+                            }
+                            this.authKey = authKey;
+                            break;
+                        }
+                        case "timeout": {
+                            this.timeout = Long.parseLong(split[1]);
+                            break;
+                        }
+                        default: {
+                            throw new IllegalArgumentException("Invalid query parameter.");
+                        }
+                    }
+                }
             }
         }
 
