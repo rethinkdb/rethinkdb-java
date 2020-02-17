@@ -6,7 +6,9 @@ import com.rethinkdb.ast.Query;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
 import com.rethinkdb.gen.proto.ResponseType;
+import com.rethinkdb.model.Profile;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
 import java.util.Iterator;
@@ -165,6 +167,10 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     @Override
     public Iterator<T> iterator() {
         return this;
+    }
+
+    public @Nullable Profile profile() {
+        return currentResponse.get().profile;
     }
 
     protected void handleFirstResponse() {

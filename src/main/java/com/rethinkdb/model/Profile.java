@@ -6,20 +6,20 @@ import java.util.List;
 
 public class Profile {
 
-    private List<Object> profileObj;
+    private List<Object> values;
 
     private Profile(List<Object> profileObj) {
-        this.profileObj = profileObj;
+        this.values = profileObj;
     }
 
-    public static @Nullable Profile fromList(List<Object> profileObj) {
-        if(profileObj == null || profileObj.size() == 0){
+    public static @Nullable Profile fromList(List<Object> list) {
+        if(list == null || list.size() == 0){
             return null;
         }
-        return new Profile(profileObj);
+        return new Profile(list);
     }
 
-    public List<Object> getProfileObj() {
-        return profileObj;
+    public List<Object> getValues() {
+        return values;
     }
 }
