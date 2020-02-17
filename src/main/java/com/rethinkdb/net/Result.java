@@ -20,10 +20,54 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class ResponseHandler<T> implements Iterator<T>, Iterable<T>, Closeable {
+public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
+    /**
+     * The fetch mode to use on partial sequences.
+     */
+    public enum FetchMode {
+        /**
+         * Fetches all parts of the sequence as fast as possible.<br>
+         * <b>WARNING:</b> This can end up throwing {@link OutOfMemoryError}s in case of giant sequences.
+         */
+        AGGRESSIVE,
+        /**
+         * Fetches the next part of the sequence once the buffer reaches half of the original size.
+         */
+        PREEMPTIVE_HALF,
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a third of the original size.
+         */
+        PREEMPTIVE_THIRD,
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a fourth of the original size.
+         */
+        PREEMPTIVE_FOURTH,
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a fifth of the original size.
+         */
+        PREEMPTIVE_FIFTH,
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a sixth of the original size.
+         */
+        PREEMPTIVE_SIXTH,
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a seventh of the original size.
+         */
+        PREEMPTIVE_SEVENTH,
+        /**
+         * Fetches the next part of the sequence once the buffer reaches an eight of the original size.
+         */
+        PREEMPTIVE_EIGHTH,
+        /**
+         * Fetches the next part of the sequence once the buffer becomes empty.
+         */
+        LAZY
+    }
+
     protected final Connection connection;
     protected final Query query;
-    protected final QueryResponse firstRes;
+    protected final Response firstRes;
+    protected final FetchMode fetchMode;
     protected final TypeReference<T> typeRef;
     protected final Converter.FormatOptions fmt;
 
@@ -34,19 +78,24 @@ public class ResponseHandler<T> implements Iterator<T>, Iterable<T>, Closeable {
     // This gets used if it's a partial request.
     protected final Semaphore requesting = new Semaphore(1);
     protected final Semaphore emitting = new Semaphore(1);
-    protected final AtomicLong requestCount = new AtomicLong();
-    protected final AtomicReference<QueryResponse> currentResponse = new AtomicReference<>();
+    protected final AtomicLong lastRequestCount = new AtomicLong();
+    protected final AtomicReference<Response> currentResponse = new AtomicReference<>();
 
-    public ResponseHandler(Connection connection, Query query, QueryResponse firstRes, TypeReference<T> typeRef) {
+    public Result(Connection connection,
+                  Query query,
+                  Response firstRes,
+                  FetchMode fetchMode,
+                  TypeReference<T> typeRef) {
         this.connection = connection;
         this.query = query;
         this.firstRes = firstRes;
+        this.fetchMode = fetchMode;
         this.typeRef = typeRef;
         fmt = new Converter.FormatOptions(query.globalOptions);
         currentResponse.set(firstRes);
 
         //todo change later
-        CompletableFuture.runAsync(this::firstRun);
+        CompletableFuture.runAsync(this::handleFirstResponse);
     }
 
     public long connectionToken() {
@@ -116,7 +165,7 @@ public class ResponseHandler<T> implements Iterator<T>, Iterable<T>, Closeable {
         return this;
     }
 
-    protected void firstRun() {
+    protected void handleFirstResponse() {
         if (firstRes.isWaitComplete()) {
             completed.complete(true);
             return;
@@ -138,7 +187,8 @@ public class ResponseHandler<T> implements Iterator<T>, Iterable<T>, Closeable {
             // First of all, we emit all of this request. Reactor's buffer should handle this.
             emitData(firstRes);
 
-            // It is a partial response, so connection should be able to kill us if needed, and clients should be able to stop us.
+            // It is a partial response, so connection should be able to kill us if needed,
+            // and clients should be able to stop the Result.
             completed.thenAccept(finished -> {
                 if (!finished) {
                     connection.sendStop(firstRes.token);
@@ -155,15 +205,11 @@ public class ResponseHandler<T> implements Iterator<T>, Iterable<T>, Closeable {
         completed.completeExceptionally(firstRes.makeError(query));
     }
 
-    protected boolean shouldContinue() {
-        return true;
-    }
-
     /**
      * This function is called on next()
      */
     protected void onStateUpdate() {
-        final QueryResponse lastRes = currentResponse.get();
+        final Response lastRes = currentResponse.get();
         if (lastRes.isPartial() && shouldContinue() && requesting.tryAcquire()) {
             // great, we should make a CONTINUE request.
             connection.sendContinue(lastRes.token).whenComplete((nextRes, t) -> {
@@ -200,13 +246,49 @@ public class ResponseHandler<T> implements Iterator<T>, Iterable<T>, Closeable {
         }
     }
 
+    protected boolean shouldContinue() {
+        if (!firstRes.isPartial()) {
+            return false;
+        }
+        switch (fetchMode) {
+            case PREEMPTIVE_HALF: {
+                return rawQueue.size() * 2 < lastRequestCount.get();
+            }
+            case PREEMPTIVE_THIRD: {
+                return rawQueue.size() * 3 < lastRequestCount.get();
+            }
+            case PREEMPTIVE_FOURTH: {
+                return rawQueue.size() * 4 < lastRequestCount.get();
+            }
+            case PREEMPTIVE_FIFTH: {
+                return rawQueue.size() * 5 < lastRequestCount.get();
+            }
+            case PREEMPTIVE_SIXTH: {
+                return rawQueue.size() * 6 < lastRequestCount.get();
+            }
+            case PREEMPTIVE_SEVENTH: {
+                return rawQueue.size() * 7 < lastRequestCount.get();
+            }
+            case PREEMPTIVE_EIGHTH: {
+                return rawQueue.size() * 8 < lastRequestCount.get();
+            }
+            case LAZY: {
+                return rawQueue.isEmpty();
+            }
+            case AGGRESSIVE:
+            default: {
+                return true;
+            }
+        }
+    }
+
     protected void onConnectionClosed() throws InterruptedException {
-        currentResponse.set(QueryResponse.make(query.token, ResponseType.SUCCESS_SEQUENCE).build());
+        currentResponse.set(Response.make(query.token, ResponseType.SUCCESS_SEQUENCE).build());
         completed.completeExceptionally(new ReqlRuntimeError("Connection is closed."));
     }
 
     @SuppressWarnings("unchecked")
-    protected void emitData(QueryResponse res) {
+    protected void emitData(Response res) {
         if (completed.isDone()) {
             if (completed.join()) {
                 throw new RuntimeException("The Response already completed successfully.");
@@ -214,14 +296,17 @@ public class ResponseHandler<T> implements Iterator<T>, Iterable<T>, Closeable {
                 throw new RuntimeException("The Response was cancelled.");
             }
         }
+        lastRequestCount.set(0);
         List<Object> objects = (List<Object>) Converter.convertPseudotypes(res.data, fmt);
         for (Object each : objects) {
             if (connection.unwrapLists && firstRes.isAtom() && each instanceof List) {
                 for (Object o : ((List<Object>) each)) {
                     rawQueue.offer(o);
+                    lastRequestCount.incrementAndGet();
                 }
             } else {
                 rawQueue.offer(each);
+                lastRequestCount.incrementAndGet();
             }
         }
     }

@@ -31,9 +31,10 @@ public class Connection implements Closeable {
     protected final @Nullable String user;
     protected final @Nullable String password;
     protected final boolean unwrapLists;
+    protected final Result.FetchMode defaultFetchMode;
 
     protected final AtomicLong nextToken = new AtomicLong();
-    protected final Set<ResponseHandler<?>> tracked = ConcurrentHashMap.newKeySet();
+    protected final Set<Result<?>> tracked = ConcurrentHashMap.newKeySet();
     protected final Lock writeLock = new ReentrantLock();
 
     protected @Nullable String dbname;
@@ -54,6 +55,7 @@ public class Connection implements Closeable {
         this.user = c.user != null ? c.user : "admin";
         this.password = c.password != null ? c.password : c.authKey != null ? c.authKey : "";
         this.unwrapLists = c.unwrapLists;
+        this.defaultFetchMode = c.defaultFetchMode != null ? c.defaultFetchMode : Result.FetchMode.LAZY;
     }
 
     public @Nullable String db() {
@@ -105,21 +107,27 @@ public class Connection implements Closeable {
         return this;
     }
 
-    public <T> CompletableFuture<ResponseHandler<T>> runAsync(ReqlAst term, OptArgs optArgs, @Nullable TypeReference<T> typeRef) {
+    public <T> CompletableFuture<Result<T>> runAsync(ReqlAst term,
+                                                     OptArgs optArgs,
+                                                     @Nullable Result.FetchMode fetchMode,
+                                                     @Nullable TypeReference<T> typeRef) {
         handleOptArgs(optArgs);
         Query q = Query.start(nextToken.incrementAndGet(), term, optArgs);
         if (optArgs.containsKey("noreply")) {
             throw new ReqlDriverError("Don't provide the noreply option as an optarg. Use `.runNoReply` instead of `.run`");
         }
-        return runQuery(q, typeRef);
+        return runQuery(q, fetchMode, typeRef);
     }
 
-    public <T> ResponseHandler<T> run(ReqlAst term, OptArgs optArgs, @Nullable TypeReference<T> typeRef) {
-        return runAsync(term, optArgs, typeRef).join();
+    public <T> Result<T> run(ReqlAst term,
+                             OptArgs optArgs,
+                             @Nullable Result.FetchMode fetchMode,
+                             @Nullable TypeReference<T> typeRef) {
+        return runAsync(term, optArgs, fetchMode, typeRef).join();
     }
 
     public CompletableFuture<Void> noreplyWaitAsync() {
-        return runQuery(Query.noreplyWait(nextToken.incrementAndGet()), null).thenApply(ignored -> null);
+        return runQuery(Query.noreplyWait(nextToken.incrementAndGet()), null, null).thenApply(ignored -> null);
     }
 
     public void noreplyWait() {
@@ -148,7 +156,7 @@ public class Connection implements Closeable {
             nextToken.set(0);
 
             // clear cursor cache
-            for (ResponseHandler<?> handler : tracked) {
+            for (Result<?> handler : tracked) {
                 try {
                     handler.onConnectionClosed();
                 } catch (InterruptedException ignored) {
@@ -176,15 +184,15 @@ public class Connection implements Closeable {
         runQueryNoreply(Query.stop(token));
     }
 
-    protected CompletableFuture<QueryResponse> sendContinue(long token) {
+    protected CompletableFuture<Response> sendContinue(long token) {
         return sendQuery(Query.continue_(token));
     }
 
-    protected void loseTrackOf(ResponseHandler<?> r) {
+    protected void loseTrackOf(Result<?> r) {
         tracked.add(r);
     }
 
-    protected void keepTrackOf(ResponseHandler<?> r) {
+    protected void keepTrackOf(Result<?> r) {
         tracked.remove(r);
     }
 
@@ -198,16 +206,16 @@ public class Connection implements Closeable {
      * @param query the query to execute.
      * @return a completable future.
      */
-    protected CompletableFuture<QueryResponse> sendQuery(Query query) {
+    protected CompletableFuture<Response> sendQuery(Query query) {
         if (socket == null || !socket.isOpen()) {
             throw new ReqlDriverError("Client not connected.");
         }
-        
+
         if (pump == null) {
             throw new ReqlDriverError("Response pump is not running.");
         }
 
-        CompletableFuture<QueryResponse> response = pump.await(query.token);
+        CompletableFuture<Response> response = pump.await(query.token);
         try {
             writeLock.lock();
             socket.write(query.serialize());
@@ -239,8 +247,12 @@ public class Connection implements Closeable {
         }
     }
 
-    protected <T> CompletableFuture<ResponseHandler<T>> runQuery(Query query, @Nullable TypeReference<T> typeRef) {
-        return sendQuery(query).thenApply(res -> new ResponseHandler<>(this, query, res, typeRef));
+    protected <T> CompletableFuture<Result<T>> runQuery(Query query,
+                                                        @Nullable Result.FetchMode fetchMode,
+                                                        @Nullable TypeReference<T> typeRef) {
+        return sendQuery(query).thenApply(res -> new Result<>(
+            this, query, res, fetchMode == null ? defaultFetchMode : fetchMode, typeRef
+        ));
     }
 
     protected void handleOptArgs(OptArgs optArgs) {
@@ -272,6 +284,7 @@ public class Connection implements Closeable {
         private @Nullable String authKey;
         private @Nullable String user;
         private @Nullable String password;
+        private @Nullable Result.FetchMode defaultFetchMode;
         private boolean unwrapLists = false;
 
         public Builder() {
@@ -358,6 +371,7 @@ public class Connection implements Closeable {
             c.user = user;
             c.password = password;
             c.unwrapLists = unwrapLists;
+            c.defaultFetchMode = defaultFetchMode;
             return c;
         }
 
@@ -409,6 +423,11 @@ public class Connection implements Closeable {
 
         public Builder unwrapLists(boolean val) {
             unwrapLists = val;
+            return this;
+        }
+
+        public Builder defaultFetchMode(Result.FetchMode val) {
+            defaultFetchMode = val;
             return this;
         }
 

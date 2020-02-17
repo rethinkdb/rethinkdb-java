@@ -190,7 +190,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
 
     private static class ThreadResponsePump implements ResponsePump {
         private final Thread thread;
-        private Map<Long, CompletableFuture<QueryResponse>> awaiting = new ConcurrentHashMap<>();
+        private Map<Long, CompletableFuture<Response>> awaiting = new ConcurrentHashMap<>();
 
         public ThreadResponsePump(ConnectionSocket socket) {
             this.thread = new Thread(() -> {
@@ -208,8 +208,8 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
 
                     // read response and send it to whoever is waiting, if anyone
                     try {
-                        final QueryResponse response = QueryResponse.readFrom(socket);
-                        final CompletableFuture<QueryResponse> awaiter = awaiting.remove(response.token);
+                        final Response response = Response.readFrom(socket);
+                        final CompletableFuture<Response> awaiter = awaiting.remove(response.token);
                         if (awaiter != null) {
                             awaiter.complete(response);
                         }
@@ -223,8 +223,8 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         }
 
         @Override
-        public CompletableFuture<QueryResponse> await(long token) {
-            CompletableFuture<QueryResponse> future = new CompletableFuture<>();
+        public CompletableFuture<Response> await(long token) {
+            CompletableFuture<Response> future = new CompletableFuture<>();
             if (awaiting == null) {
                 throw new ReqlDriverError("Response pump closed.");
             }
@@ -233,7 +233,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         }
 
         private void shutdown(Exception e) {
-            Map<Long, CompletableFuture<QueryResponse>> awaiting = this.awaiting;
+            Map<Long, CompletableFuture<Response>> awaiting = this.awaiting;
             this.awaiting = null;
             thread.interrupt();
             if (awaiting != null) {

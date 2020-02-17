@@ -8,12 +8,13 @@ import com.rethinkdb.gen.proto.TermType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
-import com.rethinkdb.net.ResponseHandler;
+import com.rethinkdb.net.Result;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -55,96 +56,321 @@ public class ReqlAst {
     }
 
     /**
-     * Runs this query via connection {@code conn} with default options and returns an atom result
-     * or a sequence result as a cursor. The atom result either has a primitive type (e.g., {@code Integer})
-     * or represents a JSON object as a {@code Map<String, Object>}. The cursor is a {@code com.rethinkdb.net.Cursor}
-     * which may be iterated to get a sequence of atom results
+     * Runs this query via connection {@code conn} with default options and returns the result.
      *
      * @param conn The connection to run this query
      * @return The result of this query
      */
-    public ResponseHandler<Object> run(Connection conn) {
-        return conn.run(this, new OptArgs(), null);
+    public Result<Object> run(Connection conn) {
+        return conn.run(this, new OptArgs(), null, null);
     }
 
     /**
-     * Runs this query via connection {@code conn} with options {@code runOpts} and returns an atom result
-     * or a sequence result as a cursor. The atom result either has a primitive type (e.g., {@code Integer})
-     * or represents a JSON object as a {@code Map<String, Object>}. The cursor is a {@code com.rethinkdb.net.Cursor}
-     * which may be iterated to get a sequence of atom results
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the result.
      *
      * @param conn    The connection to run this query
      * @param runOpts The options to run this query with
      * @return The result of this query
      */
-    public ResponseHandler<Object> run(Connection conn, OptArgs runOpts) {
-        return conn.run(this, runOpts, null);
+    public Result<Object> run(Connection conn, OptArgs runOpts) {
+        return conn.run(this, runOpts, null, null);
     }
 
     /**
-     * Runs this query via connection {@code conn} with default options and returns an atom result
-     * or a sequence result as a cursor. The atom result representing a JSON object is converted
-     * to an object of type {@code Class<T>} specified with {@code typeRef}. The cursor
-     * is a {@code com.rethinkdb.net.Cursor} which may be iterated to get a sequence of atom results
-     * of type {@code Class<T>}
+     * Runs this query via connection {@code conn} with  the specified {@code fetchMode}
+     * and returns the result.
      *
-     * @param <T>       The type of result
      * @param conn      The connection to run this query
-     * @param typeRef The class of POJO to convert to
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public Result<Object> run(Connection conn, Result.FetchMode fetchMode) {
+        return conn.run(this, new OptArgs(), fetchMode, null);
+    }
+
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the result, with the values
+     * converted to the type of {@code Class<T>}.
+     *
+     * @param <T>     The result type
+     * @param conn    The connection to run this query
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> Result<T> run(Connection conn, Class<T> typeRef) {
+        return conn.run(this, new OptArgs(), null, new ClassReference<>(typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the result, with the values
+     * converted to the type of {@code TypeReference<T>}.
+     *
+     * @param <T>     The result type
+     * @param conn    The connection to run this query
+     * @param typeRef The type to convert to
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
-    public <T> ResponseHandler<T> run(Connection conn, Class<T> typeRef) {
-        return conn.run(this, new OptArgs(), new ClassReference<>(typeRef));
+    public <T> Result<T> run(Connection conn, TypeReference<T> typeRef) {
+        return conn.run(this, new OptArgs(), null, typeRef);
     }
 
     /**
-     * Runs this query via connection {@code conn} with options {@code runOpts} and returns an atom result
-     * or a sequence result as a cursor. The atom result representing a JSON object is converted
-     * to an object of type {@code Class<T>} specified with {@code typeRef}. The cursor
-     * is a {@code com.rethinkdb.net.Cursor} which may be iterated to get a sequence of atom results
-     * of type {@code Class<T>}
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode} and
+     * returns the result.
      *
-     * @param <T>       The type of result
-     * @param conn      The connection to run this query
-     * @param runOpts   The options to run this query with
-     * @param typeRef The class of POJO to convert to
-     * @return The result of this query (either a {@code P or a Cursor<P>}
-     */
-    public <T> ResponseHandler<T> run(Connection conn, OptArgs runOpts, Class<T> typeRef) {
-        return conn.run(this, runOpts, new ClassReference<>(typeRef));
-    }
-
-    /**
-     * Runs this query via connection {@code conn} with default options and returns an atom result
-     * or a sequence result as a cursor. The atom result representing a JSON object is converted
-     * to an object of type {@code Class<T>} specified with {@code typeRef}. The cursor
-     * is a {@code com.rethinkdb.net.Cursor} which may be iterated to get a sequence of atom results
-     * of type {@code Class<T>}
-     *
-     * @param <T>       The type of result
-     * @param conn      The connection to run this query
-     * @param typeRef The class of POJO to convert to
-     * @return The result of this query (either a {@code P or a Cursor<P>}
-     */
-    public <T> ResponseHandler<T> run(Connection conn, TypeReference<T> typeRef) {
-        return conn.run(this, new OptArgs(), typeRef);
-    }
-
-    /**
-     * Runs this query via connection {@code conn} with options {@code runOpts} and returns an atom result
-     * or a sequence result as a cursor. The atom result representing a JSON object is converted
-     * to an object of type {@code Class<T>} specified with {@code typeRef}. The cursor
-     * is a {@code com.rethinkdb.net.Cursor} which may be iterated to get a sequence of atom results
-     * of type {@code Class<T>}
-     *
-     * @param <T>       The type of result
      * @param conn      The connection to run this query
      * @param runOpts   The options to run this query with
-     * @param typeRef The class of POJO to convert to
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public Result<Object> run(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode) {
+        return conn.run(this, runOpts, fetchMode, null);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the result, with the values
+     * converted to the type of {@code TypeReference<T>}.
+     *
+     * @param <T>     The result type
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> Result<T> run(Connection conn, OptArgs runOpts, Class<T> typeRef) {
+        return conn.run(this, runOpts, null, new ClassReference<>(typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the result, with the values
+     * converted to the type of {@code TypeReference<T>}.
+     *
+     * @param <T>     The result type
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> Result<T> run(Connection conn, OptArgs runOpts, TypeReference<T> typeRef) {
+        return conn.run(this, runOpts, null, typeRef);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the result, with
+     * the values converted to the type of {@code Class<T>}.
+     *
+     * @param <T>     The type of result
+     * @param conn    The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> Result<T> run(Connection conn, Result.FetchMode fetchMode, Class<T> typeRef) {
+        return conn.run(this, new OptArgs(), fetchMode, new ClassReference<>(typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the result, with
+     * the values converted to the type of {@code TypeReference<T>}.
+     *
+     * @param <T>     The type of result
+     * @param conn    The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> Result<T> run(Connection conn, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
+        return conn.run(this, new OptArgs(), fetchMode, typeRef);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the result, with the values converted to the type of {@code Class<T>}
+     *
+     * @param <T>     The type of result
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> Result<T> run(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<T> typeRef) {
+        return conn.run(this, runOpts, fetchMode, new ClassReference<>(typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the result, with the values converted to the type of {@code TypeReference<T>}
+     *
+     * @param <T>     The type of result
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> Result<T> run(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
+        return conn.run(this, runOpts, fetchMode, typeRef);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the result asynchronously.
+     *
+     * @param conn The connection to run this query
+     * @return The result of this query
+     */
+    public CompletableFuture<Result<Object>> runAsync(Connection conn) {
+        return conn.runAsync(this, new OptArgs(), null, null);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the result asynchronously.
+     *
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @return The result of this query
+     */
+    public CompletableFuture<Result<Object>> runAsync(Connection conn, OptArgs runOpts) {
+        return conn.runAsync(this, runOpts, null, null);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with  the specified {@code fetchMode}
+     * and returns the result asynchronously.
+     *
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public CompletableFuture<Result<Object>> runAsync(Connection conn, Result.FetchMode fetchMode) {
+        return conn.runAsync(this, new OptArgs(), fetchMode, null);
+    }
+
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the result asynchronously, with the
+     * values converted to the type of {@code Class<T>}.
+     *
+     * @param <T>     The result type
+     * @param conn    The connection to run this query
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> CompletableFuture<Result<T>> runAsync(Connection conn, Class<T> typeRef) {
+        return conn.runAsync(this, new OptArgs(), null, new ClassReference<>(typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the result asynchronously, with the
+     * values converted to the type of {@code TypeReference<T>}.
+     *
+     * @param <T>     The result type
+     * @param conn    The connection to run this query
+     * @param typeRef The type to convert to
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
-    public <T> ResponseHandler<T> run(Connection conn, OptArgs runOpts, TypeReference<T> typeRef) {
-        return conn.run(this, runOpts, typeRef);
+    public <T> CompletableFuture<Result<T>> runAsync(Connection conn, TypeReference<T> typeRef) {
+        return conn.runAsync(this, new OptArgs(), null, typeRef);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode} and
+     * returns the result asynchronously.
+     *
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public CompletableFuture<Result<Object>> runAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode) {
+        return conn.runAsync(this, runOpts, fetchMode, null);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the result asynchronously,
+     * with the values converted to the type of {@code TypeReference<T>}.
+     *
+     * @param <T>     The result type
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> CompletableFuture<Result<T>> runAsync(Connection conn, OptArgs runOpts, Class<T> typeRef) {
+        return conn.runAsync(this, runOpts, null, new ClassReference<>(typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the result asynchronously,
+     * with the values converted to the type of {@code TypeReference<T>}.
+     *
+     * @param <T>     The result type
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> CompletableFuture<Result<T>> runAsync(Connection conn, OptArgs runOpts, TypeReference<T> typeRef) {
+        return conn.runAsync(this, runOpts, null, typeRef);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the result
+     * asynchronously, with the values converted to the type of {@code Class<T>}.
+     *
+     * @param <T>     The type of result
+     * @param conn    The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> CompletableFuture<Result<T>> runAsync(Connection conn, Result.FetchMode fetchMode, Class<T> typeRef) {
+        return conn.runAsync(this, new OptArgs(), fetchMode, new ClassReference<>(typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the result
+     * asynchronously, with the values converted to the type of {@code TypeReference<T>}.
+     *
+     * @param <T>     The type of result
+     * @param conn    The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> CompletableFuture<Result<T>> runAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
+        return conn.runAsync(this, new OptArgs(), fetchMode, typeRef);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the result asynchronously, with the values converted to the type of {@code Class<T>}
+     *
+     * @param <T>     The type of result
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> CompletableFuture<Result<T>> runAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<T> typeRef) {
+        return conn.runAsync(this, runOpts, fetchMode, new ClassReference<>(typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the result asynchronously, with the values converted to the type of {@code TypeReference<T>}
+     *
+     * @param <T>     The type of result
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <T> CompletableFuture<Result<T>> runAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
+        return conn.runAsync(this, runOpts, fetchMode, typeRef);
     }
 
     public void runNoReply(Connection conn) {
@@ -201,7 +427,7 @@ public class ReqlAst {
         }
     }
 
-    static class ClassReference<T> extends TypeReference<T> {
+    private static class ClassReference<T> extends TypeReference<T> {
         private Class<T> c;
 
         ClassReference(Class<T> c) {

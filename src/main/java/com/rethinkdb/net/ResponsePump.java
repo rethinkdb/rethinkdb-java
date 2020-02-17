@@ -9,7 +9,7 @@ public interface ResponsePump {
         ResponsePump newPump(@NotNull ConnectionSocket socket);
     }
 
-    CompletableFuture<QueryResponse> await(long token);
+    CompletableFuture<Response> await(long token);
 
     void shutdownPump();
 }

@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class QueryResponse {
+public class Response {
     private static final Logger logger = LoggerFactory.getLogger(Query.class);
 
     public final long token;
@@ -33,13 +33,13 @@ public class QueryResponse {
     public final @Nullable Backtrace backtrace;
     public final @Nullable ErrorType errorType;
 
-    private QueryResponse(long token,
-                          ResponseType responseType,
-                          List<Object> data,
-                          List<ResponseNote> responseNotes,
-                          @Nullable Profile profile,
-                          @Nullable Backtrace backtrace,
-                          @Nullable ErrorType errorType
+    private Response(long token,
+                     ResponseType responseType,
+                     List<Object> data,
+                     List<ResponseNote> responseNotes,
+                     @Nullable Profile profile,
+                     @Nullable Backtrace backtrace,
+                     @Nullable ErrorType errorType
     ) {
         this.token = token;
         this.type = responseType;
@@ -50,14 +50,14 @@ public class QueryResponse {
         this.errorType = errorType;
     }
 
-    public static QueryResponse readFrom(ConnectionSocket socket) {
+    public static Response readFrom(ConnectionSocket socket) {
         final ByteBuffer header = socket.read(12);
         final long token = header.getLong();
         final int responseLength = header.getInt();
         final ByteBuffer buf = socket.read(responseLength).order(ByteOrder.LITTLE_ENDIAN);
 
-        if (QueryResponse.logger.isDebugEnabled()) {
-            QueryResponse.logger.debug(
+        if (Response.logger.isDebugEnabled()) {
+            Response.logger.debug(
                 "JSON Recv: Token: {} {}", token, new String(
                     buf.array(),
                     buf.arrayOffset() + buf.position(),
@@ -181,8 +181,8 @@ public class QueryResponse {
             return this;
         }
 
-        QueryResponse build() {
-            return new QueryResponse(
+        Response build() {
+            return new Response(
                 token,
                 responseType,
                 data,
