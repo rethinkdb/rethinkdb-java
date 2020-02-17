@@ -123,15 +123,16 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         A container = collector.supplier().get();
         BiConsumer<A, ? super T> accumulator = collector.accumulator();
         forEachRemaining(next -> accumulator.accept(container, next));
+        this.close();
         return collector.finisher().apply(container);
     }
 
     public Stream<T> stream() {
-        return StreamSupport.stream(spliterator(), false);
+        return StreamSupport.stream(spliterator(), false).onClose(this::close);
     }
 
     public Stream<T> parallelStream() {
-        return StreamSupport.stream(spliterator(), true);
+        return StreamSupport.stream(spliterator(), true).onClose(this::close);
     }
 
     @Override
