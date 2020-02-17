@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,12 +68,13 @@ public class Query {
             }
             String queryJson = RethinkDB.getInternalMapper().writeValueAsString(queryArr);
             byte[] queryBytes = queryJson.getBytes(StandardCharsets.UTF_8);
-            ByteBuffer bb = Util.leByteBuffer(Long.BYTES + Integer.BYTES + queryBytes.length)
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES + Integer.BYTES + queryBytes.length)
+                .order(ByteOrder.LITTLE_ENDIAN)
                 .putLong(token)
                 .putInt(queryBytes.length)
                 .put(queryBytes);
             logger.trace("JSON Send: Token: {} {}", token, queryJson);
-            return bb;
+            return buffer;
         } catch (IOException e) {
             throw new ReqlRuntimeError(e);
         }

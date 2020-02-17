@@ -13,13 +13,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-class Response {
+public class QueryResponse {
     private static final Logger logger = LoggerFactory.getLogger(Query.class);
 
     public final long token;
@@ -31,13 +33,13 @@ class Response {
     public final @Nullable Backtrace backtrace;
     public final @Nullable ErrorType errorType;
 
-    private Response(long token,
-                     ResponseType responseType,
-                     List<Object> data,
-                     List<ResponseNote> responseNotes,
-                     @Nullable Profile profile,
-                     @Nullable Backtrace backtrace,
-                     @Nullable ErrorType errorType
+    private QueryResponse(long token,
+                          ResponseType responseType,
+                          List<Object> data,
+                          List<ResponseNote> responseNotes,
+                          @Nullable Profile profile,
+                          @Nullable Backtrace backtrace,
+                          @Nullable ErrorType errorType
     ) {
         this.token = token;
         this.type = responseType;
@@ -48,10 +50,20 @@ class Response {
         this.errorType = errorType;
     }
 
-    public static Response parseFrom(long token, ByteBuffer buf) {
-        if (Response.logger.isDebugEnabled()) {
-            Response.logger.debug(
-                "JSON Recv: Token: {} {}", token, Util.bufferToString(buf));
+    public static QueryResponse readFrom(ConnectionSocket socket) {
+        final ByteBuffer header = socket.read(12);
+        final long token = header.getLong();
+        final int responseLength = header.getInt();
+        final ByteBuffer buf = socket.read(responseLength).order(ByteOrder.LITTLE_ENDIAN);
+
+        if (QueryResponse.logger.isDebugEnabled()) {
+            QueryResponse.logger.debug(
+                "JSON Recv: Token: {} {}", token, new String(
+                    buf.array(),
+                    buf.arrayOffset() + buf.position(),
+                    buf.remaining(),
+                    StandardCharsets.UTF_8
+                ));
         }
         Map<String, Object> jsonResp = Util.toJSON(buf);
         ResponseType responseType = ResponseType.fromValue(((Long) jsonResp.get("t")).intValue());
@@ -74,11 +86,11 @@ class Response {
             .build();
     }
 
-    static Builder make(long token, ResponseType type) {
+    public static Builder make(long token, ResponseType type) {
         return new Builder(token, type);
     }
 
-    ReqlError makeError(Query query) {
+    public ReqlError makeError(Query query) {
         String msg = data.size() > 0 ?
             (String) data.get(0)
             : "Unknown error message";
@@ -89,30 +101,30 @@ class Response {
             .build();
     }
 
-    boolean isWaitComplete() {
+    public boolean isWaitComplete() {
         return type == ResponseType.WAIT_COMPLETE;
     }
 
     /* Whether the response is any kind of feed */
-    boolean isFeed() {
+    public boolean isFeed() {
         return notes.stream().anyMatch(ResponseNote::isFeed);
     }
 
     /* Whether the response is any kind of error */
-    boolean isError() {
+    public boolean isError() {
         return type.isError();
     }
 
     /* What type of success the response contains */
-    boolean isAtom() {
+    public boolean isAtom() {
         return type == ResponseType.SUCCESS_ATOM;
     }
 
-    boolean isSequence() {
+    public boolean isSequence() {
         return type == ResponseType.SUCCESS_SEQUENCE;
     }
 
-    boolean isPartial() {
+    public boolean isPartial() {
         return type == ResponseType.SUCCESS_PARTIAL;
     }
 
@@ -128,7 +140,7 @@ class Response {
             '}';
     }
 
-    static class Builder {
+    public static class Builder {
         long token;
         ResponseType responseType;
         List<ResponseNote> notes = new ArrayList<>();
@@ -169,8 +181,8 @@ class Response {
             return this;
         }
 
-        Response build() {
-            return new Response(
+        QueryResponse build() {
+            return new QueryResponse(
                 token,
                 responseType,
                 data,

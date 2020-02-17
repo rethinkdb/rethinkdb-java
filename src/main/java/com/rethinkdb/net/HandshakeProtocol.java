@@ -7,37 +7,40 @@ import com.rethinkdb.gen.proto.Version;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Map;
 
 import static com.rethinkdb.net.Crypto.*;
 import static com.rethinkdb.net.Util.toJSON;
-import static com.rethinkdb.net.Util.toUTF8;
 
-public class Handshake {
-    static final Version VERSION = Version.V1_0;
-    static final Long SUB_PROTOCOL_VERSION = 0L;
-    static final Protocol PROTOCOL = Protocol.JSON;
+/**
+ * Internal class used by {@link Connection#connect()} to do a proper handshake with the server.
+ */
+abstract class HandshakeProtocol {
+    public static final Version VERSION = Version.V1_0;
+    public static final Long SUB_PROTOCOL_VERSION = 0L;
+    public static final Protocol PROTOCOL = Protocol.JSON;
 
-    private static final String CLIENT_KEY = "Client Key";
-    private static final String SERVER_KEY = "Server Key";
+    public static final String CLIENT_KEY = "Client Key";
+    public static final String SERVER_KEY = "Server Key";
 
-    private final String username;
-    private final String password;
-    private ProtocolState state;
-
-    public Handshake(String username, String password) {
-        this.username = username;
-        this.password = password;
-        this.state = new InitialState(username, password);
+    public static HandshakeProtocol start(String username, String password) {
+        return new InitialState(username, password).nextState(null);
     }
 
-    public ByteBuffer nextMessage(String response) {
-        this.state = this.state.nextState(response);
-        return this.state.toSend();
+    private HandshakeProtocol() {
     }
 
-    private void throwIfFailure(Map<String, Object> json) {
+    public abstract HandshakeProtocol nextState(String response);
+
+    @Nullable
+    public abstract ByteBuffer toSend();
+
+    public abstract boolean isFinished();
+
+    public static void throwIfFailure(Map<String, Object> json) {
         if (!(boolean) json.get("success")) {
             Long errorCode = (Long) json.get("error_code");
             if (errorCode >= 10 && errorCode <= 20) {
@@ -48,32 +51,19 @@ public class Handshake {
         }
     }
 
-    public void reset() {
-        this.state = new InitialState(this.username, this.password);
-    }
-
-    private interface ProtocolState {
-        ProtocolState nextState(String response);
-
-        @Nullable
-        ByteBuffer toSend();
-
-        boolean isFinished();
-    }
-
-    private class InitialState implements ProtocolState {
+    public static class InitialState extends HandshakeProtocol {
         private final String nonce;
         private final String username;
         private final byte[] password;
 
         InitialState(String username, String password) {
             this.username = username;
-            this.password = toUTF8(password);
+            this.password = password.getBytes(StandardCharsets.UTF_8);
             this.nonce = makeNonce();
         }
 
         @Override
-        public ProtocolState nextState(String response) {
+        public HandshakeProtocol nextState(String response) {
             if (response != null) {
                 throw new ReqlDriverError("Unexpected response");
             }
@@ -81,18 +71,20 @@ public class Handshake {
             ScramAttributes clientFirstMessageBare = ScramAttributes.create()
                 .username(username)
                 .nonce(nonce);
-            byte[] jsonBytes = toUTF8(
-                "{" +
-                    "\"protocol_version\":" + SUB_PROTOCOL_VERSION + "," +
-                    "\"authentication_method\":\"SCRAM-SHA-256\"," +
-                    "\"authentication\":" + "\"n,," + clientFirstMessageBare + "\"" +
-                    "}"
-            );
-            ByteBuffer msg = Util.leByteBuffer(
-                Integer.BYTES +    // size of VERSION
-                    jsonBytes.length + // json auth payload
-                    1                  // terminating null byte
-            ).putInt(VERSION.value)
+            byte[] jsonBytes = ("{" +
+                "\"protocol_version\":" + SUB_PROTOCOL_VERSION + "," +
+                "\"authentication_method\":\"SCRAM-SHA-256\"," +
+                "\"authentication\":" + "\"n,," + clientFirstMessageBare + "\"" +
+                "}").getBytes(StandardCharsets.UTF_8);
+            // Creating the ByteBuffer over an underlying array makes
+            // it easier to turn into a string later.
+            //return ByteBuffer.wrap(new byte[capacity]).order(ByteOrder.LITTLE_ENDIAN);
+            // size of VERSION
+            // json auth payload
+            // terminating null byte
+            ByteBuffer msg = ByteBuffer.allocate(Integer.BYTES +    // size of VERSION
+                jsonBytes.length + // json auth payload
+                1).order(ByteOrder.LITTLE_ENDIAN).putInt(VERSION.value)
                 .put(jsonBytes)
                 .put(new byte[1]);
             return new WaitingForProtocolRange(
@@ -110,7 +102,7 @@ public class Handshake {
         }
     }
 
-    private class WaitingForProtocolRange implements ProtocolState {
+    public static class WaitingForProtocolRange extends HandshakeProtocol {
         private final String nonce;
         private final ByteBuffer message;
         private final ScramAttributes clientFirstMessageBare;
@@ -128,7 +120,7 @@ public class Handshake {
         }
 
         @Override
-        public ProtocolState nextState(String response) {
+        public HandshakeProtocol nextState(String response) {
             Map<String, Object> json = toJSON(response);
             throwIfFailure(json);
             long minVersion = (long) json.get("min_protocol_version");
@@ -152,7 +144,7 @@ public class Handshake {
         }
     }
 
-    private class WaitingForAuthResponse implements ProtocolState {
+    public static class WaitingForAuthResponse extends HandshakeProtocol {
         private final String nonce;
         private final byte[] password;
         private final ScramAttributes clientFirstMessageBare;
@@ -165,7 +157,7 @@ public class Handshake {
         }
 
         @Override
-        public ProtocolState nextState(String response) {
+        public HandshakeProtocol nextState(String response) {
             Map<String, Object> json = toJSON(response);
             throwIfFailure(json);
             String serverFirstMessage = (String) json.get("authentication");
@@ -209,8 +201,9 @@ public class Handshake {
 
             ScramAttributes auth = clientFinalMessageWithoutProof
                 .clientProof(clientProof);
-            byte[] authJson = toUTF8("{\"authentication\":\"" + auth + "\"}");
-            ByteBuffer message = Util.leByteBuffer(authJson.length + 1)
+            byte[] authJson = ("{\"authentication\":\"" + auth + "\"}").getBytes(StandardCharsets.UTF_8);
+
+            ByteBuffer message = ByteBuffer.allocate(authJson.length + 1).order(ByteOrder.LITTLE_ENDIAN)
                 .put(authJson)
                 .put(new byte[1]);
             return new WaitingForAuthSuccess(serverSignature, message);
@@ -227,9 +220,9 @@ public class Handshake {
         }
     }
 
-    private class HandshakeSuccess implements ProtocolState {
+    public static class HandshakeSuccess extends HandshakeProtocol {
         @Override
-        public ProtocolState nextState(String response) {
+        public HandshakeProtocol nextState(String response) {
             return this;
         }
 
@@ -244,7 +237,7 @@ public class Handshake {
         }
     }
 
-    private class WaitingForAuthSuccess implements ProtocolState {
+    public static class WaitingForAuthSuccess extends HandshakeProtocol {
         private final byte[] serverSignature;
         private final ByteBuffer message;
 
@@ -254,7 +247,7 @@ public class Handshake {
         }
 
         @Override
-        public ProtocolState nextState(String response) {
+        public HandshakeProtocol nextState(String response) {
             Map<String, Object> json = toJSON(response);
             throwIfFailure(json);
             ScramAttributes auth = ScramAttributes
@@ -276,10 +269,9 @@ public class Handshake {
         }
     }
 
-    public boolean isFinished() {
-        return this.state.isFinished();
-    }
-
+    /**
+     * Salted Challenge Response Authentication Mechanism (SCRAM) attributes
+     */
     static class ScramAttributes {
         @Nullable String _authIdentity; // a
         @Nullable String _username;     // n
@@ -406,22 +398,40 @@ public class Handshake {
         }
 
         // Getters
-        String authIdentity() { return _authIdentity; }
+        String authIdentity() {
+            return _authIdentity;
+        }
 
-        String username() { return _username; }
+        String username() {
+            return _username;
+        }
 
-        String nonce() { return _nonce; }
+        String nonce() {
+            return _nonce;
+        }
 
-        String headerAndChannelBinding() { return _headerAndChannelBinding; }
+        String headerAndChannelBinding() {
+            return _headerAndChannelBinding;
+        }
 
-        byte[] salt() { return _salt; }
+        byte[] salt() {
+            return _salt;
+        }
 
-        Integer iterationCount() { return _iterationCount; }
+        Integer iterationCount() {
+            return _iterationCount;
+        }
 
-        String clientProof() { return _clientProof; }
+        String clientProof() {
+            return _clientProof;
+        }
 
-        byte[] serverSignature() { return _serverSignature; }
+        byte[] serverSignature() {
+            return _serverSignature;
+        }
 
-        String error() { return _error; }
+        String error() {
+            return _error;
+        }
     }
 }

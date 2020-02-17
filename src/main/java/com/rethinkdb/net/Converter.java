@@ -44,7 +44,7 @@ public class Converter {
     @SuppressWarnings("unchecked")
     public static Object convertPseudotypes(Object obj, FormatOptions fmt){
         if(obj instanceof List) {
-            return ((List) obj).stream()
+            return ((List<Object>) obj).stream()
                     .map(item -> convertPseudotypes(item, fmt))
                     .collect(Collectors.toList());
         } else if(obj instanceof Map) {
@@ -88,9 +88,9 @@ public class Converter {
     }
 
     @SuppressWarnings("unchecked")
-    private static List<GroupedResult> getGrouped(Map<String, Object> value) {
+    private static List<GroupedResult<?,?>> getGrouped(Map<String, Object> value) {
         return ((List<List<Object>>) value.get("data")).stream()
-                .map(g -> new GroupedResult(g.remove(0), g))
+                .map(g -> new GroupedResult<>(g.remove(0), g))
                 .collect(Collectors.toList());
     }
 
