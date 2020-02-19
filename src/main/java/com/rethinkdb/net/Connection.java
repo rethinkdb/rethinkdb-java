@@ -171,10 +171,7 @@ public class Connection implements Closeable {
 
             // clear cursor cache
             for (Result<?> handler : tracked) {
-                try {
-                    handler.onConnectionClosed();
-                } catch (InterruptedException ignored) {
-                }
+                handler.onConnectionClosed();
             }
 
             // terminate response pump
@@ -186,6 +183,12 @@ public class Connection implements Closeable {
             if (socket != null) {
                 socket.close();
             }
+        }
+    }
+
+    public void closeResults() {
+        for (Result<?> handler : tracked) {
+            handler.close();
         }
     }
 

@@ -218,7 +218,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      */
     protected void onStateUpdate() {
         final Response lastRes = currentResponse.get();
-        if (lastRes.isPartial() && shouldContinue() && requesting.tryAcquire()) {
+        if (!completed.isDone() && lastRes.isPartial() && shouldContinue() && requesting.tryAcquire()) {
             // great, we should make a CONTINUE request.
             connection.sendContinue(lastRes.token).whenComplete((nextRes, t) -> {
                 if (t != null) { // It errored. This means it's over.
@@ -290,7 +290,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         }
     }
 
-    protected void onConnectionClosed() throws InterruptedException {
+    protected void onConnectionClosed() {
         currentResponse.set(Response.make(query.token, ResponseType.SUCCESS_SEQUENCE).build());
         completed.completeExceptionally(new ReqlRuntimeError("Connection is closed."));
     }
