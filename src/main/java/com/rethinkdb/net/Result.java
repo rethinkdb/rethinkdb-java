@@ -2,7 +2,6 @@ package com.rethinkdb.net;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.rethinkdb.ast.Query;
-import com.rethinkdb.gen.ast.ReqlExpr;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
@@ -354,6 +353,14 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      */
     public @Nullable Profile profile() {
         return currentResponse.get().profile;
+    }
+
+    /**
+     * Returns the current responses' type.
+     * @return the {@link ResponseType} of the current response.
+     */
+    public @NotNull ResponseType responseType() {
+        return currentResponse.get().type;
     }
 
     @Override
