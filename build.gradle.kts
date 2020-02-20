@@ -30,10 +30,17 @@ signing {
     sign(configurations.archives.get())
 }
 
-
+gradle.taskGraph.whenReady {
+    val hasUploadArchives = hasTask(":uploadArchives")
+    val hasDoSigning = hasTask(":doSigning")
+    signing.isRequired = hasUploadArchives || hasDoSigning
+}
 
 fun findProperty(s: String) = project.findProperty(s) as String?
 tasks {
+    val doSigning by creating {
+        dependsOn("signArchives")
+    }
     withType<JavaCompile> {
         options.encoding = "UTF-8"
     }
