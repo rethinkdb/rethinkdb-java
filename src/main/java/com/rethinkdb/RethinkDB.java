@@ -51,6 +51,8 @@ public class RethinkDB extends TopLevel {
      * <br><br>
      * <b>WARNING:If you're trying to set the {@link com.rethinkdb.net.Result}'s mapper,
      * use {@link RethinkDB#setResultMapper(ObjectMapper)} instead.</b>
+     *
+     * @param mapper an {@link ObjectMapper}, or null
      */
     public synchronized static void setInternalMapper(@Nullable ObjectMapper mapper) {
         internalMapper = mapper;
@@ -74,7 +76,7 @@ public class RethinkDB extends TopLevel {
     /**
      * Sets the {@link ObjectMapper} for handling {@link com.rethinkdb.net.Result}'s values.
      *
-     * @param mapper
+     * @param mapper an {@link ObjectMapper}, or null
      */
     public synchronized static void setResultMapper(@Nullable ObjectMapper mapper) {
         resultMapper = mapper;
