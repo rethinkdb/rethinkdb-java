@@ -1,7 +1,6 @@
 package com.rethinkdb.net;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.rethinkdb.RethinkDB;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
@@ -13,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.Closeable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -22,7 +22,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * A ReQL query result.
+ *
+ * @param <T> the type of the result.
+ */
 public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
+    /**
+     * The object which represents {@code null} inside the BlockingQueue.
+     */
+    private static final Object NIL = new Object();
+
     /**
      * The fetch mode to use on partial sequences.
      */
@@ -69,9 +79,10 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     protected final Connection connection;
     protected final Query query;
     protected final Response firstRes;
-    protected final FetchMode fetchMode;
     protected final TypeReference<T> typeRef;
     protected final Converter.FormatOptions fmt;
+    // can be altered depending on the operation
+    protected FetchMode fetchMode;
 
     protected final BlockingQueue<Object> rawQueue = new LinkedBlockingQueue<>();
     // completes with false if cancelled, otherwise with true. exceptionally completes if error.
@@ -100,28 +111,65 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         CompletableFuture.runAsync(this::handleFirstResponse);
     }
 
+    /**
+     * Gets the connection token of this result.
+     *
+     * @return the connection token.
+     */
     public long connectionToken() {
         return query.token;
     }
 
+    /**
+     * Gets the number of objects buffered and readily available.
+     *
+     * @return the buffered objects queue size.
+     */
     public int bufferedCount() {
         return rawQueue.size();
     }
 
+    /**
+     * Gets if this Result is a feed. Feeds may never end at all.
+     *
+     * @return true if this Result is a feed.
+     */
     public boolean isFeed() {
         return firstRes.isFeed();
     }
 
+    /**
+     * Closes this Result.
+     */
     @Override
     public void close() {
         completed.complete(false);
     }
 
-    public List<T> toList() {
+    /**
+     * Collect all the results, fetching from the server if necessary, to a list and closes the Result.<br><br>
+     * <b>WARNING: If {@link Result#isFeed()} is true, this may never return. This method changes the {@code fetchMode}
+     * of this Result to {@link FetchMode#AGGRESSIVE} to complete this as fast as possible.</b>
+     *
+     * @return the list
+     */
+    public @NotNull List<T> toList() {
         return collect(Collectors.toList());
     }
 
-    public <R, A> R collect(Collector<? super T, A, R> collector) {
+    /**
+     * Collect all the results, fetching from the server if necessary, using a {@link Collector} and closes the Result.
+     * <br><br>
+     * <b>WARNING: If {@link Result#isFeed()} is true, this may never return. This method changes the {@code fetchMode}
+     * of this Result to {@link FetchMode#AGGRESSIVE} to complete this as fast as possible.</b>
+     *
+     * @param collector the collector
+     * @param <A>       the mutable accumulation type of the reduction operation (often hidden as an implementation detail)
+     * @param <R>       the result type of the reduction operation
+     * @return the final result
+     */
+    public <R, A> R collect(@NotNull Collector<? super T, A, R> collector) {
+        fetchMode = FetchMode.AGGRESSIVE;
         A container = collector.supplier().get();
         BiConsumer<A, ? super T> accumulator = collector.accumulator();
         forEachRemaining(next -> accumulator.accept(container, next));
@@ -129,57 +177,112 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         return collector.finisher().apply(container);
     }
 
-    public Stream<T> stream() {
+    /**
+     * Creates a new sequential {@code Stream} from the results, which closes this Result on completion.
+     * <br><br>
+     * <b>WARNING: If {@link Result#isFeed()} is true, this may never return. This method changes the {@code fetchMode}
+     * of this Result to {@link FetchMode#AGGRESSIVE} to complete this as fast as possible.</b>
+     *
+     * @return the newly created stream.
+     */
+    public @NotNull Stream<T> stream() {
+        fetchMode = FetchMode.AGGRESSIVE;
         return StreamSupport.stream(spliterator(), false).onClose(this::close);
     }
 
-    public Stream<T> parallelStream() {
+    /**
+     * Creates a new parallel {@code Stream} from the results, which closes this Result on completion.
+     * <br><br>
+     * <b>WARNING: If {@link Result#isFeed()} is true, this may never return. This method changes the {@code fetchMode}
+     * of this Result to {@link FetchMode#AGGRESSIVE} to complete this as fast as possible.</b>
+     *
+     * @return the newly created stream.
+     */
+    public @NotNull Stream<T> parallelStream() {
+        fetchMode = FetchMode.AGGRESSIVE;
         return StreamSupport.stream(spliterator(), true).onClose(this::close);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean hasNext() {
         return !rawQueue.isEmpty() || !completed.isDone();
     }
 
-    public T next(long timeout, TimeUnit unit) throws TimeoutException {
+    /**
+     * Returns the next element in the iteration, with a defined timeout.
+     *
+     * @param timeout how long to wait before giving up, in units of {@code unit}
+     * @param unit a {@code TimeUnit} determining how to interpret the {@code timeout} parameter
+     * @return the next element in the iteration
+     * @throws NoSuchElementException if the iteration has no more elements
+     * @throws TimeoutException if the poll operation times out
+     */
+    public @Nullable T next(long timeout, TimeUnit unit) throws TimeoutException {
         try {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
             Object next = rawQueue.poll(timeout, unit);
+            if (next == null) {
+                throw new TimeoutException("The poll operation timed out.");
+            }
             onStateUpdate();
+            if (next == NIL) {
+                return null;
+            }
             return Util.convertToPojo(next, typeRef);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public T next() {
+    public @Nullable T next() {
         try {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
             Object next = rawQueue.take();
             onStateUpdate();
+            if (next == NIL) {
+                return null;
+            }
             return Util.convertToPojo(next, typeRef);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @NotNull
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public Iterator<T> iterator() {
+    public @NotNull Iterator<T> iterator() {
         return this;
     }
 
+    /**
+     * Gets the current's response Profile, if any.
+     * @return the Profile from the current response, or null
+     */
     public @Nullable Profile profile() {
         return currentResponse.get().profile;
     }
 
     protected void handleFirstResponse() {
-        if (firstRes.isWaitComplete()) {
+        ResponseType type = firstRes.type;
+        if (type.equals(ResponseType.WAIT_COMPLETE)) {
             completed.complete(true);
             return;
         }
 
-        if (firstRes.isAtom() || firstRes.isSequence()) {
+        if (type.equals(ResponseType.SUCCESS_ATOM) || type.equals(ResponseType.SUCCESS_SEQUENCE)) {
             try {
                 emitData(firstRes);
             } catch (IndexOutOfBoundsException ex) {
@@ -189,7 +292,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             return;
         }
 
-        if (firstRes.isPartial()) {
+        if (type.equals(ResponseType.SUCCESS_PARTIAL)) {
             // Welcome to the code documentation of partial sequences, please take a seat.
 
             // First of all, we emit all of this request. Reactor's buffer should handle this.
@@ -218,14 +321,14 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      */
     protected void onStateUpdate() {
         final Response lastRes = currentResponse.get();
-        if (!completed.isDone() && lastRes.isPartial() && shouldContinue() && requesting.tryAcquire()) {
+        if (shouldContinue(lastRes) && requesting.tryAcquire()) {
             // great, we should make a CONTINUE request.
             connection.sendContinue(lastRes.token).whenComplete((nextRes, t) -> {
                 if (t != null) { // It errored. This means it's over.
                     completed.completeExceptionally(t);
                 } else { // Okay, let's process this response.
                     currentResponse.set(nextRes);
-                    if (nextRes.isSequence()) {
+                    if (nextRes.type.equals(ResponseType.SUCCESS_SEQUENCE)) {
                         try {
                             emitting.acquire();
                             emitData(nextRes);
@@ -234,7 +337,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
                         } catch (InterruptedException e) {
                             completed.completeExceptionally(e); // It errored. This means it's over.
                         }
-                    } else if (nextRes.isPartial()) {
+                    } else if (nextRes.type.equals(ResponseType.SUCCESS_PARTIAL)) {
                         // Okay, we got another partial response, so there's more.
 
                         requesting.release(); // Request's over, release this for later.
@@ -254,8 +357,8 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         }
     }
 
-    protected boolean shouldContinue() {
-        if (!firstRes.isPartial()) {
+    protected boolean shouldContinue(Response res) {
+        if (completed.isDone() || !res.type.equals(ResponseType.SUCCESS_PARTIAL)) {
             return false;
         }
         switch (fetchMode) {
@@ -291,11 +394,10 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     }
 
     protected void onConnectionClosed() {
-        currentResponse.set(Response.make(query.token, ResponseType.SUCCESS_SEQUENCE).build());
+        currentResponse.set(new Response(query.token, ResponseType.SUCCESS_SEQUENCE));
         completed.completeExceptionally(new ReqlRuntimeError("Connection is closed."));
     }
 
-    @SuppressWarnings("unchecked")
     protected void emitData(Response res) {
         if (completed.isDone()) {
             if (completed.join()) {
@@ -305,15 +407,15 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             }
         }
         lastRequestCount.set(0);
-        List<Object> objects = (List<Object>) Converter.convertPseudotypes(res.data, fmt);
+        List<?> objects = (List<?>) Converter.convertPseudotypes(res.data, fmt);
         for (Object each : objects) {
-            if (connection.unwrapLists && firstRes.isAtom() && each instanceof List) {
-                for (Object o : ((List<Object>) each)) {
-                    rawQueue.offer(o);
+            if (connection.unwrapLists && firstRes.type.equals(ResponseType.SUCCESS_ATOM) && each instanceof List) {
+                for (Object o : ((List<?>) each)) {
+                    rawQueue.offer(o == null ? NIL : o);
                     lastRequestCount.incrementAndGet();
                 }
             } else {
-                rawQueue.offer(each);
+                rawQueue.offer(each == null ? NIL : each);
                 lastRequestCount.incrementAndGet();
             }
         }

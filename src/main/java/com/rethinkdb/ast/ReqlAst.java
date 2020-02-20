@@ -41,13 +41,10 @@ public class ReqlAst {
 
     protected Object build() {
         // Create a JSON object from the Ast
-        List<Object> list = new ArrayList<>();
+        // set initial capacity to max size possible, avoids resizing
+        List<Object> list = new ArrayList<>(3);
         list.add(termType.value);
-        if (args.size() > 0) {
-            list.add(args.stream().map(ReqlAst::build).collect(Collectors.toList()));
-        } else {
-            list.add(Collections.emptyList());
-        }
+        list.add(args.isEmpty() ? Collections.emptyList() : args.stream().map(ReqlAst::build).collect(Collectors.toList()));
         if (optargs.size() > 0) {
             list.add(buildOptarg(optargs));
         }
@@ -373,7 +370,7 @@ public class ReqlAst {
     }
 
     /**
-     * Runs this query via connection {@code conn} with default options without waiting.
+     * Runs this query via connection {@code conn} with default options without awaiting the response.
      *
      * @param conn The connection to run this query
      */
@@ -382,7 +379,7 @@ public class ReqlAst {
     }
 
     /**
-     * Runs this query via connection {@code conn} with options {@code runOpts} without waiting.
+     * Runs this query via connection {@code conn} with options {@code runOpts} without awaiting the response.
      *
      * @param conn    The connection to run this query
      * @param runOpts The options to run this query with

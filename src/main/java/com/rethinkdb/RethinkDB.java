@@ -35,8 +35,7 @@ public class RethinkDB extends TopLevel {
      *
      * @return the internal {@link ObjectMapper}
      */
-    @NotNull
-    public synchronized static ObjectMapper getInternalMapper() {
+    public synchronized static @NotNull ObjectMapper getInternalMapper() {
         ObjectMapper mapper = internalMapper;
         if (mapper == null) {
             mapper = new ObjectMapper()
@@ -62,8 +61,7 @@ public class RethinkDB extends TopLevel {
      *
      * @return the {@link com.rethinkdb.net.Result}'s {@link ObjectMapper}
      */
-    @NotNull
-    public synchronized static ObjectMapper getResultMapper() {
+    public synchronized static @NotNull ObjectMapper getResultMapper() {
         ObjectMapper mapper = resultMapper;
         if (mapper == null) {
             mapper = new ObjectMapper()
@@ -87,8 +85,7 @@ public class RethinkDB extends TopLevel {
      *
      * @return a newly created {@link Connection.Builder}
      */
-    @NotNull
-    public Connection.Builder connection() {
+    public @NotNull Connection.Builder connection() {
         return new Connection.Builder();
     }
 
@@ -98,8 +95,7 @@ public class RethinkDB extends TopLevel {
      * @param dburl the db-url to configure the builder.
      * @return a newly created {@link Connection.Builder}
      */
-    @NotNull
-    public Connection.Builder connection(@NotNull String dburl) {
+    public @NotNull Connection.Builder connection(@NotNull String dburl) {
         return connection(URI.create(dburl));
     }
 
@@ -109,12 +105,7 @@ public class RethinkDB extends TopLevel {
      * @param uri the db-url to configure the builder.
      * @return a newly created {@link Connection.Builder}
      */
-    @NotNull
-    public Connection.Builder connection(@NotNull URI uri) {
+    public @NotNull Connection.Builder connection(@NotNull URI uri) {
         return new Connection.Builder(uri);
-    }
-
-    public static void main(String[] args) {
-        System.out.println(r.connection().connect().server());
     }
 }

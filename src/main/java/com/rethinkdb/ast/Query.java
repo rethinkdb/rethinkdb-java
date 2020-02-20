@@ -40,7 +40,8 @@ public class Query {
 
     public ByteBuffer serialize() {
         try {
-            List<Object> list = new ArrayList<>();
+            // set initial capacity to max size possible, avoids resizing
+            List<Object> list = new ArrayList<>(3);
             list.add(type.value);
             if (term != null) {
                 list.add(term.build());

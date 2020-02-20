@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,13 +33,13 @@ public class Response {
     public final @Nullable Backtrace backtrace;
     public final @Nullable ErrorType errorType;
 
-    private Response(long token,
-                     ResponseType responseType,
-                     List<Object> data,
-                     List<ResponseNote> responseNotes,
-                     @Nullable Profile profile,
-                     @Nullable Backtrace backtrace,
-                     @Nullable ErrorType errorType
+    public Response(long token,
+                    ResponseType responseType,
+                    List<Object> data,
+                    List<ResponseNote> responseNotes,
+                    @Nullable Profile profile,
+                    @Nullable Backtrace backtrace,
+                    @Nullable ErrorType errorType
     ) {
         this.token = token;
         this.type = responseType;
@@ -50,44 +50,8 @@ public class Response {
         this.errorType = errorType;
     }
 
-    public static Response readFrom(ConnectionSocket socket) {
-        final ByteBuffer header = socket.read(12);
-        final long token = header.getLong();
-        final int responseLength = header.getInt();
-        final ByteBuffer buf = socket.read(responseLength).order(ByteOrder.LITTLE_ENDIAN);
-
-        if (Response.LOGGER.isTraceEnabled()) {
-            Response.LOGGER.trace(
-                "JSON Recv: Token: {} {}", token, new String(
-                    buf.array(),
-                    buf.arrayOffset() + buf.position(),
-                    buf.remaining(),
-                    StandardCharsets.UTF_8
-                ));
-        }
-        Map<String, Object> jsonResp = Util.readJSON(buf);
-        ResponseType responseType = ResponseType.fromValue(((Long) jsonResp.get("t")).intValue());
-        List<Long> responseNoteVals = new ArrayList<>();
-        jsonResp.put("n", responseNoteVals);
-        List<ResponseNote> responseNotes = responseNoteVals
-            .stream()
-            .map(Long::intValue)
-            .map(ResponseNote::maybeFromValue)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-        Builder res = new Builder(token, responseType);
-        if (jsonResp.containsKey("e")) {
-            res.setErrorType(((Long) jsonResp.get("e")).intValue());
-        }
-        return res.setNotes(responseNotes)
-            .setProfile((List<Object>) jsonResp.getOrDefault("p", null))
-            .setBacktrace((List<Object>) jsonResp.getOrDefault("b", null))
-            .setData((List<Object>) jsonResp.getOrDefault("r", new ArrayList<>()))
-            .build();
-    }
-
-    public static Builder make(long token, ResponseType type) {
-        return new Builder(token, type);
+    public Response(long token, ResponseType responseType) {
+        this(token, responseType, Collections.emptyList(), Collections.emptyList(), null, null, null);
     }
 
     public ReqlError makeError(Query query) {
@@ -101,34 +65,9 @@ public class Response {
             .build();
     }
 
-    public boolean isWaitComplete() {
-        return type == ResponseType.WAIT_COMPLETE;
-    }
-
-    /* Whether the response is any kind of feed */
     public boolean isFeed() {
         return notes.stream().anyMatch(ResponseNote::isFeed);
     }
-
-    /* Whether the response is any kind of error */
-    public boolean isError() {
-        return type.isError();
-    }
-
-    /* What type of success the response contains */
-    public boolean isAtom() {
-        return type == ResponseType.SUCCESS_ATOM;
-    }
-
-    public boolean isSequence() {
-        return type == ResponseType.SUCCESS_SEQUENCE;
-    }
-
-    public boolean isPartial() {
-        return type == ResponseType.SUCCESS_PARTIAL;
-    }
-
-    public boolean isServerInfo() { return type == ResponseType.SERVER_INFO; }
 
     @Override
     public String toString() {
@@ -142,57 +81,38 @@ public class Response {
             '}';
     }
 
-    public static class Builder {
-        long token;
-        ResponseType responseType;
-        List<ResponseNote> notes = new ArrayList<>();
-        List<Object> data = new ArrayList<>();
-        @Nullable Profile profile;
-        @Nullable Backtrace backtrace;
-        @Nullable ErrorType errorType;
+    @SuppressWarnings("unchecked")
+    public static Response readFromSocket(ConnectionSocket socket) {
+        final ByteBuffer header = socket.read(12);
+        final long token = header.getLong();
+        final int responseLength = header.getInt();
+        final ByteBuffer buffer = socket.read(responseLength).order(ByteOrder.LITTLE_ENDIAN);
 
-        Builder(long token, ResponseType responseType) {
-            this.token = token;
-            this.responseType = responseType;
-        }
-
-        Builder setNotes(List<ResponseNote> notes) {
-            this.notes.addAll(notes);
-            return this;
-        }
-
-        Builder setData(List<Object> data) {
-            if (data != null) {
-                this.data = data;
-            }
-            return this;
-        }
-
-        Builder setProfile(List<Object> profile) {
-            this.profile = Profile.fromList(profile);
-            return this;
-        }
-
-        Builder setBacktrace(List<Object> backtrace) {
-            this.backtrace = Backtrace.fromList(backtrace);
-            return this;
-        }
-
-        Builder setErrorType(int value) {
-            this.errorType = ErrorType.fromValue(value);
-            return this;
-        }
-
-        Response build() {
-            return new Response(
-                token,
-                responseType,
-                data,
-                notes,
-                profile,
-                backtrace,
-                errorType
+        if (Response.LOGGER.isTraceEnabled()) {
+            Response.LOGGER.trace(
+                "JSON Recv: Token: {} {}", token, new String(
+                    buffer.array(),
+                    buffer.arrayOffset() + buffer.position(),
+                    buffer.remaining(),
+                    StandardCharsets.UTF_8
+                )
             );
         }
+
+        Map<String, Object> json = Util.readJSON(buffer);
+        return new Response(
+            token,
+            ResponseType.fromValue(((Long) json.get("t")).intValue()),
+            (List<Object>) json.getOrDefault("r", Collections.emptyList()),
+            ((List<Long>) json.getOrDefault("n", Collections.emptyList()))
+                .stream()
+                .map(Long::intValue)
+                .map(ResponseNote::maybeFromValue)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList()),
+            Profile.fromList((List<Object>) json.get("p")),
+            Backtrace.fromList((List<Object>) json.getOrDefault("b", null)),
+            json.containsKey("e") ? ErrorType.maybeFromValue(((Long) json.get("e")).intValue()) : null
+        );
     }
 }

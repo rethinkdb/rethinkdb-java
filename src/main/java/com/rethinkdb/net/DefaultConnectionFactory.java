@@ -29,14 +29,14 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
     }
 
     @Override
-    public ConnectionSocket newSocket(@NotNull String hostname, int port, SSLContext sslContext, Long timeoutMs) {
+    public @NotNull ConnectionSocket newSocket(@NotNull String hostname, int port, SSLContext sslContext, Long timeoutMs) {
         SocketWrapper s = new SocketWrapper(hostname, port, sslContext, timeoutMs);
         s.connect();
         return s;
     }
 
     @Override
-    public ResponsePump newPump(@NotNull ConnectionSocket socket) {
+    public @NotNull ResponsePump newPump(@NotNull ConnectionSocket socket) {
         return new ThreadResponsePump(socket);
     }
 
@@ -95,7 +95,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         }
 
         @Override
-        public void write(ByteBuffer buffer) {
+        public void write(@NotNull ByteBuffer buffer) {
             try {
                 buffer.flip();
                 outputStream.write(buffer.array());
@@ -104,9 +104,8 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
             }
         }
 
-        @NotNull
         @Override
-        public String readCString(@Nullable Long deadline) {
+        public @NotNull String readCString(@Nullable Long deadline) {
             try {
                 final StringBuilder sb = new StringBuilder();
                 int next;
@@ -128,9 +127,8 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
             }
         }
 
-        @NotNull
         @Override
-        public ByteBuffer read(int length) {
+        public @NotNull ByteBuffer read(int length) {
             try {
                 byte[] buf = new byte[length];
                 int bytesRead = 0;
@@ -191,7 +189,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
 
                     // read response and send it to whoever is waiting, if anyone
                     try {
-                        final Response response = Response.readFrom(socket);
+                        final Response response = Response.readFromSocket(socket);
                         final CompletableFuture<Response> awaiter = awaiting.remove(response.token);
                         if (awaiter != null) {
                             awaiter.complete(response);
@@ -206,7 +204,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         }
 
         @Override
-        public CompletableFuture<Response> await(long token) {
+        public @NotNull CompletableFuture<Response> await(long token) {
             if (awaiting == null) {
                 throw new ReqlDriverError("Response pump closed.");
             }
@@ -216,7 +214,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         }
 
         @Override
-        public boolean isOpen() {
+        public boolean isAlive() {
             return thread.isAlive();
         }
 

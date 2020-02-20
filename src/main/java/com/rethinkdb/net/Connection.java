@@ -5,6 +5,7 @@ import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.gen.ast.Db;
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.model.Server;
@@ -85,9 +86,11 @@ public class Connection implements Closeable {
      * Sets the default database of the server.
      *
      * @param db the new current default database.
+     * @return itself.
      */
-    public void use(@Nullable String db) {
+    public @NotNull Connection use(@Nullable String db) {
         dbname = db;
+        return this;
     }
 
     /**
@@ -96,7 +99,7 @@ public class Connection implements Closeable {
      * @return true if the socket and the response pump are working, otherwise false.
      */
     public boolean isOpen() {
-        return socket != null && socket.isOpen() && pump != null && pump.isOpen();
+        return socket != null && socket.isOpen() && pump != null && pump.isAlive();
     }
 
     /**
@@ -104,7 +107,7 @@ public class Connection implements Closeable {
      *
      * @return itself, once connected.
      */
-    public Connection connect() {
+    public @NotNull Connection connect() {
         if (socket != null) {
             throw new ReqlDriverError("Client already connected!");
         }
@@ -120,7 +123,7 @@ public class Connection implements Closeable {
      *
      * @return itself, once reconnected.
      */
-    public Connection reconnect() {
+    public @NotNull Connection reconnect() {
         return reconnect(false);
     }
 
@@ -130,16 +133,27 @@ public class Connection implements Closeable {
      * @param noreplyWait if closing should send a {@link Connection#noreplyWait()} before closing.
      * @return itself, once reconnected.
      */
-    public Connection reconnect(boolean noreplyWait) {
+    public @NotNull Connection reconnect(boolean noreplyWait) {
         close(noreplyWait);
         connect();
         return this;
     }
 
-    public <T> CompletableFuture<Result<T>> runAsync(ReqlAst term,
-                                                     OptArgs optArgs,
-                                                     @Nullable Result.FetchMode fetchMode,
-                                                     @Nullable TypeReference<T> typeRef) {
+    /**
+     * Runs a ReQL query with options {@code optArgs}, the specified {@code fetchMode} and returns the result
+     * asynchronously, with the values converted to the type of {@code TypeReference<T>}
+     *
+     * @param <T>       The type of result
+     * @param term      The ReQL term
+     * @param optArgs   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef   The type to convert to
+     * @return The result of this query
+     */
+    public @NotNull <T> CompletableFuture<Result<T>> runAsync(@NotNull ReqlAst term,
+                                                              @NotNull OptArgs optArgs,
+                                                              @Nullable Result.FetchMode fetchMode,
+                                                              @Nullable TypeReference<T> typeRef) {
         handleOptArgs(optArgs);
         Query q = Query.createStart(nextToken.incrementAndGet(), term, optArgs);
         if (optArgs.containsKey("noreply")) {
@@ -148,45 +162,88 @@ public class Connection implements Closeable {
         return runQuery(q, fetchMode, typeRef);
     }
 
-    public <T> Result<T> run(ReqlAst term,
-                             OptArgs optArgs,
-                             @Nullable Result.FetchMode fetchMode,
-                             @Nullable TypeReference<T> typeRef) {
+    /**
+     * Runs a ReQL query with options {@code optArgs}, the specified {@code fetchMode} and returns the result, with the
+     * values converted to the type of {@code TypeReference<T>}
+     *
+     * @param <T>       The type of result
+     * @param term      The ReQL term
+     * @param optArgs   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef   The type to convert to
+     * @return The result of this query
+     */
+    public @NotNull <T> Result<T> run(@NotNull ReqlAst term,
+                                      @NotNull OptArgs optArgs,
+                                      @Nullable Result.FetchMode fetchMode,
+                                      @Nullable TypeReference<T> typeRef) {
         return runAsync(term, optArgs, fetchMode, typeRef).join();
     }
 
-    public CompletableFuture<Server> serverAsync() {
+    /**
+     * Runs a <code>server_info</code> query to the server and returns the server info asynchronously.
+     *
+     * @return The server info.
+     */
+    public @NotNull CompletableFuture<Server> serverAsync() {
         return sendQuery(Query.createServerInfo(nextToken.incrementAndGet())).thenApply(res -> {
-            if (res.isServerInfo()) {
+            if (res.type.equals(ResponseType.SERVER_INFO)) {
                 return Util.convertToPojo(res.data.get(0), new TypeReference<Server>() {});
             }
             throw new ReqlDriverError("Did not receive a SERVER_INFO response.");
         });
     }
 
-    public Server server() {
+    /**
+     * Runs a <code>server_info</code> query to the server and returns the server info.
+     *
+     * @return The server info.
+     */
+    public @NotNull Server server() {
         return serverAsync().join();
     }
 
-    public CompletableFuture<Void> noreplyWaitAsync() {
+    /**
+     * Runs a <code>noreply_wait</code> query to the server and awaits it asynchronously.
+     *
+     * @return a {@link CompletableFuture} you can await.
+     */
+    public @NotNull CompletableFuture<Void> noreplyWaitAsync() {
         return runQuery(Query.createNoreplyWait(nextToken.incrementAndGet()), null, null).thenApply(ignored -> null);
     }
 
+    /**
+     * Runs a <code>noreply_wait</code> query to the server and awaits it.
+     */
     public void noreplyWait() {
         noreplyWaitAsync().join();
     }
 
-    public void runNoReply(ReqlAst term, OptArgs optArgs) {
+    /**
+     * Runs this query via connection {@code conn} with options {@code optArgs} without awaiting the response.
+     *
+     * @param term    The ReQL term
+     * @param optArgs The options to run this query with
+     */
+    public void runNoReply(@NotNull ReqlAst term, @NotNull OptArgs optArgs) {
         handleOptArgs(optArgs);
         optArgs.with("noreply", true);
         runQueryNoreply(Query.createStart(nextToken.incrementAndGet(), term, optArgs));
     }
 
+    /**
+     * Closes this connection, closing all {@link Result}s, the {@link ResponsePump} and the {@link ConnectionSocket}.
+     */
     @Override
     public void close() {
         close(false);
     }
 
+    /**
+     * Closes this connection, closing all {@link Result}s, the {@link ResponsePump} and the {@link ConnectionSocket}.
+     *
+     * @param shouldNoreplyWait If the connection should noreply_wait before closing
+     */
     public void close(boolean shouldNoreplyWait) {
         // disconnect
         try {
@@ -214,13 +271,16 @@ public class Connection implements Closeable {
         }
     }
 
+    /**
+     * Closes all {@link Result}s currently opened.
+     */
     public void closeResults() {
         for (Result<?> handler : tracked) {
             handler.close();
         }
     }
 
-    // package-private methods
+    // protected methods
 
     protected void sendStop(long token) {
         // While the server does reply to the stop request, we ignore that reply.
@@ -229,19 +289,18 @@ public class Connection implements Closeable {
         runQueryNoreply(Query.createStop(token));
     }
 
-    protected CompletableFuture<Response> sendContinue(long token) {
+
+    protected @NotNull CompletableFuture<Response> sendContinue(long token) {
         return sendQuery(Query.createContinue(token));
     }
 
-    protected void loseTrackOf(Result<?> r) {
+    protected void loseTrackOf(@NotNull Result<?> r) {
         tracked.add(r);
     }
 
-    protected void keepTrackOf(Result<?> r) {
+    protected void keepTrackOf(@NotNull Result<?> r) {
         tracked.remove(r);
     }
-
-    // private methods
 
     /**
      * Writes a query and returns a completable future.
@@ -250,7 +309,7 @@ public class Connection implements Closeable {
      * @param query the query to execute.
      * @return a completable future.
      */
-    protected CompletableFuture<Response> sendQuery(Query query) {
+    protected @NotNull CompletableFuture<Response> sendQuery(@NotNull Query query) {
         if (socket == null || !socket.isOpen()) {
             throw new ReqlDriverError("Client not connected.");
         }
@@ -274,7 +333,7 @@ public class Connection implements Closeable {
      *
      * @param query the query to execute.
      */
-    protected void runQueryNoreply(Query query) {
+    protected void runQueryNoreply(@NotNull Query query) {
         if (socket == null || !socket.isOpen()) {
             throw new ReqlDriverError("Client not connected.");
         }
@@ -291,15 +350,15 @@ public class Connection implements Closeable {
         }
     }
 
-    protected <T> CompletableFuture<Result<T>> runQuery(Query query,
-                                                        @Nullable Result.FetchMode fetchMode,
-                                                        @Nullable TypeReference<T> typeRef) {
+    protected @NotNull <T> CompletableFuture<Result<T>> runQuery(@NotNull Query query,
+                                                                 @Nullable Result.FetchMode fetchMode,
+                                                                 @Nullable TypeReference<T> typeRef) {
         return sendQuery(query).thenApply(res -> new Result<>(
             this, query, res, fetchMode == null ? defaultFetchMode : fetchMode, typeRef
         ));
     }
 
-    protected void handleOptArgs(OptArgs optArgs) {
+    protected void handleOptArgs(@NotNull OptArgs optArgs) {
         if (!optArgs.containsKey("db") && dbname != null) {
             // Only override the db global arg if the user hasn't
             // specified one already and one is specified on the connection
@@ -403,7 +462,7 @@ public class Connection implements Closeable {
             }
         }
 
-        public Builder copyOf() {
+        public @NotNull Builder copyOf() {
             Builder c = new Builder();
             c.socketFactory = socketFactory;
             c.pumpFactory = pumpFactory;
@@ -420,68 +479,68 @@ public class Connection implements Closeable {
             return c;
         }
 
-        public Builder socketFactory(ConnectionSocket.Factory factory) {
+        public @NotNull Builder socketFactory(@Nullable ConnectionSocket.Factory factory) {
             socketFactory = factory;
             return this;
         }
 
-        public Builder pumpFactory(ResponsePump.Factory factory) {
+        public @NotNull Builder pumpFactory(@Nullable ResponsePump.Factory factory) {
             pumpFactory = factory;
             return this;
         }
 
-        public Builder hostname(String val) {
+        public @NotNull Builder hostname(@Nullable String val) {
             hostname = val;
             return this;
         }
 
-        public Builder port(int val) {
+        public @NotNull Builder port(@Nullable Integer val) {
             port = val;
             return this;
         }
 
-        public Builder db(String val) {
+        public @NotNull Builder db(@Nullable String val) {
             dbname = val;
             return this;
         }
 
-        public Builder authKey(String key) {
+        public @NotNull Builder authKey(@Nullable String key) {
             authKey = key;
             return this;
         }
 
-        public Builder user(String user, String password) {
+        public @NotNull Builder user(@Nullable String user, @Nullable String password) {
             this.user = user;
             this.password = password;
             return this;
         }
 
-        public Builder certFile(InputStream val) {
+        public @NotNull Builder certFile(@Nullable InputStream val) {
             sslContext = Crypto.readCertFile(val);
             return this;
         }
 
-        public Builder sslContext(SSLContext val) {
+        public @NotNull Builder sslContext(@Nullable SSLContext val) {
             sslContext = val;
             return this;
         }
 
-        public Builder unwrapLists(boolean val) {
+        public @NotNull Builder unwrapLists(boolean val) {
             unwrapLists = val;
             return this;
         }
 
-        public Builder defaultFetchMode(Result.FetchMode val) {
+        public @NotNull Builder defaultFetchMode(@Nullable Result.FetchMode val) {
             defaultFetchMode = val;
             return this;
         }
 
-        public Builder timeout(long val) {
+        public @NotNull Builder timeout(@Nullable Long val) {
             timeout = val;
             return this;
         }
 
-        public Connection connect() {
+        public @NotNull Connection connect() {
             final Connection conn = new Connection(this);
             conn.reconnect();
             return conn;

@@ -35,9 +35,7 @@ public class Arguments extends ArrayList<ReqlAst> {
     }
 
     public Arguments(List<Object> args) {
-        addAll(Collections.singletonList(args).stream()
-            .map(Util::toReqlAst)
-            .collect(Collectors.toList()));
+        coerceAndAddAll(args);
     }
 
     public static Arguments make(Object... args) {
@@ -49,12 +47,12 @@ public class Arguments extends ArrayList<ReqlAst> {
     }
 
     public void coerceAndAddAll(Object[] args) {
-        coerceAndAddAll(Arrays.asList(args));
+        for (Object arg : args) {
+            coerceAndAdd(arg);
+        }
     }
 
     public void coerceAndAddAll(List<Object> args) {
-        addAll(args.stream()
-            .map(Util::toReqlAst)
-            .collect(Collectors.toList()));
+        args.forEach(this::coerceAndAdd);
     }
 }

@@ -43,13 +43,14 @@ public enum ResponseNote {
     }
 
     public boolean isFeed() {
-        switch(this) {
-            case SEQUENCE_FEED: return true;
-            case ATOM_FEED: return true;
-            case ORDER_BY_LIMIT_FEED: return true;
-            case UNIONED_FEED: return true;
-            default: return false;
+        switch (this) {
+            case SEQUENCE_FEED:
+            case ATOM_FEED:
+            case ORDER_BY_LIMIT_FEED:
+            case UNIONED_FEED:
+                return true;
         }
+        return false;
     }
 
 }

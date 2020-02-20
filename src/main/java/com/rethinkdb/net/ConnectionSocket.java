@@ -25,7 +25,7 @@ public interface ConnectionSocket extends Closeable {
          * @param timeoutMs a timeout, in milliseconds, if any
          * @return a new {@link ConnectionSocket}.
          */
-        ConnectionSocket newSocket(@NotNull String hostname,
+        @NotNull ConnectionSocket newSocket(@NotNull String hostname,
                                    int port,
                                    @Nullable SSLContext sslContext,
                                    @Nullable Long timeoutMs);
