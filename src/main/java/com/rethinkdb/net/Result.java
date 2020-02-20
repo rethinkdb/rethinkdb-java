@@ -2,7 +2,9 @@ package com.rethinkdb.net;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.rethinkdb.ast.Query;
+import com.rethinkdb.gen.ast.ReqlExpr;
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
 import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Profile;
@@ -106,9 +108,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         this.typeRef = typeRef;
         fmt = new Converter.FormatOptions(query.globalOptions);
         currentResponse.set(firstRes);
-
-        //todo change later
-        CompletableFuture.runAsync(this::handleFirstResponse);
+        handleFirstResponse();
     }
 
     /**
@@ -215,15 +215,15 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      * Returns the next element in the iteration, with a defined timeout.
      *
      * @param timeout how long to wait before giving up, in units of {@code unit}
-     * @param unit a {@code TimeUnit} determining how to interpret the {@code timeout} parameter
+     * @param unit    a {@code TimeUnit} determining how to interpret the {@code timeout} parameter
      * @return the next element in the iteration
      * @throws NoSuchElementException if the iteration has no more elements
-     * @throws TimeoutException if the poll operation times out
+     * @throws TimeoutException       if the poll operation times out
      */
     public @Nullable T next(long timeout, TimeUnit unit) throws TimeoutException {
         try {
             if (!hasNext()) {
-                throw new NoSuchElementException();
+                throwOnCompleted();
             }
             Object next = rawQueue.poll(timeout, unit);
             if (next == null) {
@@ -246,10 +246,61 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     public @Nullable T next() {
         try {
             if (!hasNext()) {
-                throw new NoSuchElementException();
+                throwOnCompleted();
             }
             Object next = rawQueue.take();
             onStateUpdate();
+            if (next == NIL) {
+                return null;
+            }
+            return Util.convertToPojo(next, typeRef);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Returns the first object and closes the Result, discarding all other results.
+     * Throws if there's this result has no elements.
+     *
+     * @return the first result available.
+     */
+    public @Nullable T first() {
+        try {
+            if (!hasNext()) {
+                throwOnCompleted();
+            }
+            Object next = rawQueue.take();
+            rawQueue.clear();
+            close();
+            if (next == NIL) {
+                return null;
+            }
+            return Util.convertToPojo(next, typeRef);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Returns the first object and closes the Result, discarding all other results.
+     * Throws if there's this result has no elements or more than one element.
+     *
+     * @return the first result available.
+     */
+    public @Nullable T single() {
+        try {
+            if (!hasNext()) {
+                throwOnCompleted();
+            }
+            Object next = rawQueue.take();
+            if (hasNext()) {
+                rawQueue.clear();
+                close();
+                throw new IllegalStateException("More than one result.");
+            }
+            rawQueue.clear();
+            close();
             if (next == NIL) {
                 return null;
             }
@@ -269,6 +320,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
 
     /**
      * Gets the current's response Profile, if any.
+     *
      * @return the Profile from the current response, or null
      */
     public @Nullable Profile profile() {
@@ -314,6 +366,22 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         }
 
         completed.completeExceptionally(firstRes.makeError(query));
+    }
+
+    protected void throwOnCompleted() {
+        if (completed.isDone()) {
+            try {
+                if (completed.join()) {
+                    throw new NoSuchElementException("No more elements.");
+                } else {
+                    throw new NoSuchElementException("Result was cancelled.");
+                }
+            } catch (CompletionException e) {
+                if (e.getCause() instanceof ReqlError) {
+                    throw ((ReqlError) e.getCause());
+                }
+            }
+        }
     }
 
     /**
