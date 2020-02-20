@@ -1,0 +1,31 @@
+dist: xenial
+language: java
+
+jdk:
+  - openjdk8
+
+services:
+  - docker
+
+before_install:
+  - docker pull rethinkdb:latest
+  - docker run -d -p 28015:28015 -p 29015:29015 -p 8080:8080 rethinkdb:latest
+  - docker ps -a
+
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+
+# Exclude the signArchives tasks, since the deploy configuration will be
+# added when vault is set up. The secrets should come from there.
+# TODO: @gabor-boros Integrate vault
+install:
+  - ./gradlew assemble --exclude-task signArchives
+
+notifications:
+    email: false
