@@ -15,10 +15,12 @@ import java.io.Closeable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -169,12 +171,15 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      * @return the final result
      */
     public <R, A> R collect(@NotNull Collector<? super T, A, R> collector) {
-        fetchMode = FetchMode.AGGRESSIVE;
-        A container = collector.supplier().get();
-        BiConsumer<A, ? super T> accumulator = collector.accumulator();
-        forEachRemaining(next -> accumulator.accept(container, next));
-        this.close();
-        return collector.finisher().apply(container);
+        try {
+            fetchMode = FetchMode.AGGRESSIVE;
+            A container = collector.supplier().get();
+            BiConsumer<A, ? super T> accumulator = collector.accumulator();
+            forEachRemaining(next -> accumulator.accept(container, next));
+            return collector.finisher().apply(container);
+        } finally {
+            close();
+        }
     }
 
     /**
@@ -271,14 +276,15 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
                 throwOnCompleted();
             }
             Object next = rawQueue.take();
-            rawQueue.clear();
-            close();
             if (next == NIL) {
                 return null;
             }
             return Util.convertToPojo(next, typeRef);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        } finally {
+            rawQueue.clear();
+            close();
         }
     }
 
@@ -295,18 +301,17 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             }
             Object next = rawQueue.take();
             if (hasNext()) {
-                rawQueue.clear();
-                close();
                 throw new IllegalStateException("More than one result.");
             }
-            rawQueue.clear();
-            close();
             if (next == NIL) {
                 return null;
             }
             return Util.convertToPojo(next, typeRef);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        } finally {
+            rawQueue.clear();
+            close();
         }
     }
 
@@ -319,6 +324,30 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void forEach(Consumer<? super T> action) {
+        try {
+            Objects.requireNonNull(action);
+            fetchMode = FetchMode.AGGRESSIVE;
+            while (hasNext()) {
+                action.accept(next());
+            }
+        } finally {
+            close();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void forEachRemaining(Consumer<? super T> action) {
+        forEach(action);
+    }
+
+    /**
      * Gets the current's response Profile, if any.
      *
      * @return the Profile from the current response, or null
@@ -326,6 +355,19 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     public @Nullable Profile profile() {
         return currentResponse.get().profile;
     }
+
+    @Override
+    public String toString() {
+        return "Result{" +
+            "connection=" + connection +
+            ", query=" + query +
+            ", firstRes=" + firstRes +
+            ", completed=" + completed +
+            ", currentResponse=" + currentResponse +
+            '}';
+    }
+
+    // protected methods
 
     protected void handleFirstResponse() {
         ResponseType type = firstRes.type;
