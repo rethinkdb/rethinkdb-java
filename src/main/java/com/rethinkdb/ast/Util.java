@@ -14,6 +14,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -57,9 +58,9 @@ public class Util {
             return (ReqlAst) val;
         }
 
-        if (val instanceof List) {
+        if (val instanceof Collection) {
             Arguments innerValues = new Arguments();
-            for (Object innerValue : (List<?>) val) {
+            for (Object innerValue : (Collection<?>) val) {
                 innerValues.add(toReqlAst(innerValue, remainingDepth - 1));
             }
             return new MakeArray(innerValues, null);
