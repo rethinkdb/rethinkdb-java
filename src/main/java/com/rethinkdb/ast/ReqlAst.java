@@ -9,7 +9,6 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.net.Result;
-import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.*;
@@ -18,7 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
- * Base class for all reql queries.
+ * Base class for all ReQL queries.
  */
 public class ReqlAst {
     protected final TermType termType;
@@ -160,10 +159,10 @@ public class ReqlAst {
      * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the result, with
      * the values converted to the type of {@code Class<T>}.
      *
-     * @param <T>     The type of result
-     * @param conn    The connection to run this query
+     * @param <T>       The type of result
+     * @param conn      The connection to run this query
      * @param fetchMode The fetch mode to use in partial sequences
-     * @param typeRef The type to convert to
+     * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public <T> Result<T> run(Connection conn, Result.FetchMode fetchMode, Class<T> typeRef) {
@@ -174,10 +173,10 @@ public class ReqlAst {
      * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the result, with
      * the values converted to the type of {@code TypeReference<T>}.
      *
-     * @param <T>     The type of result
-     * @param conn    The connection to run this query
+     * @param <T>       The type of result
+     * @param conn      The connection to run this query
      * @param fetchMode The fetch mode to use in partial sequences
-     * @param typeRef The type to convert to
+     * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public <T> Result<T> run(Connection conn, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
@@ -188,11 +187,11 @@ public class ReqlAst {
      * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
      * and returns the result, with the values converted to the type of {@code Class<T>}
      *
-     * @param <T>     The type of result
-     * @param conn    The connection to run this query
-     * @param runOpts The options to run this query with
+     * @param <T>       The type of result
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
      * @param fetchMode The fetch mode to use in partial sequences
-     * @param typeRef The type to convert to
+     * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public <T> Result<T> run(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<T> typeRef) {
@@ -203,11 +202,11 @@ public class ReqlAst {
      * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
      * and returns the result, with the values converted to the type of {@code TypeReference<T>}
      *
-     * @param <T>     The type of result
-     * @param conn    The connection to run this query
-     * @param runOpts The options to run this query with
+     * @param <T>       The type of result
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
      * @param fetchMode The fetch mode to use in partial sequences
-     * @param typeRef The type to convert to
+     * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public <T> Result<T> run(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
@@ -319,10 +318,10 @@ public class ReqlAst {
      * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the result
      * asynchronously, with the values converted to the type of {@code Class<T>}.
      *
-     * @param <T>     The type of result
-     * @param conn    The connection to run this query
+     * @param <T>       The type of result
+     * @param conn      The connection to run this query
      * @param fetchMode The fetch mode to use in partial sequences
-     * @param typeRef The type to convert to
+     * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public <T> CompletableFuture<Result<T>> runAsync(Connection conn, Result.FetchMode fetchMode, Class<T> typeRef) {
@@ -333,10 +332,10 @@ public class ReqlAst {
      * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the result
      * asynchronously, with the values converted to the type of {@code TypeReference<T>}.
      *
-     * @param <T>     The type of result
-     * @param conn    The connection to run this query
+     * @param <T>       The type of result
+     * @param conn      The connection to run this query
      * @param fetchMode The fetch mode to use in partial sequences
-     * @param typeRef The type to convert to
+     * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public <T> CompletableFuture<Result<T>> runAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
@@ -347,11 +346,11 @@ public class ReqlAst {
      * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
      * and returns the result asynchronously, with the values converted to the type of {@code Class<T>}
      *
-     * @param <T>     The type of result
-     * @param conn    The connection to run this query
-     * @param runOpts The options to run this query with
+     * @param <T>       The type of result
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
      * @param fetchMode The fetch mode to use in partial sequences
-     * @param typeRef The type to convert to
+     * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public <T> CompletableFuture<Result<T>> runAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<T> typeRef) {
@@ -362,25 +361,41 @@ public class ReqlAst {
      * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
      * and returns the result asynchronously, with the values converted to the type of {@code TypeReference<T>}
      *
-     * @param <T>     The type of result
-     * @param conn    The connection to run this query
-     * @param runOpts The options to run this query with
+     * @param <T>       The type of result
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
      * @param fetchMode The fetch mode to use in partial sequences
-     * @param typeRef The type to convert to
+     * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public <T> CompletableFuture<Result<T>> runAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
         return conn.runAsync(this, runOpts, fetchMode, typeRef);
     }
 
+    /**
+     * Runs this query via connection {@code conn} with default options without waiting.
+     *
+     * @param conn The connection to run this query
+     */
     public void runNoReply(Connection conn) {
         conn.runNoReply(this, new OptArgs());
     }
 
-    public void runNoReply(Connection conn, OptArgs globalOpts) {
-        conn.runNoReply(this, globalOpts);
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} without waiting.
+     *
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     */
+    public void runNoReply(Connection conn, OptArgs runOpts) {
+        conn.runNoReply(this, runOpts);
     }
 
+    /**
+     * Returns the AST representation of this {@link ReqlAst}.
+     *
+     * @return a pretty-printed representation of this abstract syntax tree.
+     */
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -402,8 +417,8 @@ public class ReqlAst {
             builder.append(' ').append(datum).append(" (").append(datum.getClass().getSimpleName()).append(")");
         } else if (this instanceof Binary) {
             builder.append(' ');
-            @Nullable byte[] binaryData = ((Binary) this).binaryData;
-            int length = (int) (binaryData != null ? binaryData.length : 0);
+            byte[] binaryData = ((Binary) this).binaryData;
+            int length = binaryData != null ? binaryData.length : 0;
             builder.append('(').append(length).append(length != 1 ? " bytes" : " byte").append(")");
         }
         builder.append('\n');
@@ -427,6 +442,11 @@ public class ReqlAst {
         }
     }
 
+    /**
+     * A TypeReference that accepts an class instead of compiler type information.
+     *
+     * @param <T> the type referred to.
+     */
     private static class ClassReference<T> extends TypeReference<T> {
         private Class<T> c;
 

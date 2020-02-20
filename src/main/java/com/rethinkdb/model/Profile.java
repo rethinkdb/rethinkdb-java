@@ -5,21 +5,20 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class Profile {
+    private List<Object> raw;
 
-    private List<Object> values;
-
-    private Profile(List<Object> profileObj) {
-        this.values = profileObj;
+    private Profile(List<Object> raw) {
+        this.raw = raw;
     }
 
-    public static @Nullable Profile fromList(List<Object> list) {
-        if(list == null || list.size() == 0){
+    public static @Nullable Profile fromList(List<Object> raw) {
+        if (raw == null || raw.size() == 0) {
             return null;
         }
-        return new Profile(list);
+        return new Profile(raw);
     }
 
-    public List<Object> getValues() {
-        return values;
+    public List<Object> getRaw() {
+        return raw;
     }
 }

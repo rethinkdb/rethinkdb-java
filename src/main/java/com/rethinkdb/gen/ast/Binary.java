@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 public class Binary extends ReqlExpr {
 
     public @Nullable byte[] binaryData;
+
     public Binary(byte[] bytes) {
         this(new Arguments());
         binaryData = bytes;
@@ -33,7 +34,6 @@ public class Binary extends ReqlExpr {
     protected Binary(TermType termType, Arguments args, OptArgs optargs) {
         super(termType, args, optargs);
     }
-
 
     @Override
     public Object build(){

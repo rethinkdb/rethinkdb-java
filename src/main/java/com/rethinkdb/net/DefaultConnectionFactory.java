@@ -7,19 +7,21 @@ import org.jetbrains.annotations.Nullable;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * The default {@link ConnectionSocket.Factory} and {@link ResponsePump.Factory} for any default connections.
+ */
 public class DefaultConnectionFactory implements ConnectionSocket.Factory, ResponsePump.Factory {
     public static final DefaultConnectionFactory INSTANCE = new DefaultConnectionFactory();
 
@@ -41,14 +43,12 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
     private static class SocketWrapper implements ConnectionSocket {
         // networking stuff
         private Socket socket;
-        private SocketFactory socketFactory = SocketFactory.getDefault();
-        private SSLSocket sslSocket;
-        private OutputStream writeStream;
-        private DataInputStream readStream;
+        private InputStream inputStream;
+        private OutputStream outputStream;
 
         // options
-        private SSLContext sslContext;
-        private Long timeoutMs;
+        private final SSLContext sslContext;
+        private final Long timeoutMs;
         private final String hostname;
         private final int port;
 
@@ -63,33 +63,31 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         }
 
         void connect() {
-            Long deadline = timeoutMs == null ? null : System.currentTimeMillis() + timeoutMs;
             try {
                 // establish connection
                 final InetSocketAddress addr = new InetSocketAddress(hostname, port);
-                socket = socketFactory.createSocket();
+                socket = SocketFactory.getDefault().createSocket();
                 socket.connect(addr, timeoutMs == null ? 0 : timeoutMs.intValue());
                 socket.setTcpNoDelay(true);
                 socket.setKeepAlive(true);
 
                 // should we secure the connection?
                 if (sslContext != null) {
-                    socketFactory = sslContext.getSocketFactory();
-                    SSLSocketFactory sslSf = (SSLSocketFactory) socketFactory;
-                    sslSocket = (SSLSocket) sslSf.createSocket(socket,
+                    SSLSocket sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(
+                        socket,
                         socket.getInetAddress().getHostAddress(),
                         socket.getPort(),
                         true);
 
                     // replace input/output streams
-                    readStream = new DataInputStream(sslSocket.getInputStream());
-                    writeStream = sslSocket.getOutputStream();
+                    inputStream = new DataInputStream(sslSocket.getInputStream());
+                    outputStream = sslSocket.getOutputStream();
 
                     // execute SSL handshake
                     sslSocket.startHandshake();
                 } else {
-                    writeStream = socket.getOutputStream();
-                    readStream = new DataInputStream(socket.getInputStream());
+                    outputStream = socket.getOutputStream();
+                    inputStream = socket.getInputStream();
                 }
             } catch (IOException e) {
                 throw new ReqlDriverError("Connection timed out.", e);
@@ -100,7 +98,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         public void write(ByteBuffer buffer) {
             try {
                 buffer.flip();
-                writeStream.write(buffer.array());
+                outputStream.write(buffer.array());
             } catch (IOException e) {
                 throw new ReqlDriverError(e);
             }
@@ -111,8 +109,9 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         public String readCString(@Nullable Long deadline) {
             try {
                 final StringBuilder sb = new StringBuilder();
+                int next;
                 char c;
-                while ((c = (char) this.readStream.readByte()) != '\0') {
+                while ((next = inputStream.read()) != -1 && (c = (char) next) != '\0') {
                     // is there a deadline?
                     if (deadline != null) {
                         // have we timed-out?
@@ -131,12 +130,12 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
 
         @NotNull
         @Override
-        public ByteBuffer read(int bufsize) {
+        public ByteBuffer read(int length) {
             try {
-                byte[] buf = new byte[bufsize];
+                byte[] buf = new byte[length];
                 int bytesRead = 0;
-                while (bytesRead < bufsize) {
-                    final int res = this.readStream.read(buf, bytesRead, bufsize - bytesRead);
+                while (bytesRead < length) {
+                    final int res = this.inputStream.read(buf, bytesRead, length - bytesRead);
                     if (res == -1) {
                         throw new ReqlDriverError("Reached the end of the read stream.");
                     } else {
@@ -147,22 +146,6 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
             } catch (IOException e) {
                 throw new ReqlDriverError(e);
             }
-        }
-
-        @Nullable
-        Integer clientPort() {
-            if (socket != null) {
-                return socket.getLocalPort();
-            }
-            return null;
-        }
-
-        @Nullable
-        SocketAddress clientAddress() {
-            if (socket != null) {
-                return socket.getLocalSocketAddress();
-            }
-            return null;
         }
 
         @Override
@@ -224,12 +207,17 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
 
         @Override
         public CompletableFuture<Response> await(long token) {
-            CompletableFuture<Response> future = new CompletableFuture<>();
             if (awaiting == null) {
                 throw new ReqlDriverError("Response pump closed.");
             }
+            CompletableFuture<Response> future = new CompletableFuture<>();
             awaiting.put(token, future);
             return future;
+        }
+
+        @Override
+        public boolean isOpen() {
+            return thread.isAlive();
         }
 
         private void shutdown(Exception e) {
@@ -237,9 +225,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
             this.awaiting = null;
             thread.interrupt();
             if (awaiting != null) {
-                awaiting.forEach((token, future) -> {
-                    future.completeExceptionally(e);
-                });
+                awaiting.forEach((token, future) -> future.completeExceptionally(e));
             }
         }
 

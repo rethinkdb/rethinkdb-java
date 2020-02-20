@@ -13,9 +13,10 @@ import java.util.stream.Collectors;
 public class Arguments extends ArrayList<ReqlAst> {
     public Arguments() {}
 
+    @SuppressWarnings("unchecked")
     public Arguments(Object arg) {
         if (arg instanceof List) {
-            coerceAndAddAll((List) arg);
+            coerceAndAddAll((List<Object>) arg);
         } else {
             coerceAndAdd(arg);
         }

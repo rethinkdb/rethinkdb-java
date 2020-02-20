@@ -5,20 +5,20 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class Backtrace {
-    private List<Object> rawBacktrace;
+    private List<Object> raw;
 
-    private Backtrace(List<Object> rawBacktrace) {
-        this.rawBacktrace = rawBacktrace;
+    private Backtrace(List<Object> raw) {
+        this.raw = raw;
     }
 
-    public static @Nullable Backtrace fromList(List<Object> rawBacktrace) {
-        if (rawBacktrace == null || rawBacktrace.size() == 0) {
+    public static @Nullable Backtrace fromList(List<Object> raw) {
+        if (raw == null || raw.size() == 0) {
             return null;
         }
-        return new Backtrace(rawBacktrace);
+        return new Backtrace(raw);
     }
 
-    public List<Object> getRawBacktrace() {
-        return rawBacktrace;
+    public List<Object> getRaw() {
+        return raw;
     }
 }

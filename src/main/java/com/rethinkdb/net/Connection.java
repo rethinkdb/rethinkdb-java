@@ -8,13 +8,14 @@ import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.model.Server;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.net.ssl.SSLContext;
 import java.io.Closeable;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,6 +23,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * A single connection to RethinkDB.
+ * <p>
+ * This object is thread-safe.
+ */
 public class Connection implements Closeable {
     protected final ConnectionSocket.Factory socketFactory;
     protected final ResponsePump.Factory pumpFactory;
@@ -42,66 +48,88 @@ public class Connection implements Closeable {
     protected @Nullable ConnectionSocket socket;
     protected @Nullable ResponsePump pump;
 
-    public Connection(Builder c) {
-        if (c.authKey != null && c.user != null) {
+    /**
+     * Creates a new connection based on a {@link Builder}.
+     *
+     * @param b the connection builder
+     */
+    public Connection(Builder b) {
+        if (b.authKey != null && b.user != null) {
             throw new ReqlDriverError("Either `authKey` or `user` can be used, but not both.");
         }
-        this.socketFactory = c.socketFactory != null ? c.socketFactory : DefaultConnectionFactory.INSTANCE;
-        this.pumpFactory = c.pumpFactory != null ? c.pumpFactory : DefaultConnectionFactory.INSTANCE;
-        this.hostname = c.hostname != null ? c.hostname : "localhost";
-        this.port = c.port != null ? c.port : 28015;
-        this.dbname = c.dbname;
-        this.sslContext = c.sslContext;
-        this.timeout = c.timeout;
-        this.user = c.user != null ? c.user : "admin";
-        this.password = c.password != null ? c.password : c.authKey != null ? c.authKey : "";
-        this.unwrapLists = c.unwrapLists;
-        this.defaultFetchMode = c.defaultFetchMode != null ? c.defaultFetchMode : Result.FetchMode.LAZY;
+        this.socketFactory = b.socketFactory != null ? b.socketFactory : DefaultConnectionFactory.INSTANCE;
+        this.pumpFactory = b.pumpFactory != null ? b.pumpFactory : DefaultConnectionFactory.INSTANCE;
+        this.hostname = b.hostname != null ? b.hostname : "localhost";
+        this.port = b.port != null ? b.port : 28015;
+        this.dbname = b.dbname;
+        this.sslContext = b.sslContext;
+        this.timeout = b.timeout;
+        this.user = b.user != null ? b.user : "admin";
+        this.password = b.password != null ? b.password : b.authKey != null ? b.authKey : "";
+        this.unwrapLists = b.unwrapLists;
+        this.defaultFetchMode = b.defaultFetchMode != null ? b.defaultFetchMode : Result.FetchMode.LAZY;
     }
 
+    /**
+     * Gets the default database of the server.
+     * <br>
+     * To set the default database, use {@link Builder#db(String)} or {@link Connection#use(String)}
+     *
+     * @return the current default database, if any, of null.
+     */
     public @Nullable String db() {
         return dbname;
     }
 
-    public void use(String db) {
+    /**
+     * Sets the default database of the server.
+     *
+     * @param db the new current default database.
+     */
+    public void use(@Nullable String db) {
         dbname = db;
     }
 
+    /**
+     * Checks if the connection is open.
+     *
+     * @return true if the socket and the response pump are working, otherwise false.
+     */
     public boolean isOpen() {
-        return socket != null && socket.isOpen() && pump != null;
+        return socket != null && socket.isOpen() && pump != null && pump.isOpen();
     }
 
+    /**
+     * Begins the socket connection to the server.
+     *
+     * @return itself, once connected.
+     */
     public Connection connect() {
         if (socket != null) {
             throw new ReqlDriverError("Client already connected!");
         }
         ConnectionSocket socket = socketFactory.newSocket(hostname, port, sslContext, timeout);
         this.socket = socket;
-
-        // execute RethinkDB handshake
-        HandshakeProtocol handshake = HandshakeProtocol.start(user, password);
-
-        // initialize handshake
-        ByteBuffer toWrite = handshake.toSend();
-        // Sit in the handshake until it's completed. Exceptions will be thrown if
-        // anything goes wrong.
-        while (!handshake.isFinished()) {
-            if (toWrite != null) {
-                socket.write(toWrite);
-            }
-            String serverMsg = socket.readCString(timeout);
-            handshake = handshake.nextState(serverMsg);
-            toWrite = handshake.toSend();
-        }
-
+        HandshakeProtocol.doHandshake(socket, user, password, timeout);
         pump = pumpFactory.newPump(socket);
         return this;
     }
 
+    /**
+     * Closes and reconnects to the server.
+     *
+     * @return itself, once reconnected.
+     */
     public Connection reconnect() {
         return reconnect(false);
     }
 
+    /**
+     * Closes and reconnects to the server.
+     *
+     * @param noreplyWait if closing should send a {@link Connection#noreplyWait()} before closing.
+     * @return itself, once reconnected.
+     */
     public Connection reconnect(boolean noreplyWait) {
         close(noreplyWait);
         connect();
@@ -113,7 +141,7 @@ public class Connection implements Closeable {
                                                      @Nullable Result.FetchMode fetchMode,
                                                      @Nullable TypeReference<T> typeRef) {
         handleOptArgs(optArgs);
-        Query q = Query.start(nextToken.incrementAndGet(), term, optArgs);
+        Query q = Query.createStart(nextToken.incrementAndGet(), term, optArgs);
         if (optArgs.containsKey("noreply")) {
             throw new ReqlDriverError("Don't provide the noreply option as an optarg. Use `.runNoReply` instead of `.run`");
         }
@@ -128,7 +156,7 @@ public class Connection implements Closeable {
     }
 
     public CompletableFuture<Server> serverAsync() {
-        return sendQuery(Query.serverInfo(nextToken.incrementAndGet())).thenApply(res -> {
+        return sendQuery(Query.createServerInfo(nextToken.incrementAndGet())).thenApply(res -> {
             if (res.isServerInfo()) {
                 return Util.convertToPojo(res.data.get(0), new TypeReference<Server>() {});
             }
@@ -141,7 +169,7 @@ public class Connection implements Closeable {
     }
 
     public CompletableFuture<Void> noreplyWaitAsync() {
-        return runQuery(Query.noreplyWait(nextToken.incrementAndGet()), null, null).thenApply(ignored -> null);
+        return runQuery(Query.createNoreplyWait(nextToken.incrementAndGet()), null, null).thenApply(ignored -> null);
     }
 
     public void noreplyWait() {
@@ -151,7 +179,7 @@ public class Connection implements Closeable {
     public void runNoReply(ReqlAst term, OptArgs optArgs) {
         handleOptArgs(optArgs);
         optArgs.with("noreply", true);
-        runQueryNoreply(Query.start(nextToken.incrementAndGet(), term, optArgs));
+        runQueryNoreply(Query.createStart(nextToken.incrementAndGet(), term, optArgs));
     }
 
     @Override
@@ -198,11 +226,11 @@ public class Connection implements Closeable {
         // While the server does reply to the stop request, we ignore that reply.
         // This works because the response pump in `connect` ignores replies for which
         // no waiter exists.
-        runQueryNoreply(Query.stop(token));
+        runQueryNoreply(Query.createStop(token));
     }
 
     protected CompletableFuture<Response> sendContinue(long token) {
-        return sendQuery(Query.continue_(token));
+        return sendQuery(Query.createContinue(token));
     }
 
     protected void loseTrackOf(Result<?> r) {
@@ -214,7 +242,6 @@ public class Connection implements Closeable {
     }
 
     // private methods
-
 
     /**
      * Writes a query and returns a completable future.
@@ -307,7 +334,8 @@ public class Connection implements Closeable {
         public Builder() {
         }
 
-        public Builder(URI uri) {
+        public Builder(@NotNull URI uri) {
+            Objects.requireNonNull(uri, "URI can't be null. Use the default constructor instead.");
             if (!"rethinkdb".equals(uri.getScheme())) {
                 throw new IllegalArgumentException("Schema of the URL is not 'rethinkdb'.");
             }

@@ -1,5 +1,6 @@
 package com.rethinkdb.net;
 
+import com.rethinkdb.gen.ast.Wait;
 import com.rethinkdb.gen.exc.ReqlAuthError;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.proto.Protocol;
@@ -13,7 +14,7 @@ import java.security.MessageDigest;
 import java.util.Map;
 
 import static com.rethinkdb.net.Crypto.*;
-import static com.rethinkdb.net.Util.toJSON;
+import static com.rethinkdb.net.Util.readJSON;
 
 /**
  * Internal class used by {@link Connection#connect()} to do a proper handshake with the server.
@@ -26,21 +27,31 @@ abstract class HandshakeProtocol {
     public static final String CLIENT_KEY = "Client Key";
     public static final String SERVER_KEY = "Server Key";
 
-    public static HandshakeProtocol start(String username, String password) {
-        return new InitialState(username, password).nextState(null);
+    static void doHandshake(ConnectionSocket socket, String username, String password, Long timeout) {
+        // initialize handshake
+        HandshakeProtocol handshake = new WaitingForProtocolRange(username, password);
+        // Sit in the handshake until it's completed. Exceptions will be thrown if
+        // anything goes wrong.
+        while (!handshake.isFinished()) {
+            ByteBuffer toWrite = handshake.toSend();
+            if (toWrite != null) {
+                socket.write(toWrite);
+            }
+            handshake = handshake.nextState(socket.readCString(timeout));
+        }
     }
 
     private HandshakeProtocol() {
     }
 
-    public abstract HandshakeProtocol nextState(String response);
+    protected abstract HandshakeProtocol nextState(String response);
 
     @Nullable
-    public abstract ByteBuffer toSend();
+    protected abstract ByteBuffer toSend();
 
-    public abstract boolean isFinished();
+    protected abstract boolean isFinished();
 
-    public static void throwIfFailure(Map<String, Object> json) {
+    private static void throwIfFailure(Map<String, Object> json) {
         if (!(boolean) json.get("success")) {
             Long errorCode = (Long) json.get("error_code");
             if (errorCode >= 10 && errorCode <= 20) {
@@ -51,24 +62,18 @@ abstract class HandshakeProtocol {
         }
     }
 
-    public static class InitialState extends HandshakeProtocol {
+    static class WaitingForProtocolRange extends HandshakeProtocol {
         private final String nonce;
-        private final String username;
+        private final ByteBuffer message;
+        private final ScramAttributes clientFirstMessageBare;
         private final byte[] password;
 
-        InitialState(String username, String password) {
-            this.username = username;
+        WaitingForProtocolRange(String username, String password) {
             this.password = password.getBytes(StandardCharsets.UTF_8);
             this.nonce = makeNonce();
-        }
 
-        @Override
-        public HandshakeProtocol nextState(String response) {
-            if (response != null) {
-                throw new ReqlDriverError("Unexpected response");
-            }
             // We could use a json serializer, but it's fairly straightforward
-            ScramAttributes clientFirstMessageBare = ScramAttributes.create()
+            this.clientFirstMessageBare = new ScramAttributes()
                 .username(username)
                 .nonce(nonce);
             byte[] jsonBytes = ("{" +
@@ -82,46 +87,16 @@ abstract class HandshakeProtocol {
             // size of VERSION
             // json auth payload
             // terminating null byte
-            ByteBuffer msg = ByteBuffer.allocate(Integer.BYTES +    // size of VERSION
+            this.message = ByteBuffer.allocate(Integer.BYTES +    // size of VERSION
                 jsonBytes.length + // json auth payload
                 1).order(ByteOrder.LITTLE_ENDIAN).putInt(VERSION.value)
                 .put(jsonBytes)
                 .put(new byte[1]);
-            return new WaitingForProtocolRange(
-                nonce, password, clientFirstMessageBare, msg);
-        }
-
-        @Override
-        public ByteBuffer toSend() {
-            return null;
-        }
-
-        @Override
-        public boolean isFinished() {
-            return false;
-        }
-    }
-
-    public static class WaitingForProtocolRange extends HandshakeProtocol {
-        private final String nonce;
-        private final ByteBuffer message;
-        private final ScramAttributes clientFirstMessageBare;
-        private final byte[] password;
-
-        WaitingForProtocolRange(
-            String nonce,
-            byte[] password,
-            ScramAttributes clientFirstMessageBare,
-            ByteBuffer message) {
-            this.nonce = nonce;
-            this.password = password;
-            this.clientFirstMessageBare = clientFirstMessageBare;
-            this.message = message;
         }
 
         @Override
         public HandshakeProtocol nextState(String response) {
-            Map<String, Object> json = toJSON(response);
+            Map<String, Object> json = Util.readJSON(response);
             throwIfFailure(json);
             long minVersion = (long) json.get("min_protocol_version");
             long maxVersion = (long) json.get("max_protocol_version");
@@ -144,7 +119,7 @@ abstract class HandshakeProtocol {
         }
     }
 
-    public static class WaitingForAuthResponse extends HandshakeProtocol {
+    static class WaitingForAuthResponse extends HandshakeProtocol {
         private final String nonce;
         private final byte[] password;
         private final ScramAttributes clientFirstMessageBare;
@@ -158,14 +133,14 @@ abstract class HandshakeProtocol {
 
         @Override
         public HandshakeProtocol nextState(String response) {
-            Map<String, Object> json = toJSON(response);
+            Map<String, Object> json = Util.readJSON(response);
             throwIfFailure(json);
             String serverFirstMessage = (String) json.get("authentication");
             ScramAttributes serverAuth = ScramAttributes.from(serverFirstMessage);
             if (!serverAuth.nonce().startsWith(nonce)) {
                 throw new ReqlAuthError("Invalid nonce from server");
             }
-            ScramAttributes clientFinalMessageWithoutProof = ScramAttributes.create()
+            ScramAttributes clientFinalMessageWithoutProof = new ScramAttributes()
                 .headerAndChannelBinding("biws")
                 .nonce(serverAuth.nonce());
 
@@ -220,7 +195,7 @@ abstract class HandshakeProtocol {
         }
     }
 
-    public static class HandshakeSuccess extends HandshakeProtocol {
+    static class HandshakeSuccess extends HandshakeProtocol {
         @Override
         public HandshakeProtocol nextState(String response) {
             return this;
@@ -237,7 +212,7 @@ abstract class HandshakeProtocol {
         }
     }
 
-    public static class WaitingForAuthSuccess extends HandshakeProtocol {
+    static class WaitingForAuthSuccess extends HandshakeProtocol {
         private final byte[] serverSignature;
         private final ByteBuffer message;
 
@@ -248,7 +223,7 @@ abstract class HandshakeProtocol {
 
         @Override
         public HandshakeProtocol nextState(String response) {
-            Map<String, Object> json = toJSON(response);
+            Map<String, Object> json = Util.readJSON(response);
             throwIfFailure(json);
             ScramAttributes auth = ScramAttributes
                 .from((String) json.get("authentication"));
@@ -283,10 +258,6 @@ abstract class HandshakeProtocol {
         @Nullable byte[] _serverSignature; // v
         @Nullable String _error; // e
         @Nullable String _originalString;
-
-        public static ScramAttributes create() {
-            return new ScramAttributes();
-        }
 
         static ScramAttributes from(ScramAttributes other) {
             ScramAttributes out = new ScramAttributes();

@@ -4,33 +4,30 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class Util {
+    private static final TypeReference<Map<String, Object>> mapTypeRef = new TypeReference<Map<String, Object>>() {};
+
     private Util() {}
 
-    @SuppressWarnings("unchecked")
-    public static Map<String, Object> toJSON(String str) {
+    public static Map<String, Object> readJSON(String str) {
         try {
-            return RethinkDB.getInternalMapper().readValue(str, Map.class);
+            return RethinkDB.getInternalMapper().readValue(str, mapTypeRef);
         } catch (IOException e) {
             throw new ReqlDriverError(e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public static Map<String, Object> toJSON(ByteBuffer buf) {
+    public static Map<String, Object> readJSON(ByteBuffer buf) {
         try {
             return RethinkDB.getInternalMapper().readValue(
                 buf.array(),
                 buf.arrayOffset() + buf.position(),
                 buf.remaining(),
-                Map.class
+                mapTypeRef
             );
         } catch (IOException e) {
             throw new ReqlDriverError(e);
@@ -48,8 +45,8 @@ public class Util {
                         return (T) enumConst;
                     }
                 }
-            } else if (value instanceof Map) {
-                return (T) RethinkDB.getPOJOMapper().convertValue(value, typeRef);
+            } else {
+                return RethinkDB.getResultMapper().convertValue(value, typeRef);
             }
         }
         return (T) value;

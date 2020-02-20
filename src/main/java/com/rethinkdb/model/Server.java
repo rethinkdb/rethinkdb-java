@@ -1,5 +1,8 @@
 package com.rethinkdb.model;
 
+/**
+ * The server information.
+ */
 public class Server {
     private String id;
     private String name;

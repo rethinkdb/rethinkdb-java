@@ -8,6 +8,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.ReqlLambda;
 
+import java.lang.reflect.Array;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -19,18 +20,26 @@ import java.util.Map;
 
 public class Util {
     public static int startingDepth = 100;
-    private Util() {}
+
+    private Util() {
+    }
 
     /**
-     * Coerces objects from their native type to ReqlAst
+     * Convert an object to {@link ReqlAst}
      *
-     * @param val val
+     * @param val the original object.
      * @return ReqlAst
      */
     public static ReqlAst toReqlAst(Object val) {
         return toReqlAst(val, startingDepth);
     }
 
+    /**
+     * Convert an object to {@link ReqlExpr}
+     *
+     * @param val the original object.
+     * @return ReqlAst
+     */
     public static ReqlExpr toReqlExpr(Object val) {
         ReqlAst converted = toReqlAst(val);
         if (converted instanceof ReqlExpr) {
@@ -40,7 +49,6 @@ public class Util {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static ReqlAst toReqlAst(Object val, int remainingDepth) {
         if (remainingDepth <= 0) {
             throw new ReqlDriverCompileError("Recursion limit reached converting to ReqlAst");
@@ -49,17 +57,9 @@ public class Util {
             return (ReqlAst) val;
         }
 
-        if (val instanceof Object[]) {
-            Arguments innerValues = new Arguments();
-            for (Object innerValue : (Object[]) val) {
-                innerValues.add(toReqlAst(innerValue, remainingDepth - 1));
-            }
-            return new MakeArray(innerValues, null);
-        }
-
         if (val instanceof List) {
             Arguments innerValues = new Arguments();
-            for (java.lang.Object innerValue : (List) val) {
+            for (Object innerValue : (List<?>) val) {
                 innerValues.add(toReqlAst(innerValue, remainingDepth - 1));
             }
             return new MakeArray(innerValues, null);
@@ -67,7 +67,7 @@ public class Util {
 
         if (val instanceof Map) {
             Map<String, ReqlAst> obj = new MapObject<>();
-            ((Map<Object, Object>) val).forEach((key, value) -> {
+            ((Map<?, ?>) val).forEach((key, value) -> {
                 if (key.getClass().isEnum()) {
                     obj.put(((Enum<?>) key).name(), toReqlAst(value, remainingDepth - 1));
                 } else if (key instanceof String) {
@@ -117,11 +117,24 @@ public class Util {
             return new Datum(null);
         }
 
-        if (val.getClass().isEnum()) {
+        Class<?> valClass = val.getClass();
+        if (valClass.isEnum()) {
             return new Datum(((Enum<?>) val).name());
         }
 
+        if (valClass.isArray()) {
+            if (val instanceof byte[]) {
+                return new Binary(((byte[]) val));
+            }
+            Arguments innerValues = new Arguments();
+            int length = Array.getLength(val);
+            for (int i = 0; i < length; i++) {
+                innerValues.add(toReqlAst(Array.get(val, i)));
+            }
+            return new MakeArray(innerValues, null);
+        }
+
         // val is a non-null POJO, let's use jackson
-        return toReqlAst(RethinkDB.getPOJOMapper().convertValue(val, Map.class), remainingDepth - 1);
+        return toReqlAst(RethinkDB.getResultMapper().convertValue(val, Map.class), remainingDepth - 1);
     }
 }

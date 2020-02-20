@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class Response {
-    private static final Logger logger = LoggerFactory.getLogger(Query.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Query.class);
 
     public final long token;
     public final ResponseType type;
@@ -56,8 +56,8 @@ public class Response {
         final int responseLength = header.getInt();
         final ByteBuffer buf = socket.read(responseLength).order(ByteOrder.LITTLE_ENDIAN);
 
-        if (Response.logger.isDebugEnabled()) {
-            Response.logger.debug(
+        if (Response.LOGGER.isTraceEnabled()) {
+            Response.LOGGER.trace(
                 "JSON Recv: Token: {} {}", token, new String(
                     buf.array(),
                     buf.arrayOffset() + buf.position(),
@@ -65,7 +65,7 @@ public class Response {
                     StandardCharsets.UTF_8
                 ));
         }
-        Map<String, Object> jsonResp = Util.toJSON(buf);
+        Map<String, Object> jsonResp = Util.readJSON(buf);
         ResponseType responseType = ResponseType.fromValue(((Long) jsonResp.get("t")).intValue());
         List<Long> responseNoteVals = new ArrayList<>();
         jsonResp.put("n", responseNoteVals);

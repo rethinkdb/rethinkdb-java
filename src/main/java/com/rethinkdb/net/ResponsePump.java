@@ -11,5 +11,7 @@ public interface ResponsePump {
 
     CompletableFuture<Response> await(long token);
 
+    boolean isOpen();
+
     void shutdownPump();
 }

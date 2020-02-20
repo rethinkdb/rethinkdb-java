@@ -6,7 +6,8 @@ import org.jetbrains.annotations.Nullable;
 </%block>
 
 <%block name="member_vars">
-    public @Nullable byte[] binaryData;</%block>
+    public @Nullable byte[] binaryData;
+</%block>
 
 <%block name="constructors">
     public ${classname}(byte[] bytes) {
@@ -24,8 +25,7 @@ import org.jetbrains.annotations.Nullable;
     }
     protected ${classname}(TermType termType, Arguments args, OptArgs optargs) {
         super(termType, args, optargs);
-    }
-</%block>
+    }</%block>
 
 <%block name="special_methods">
     @Override
