@@ -108,7 +108,7 @@ tasks {
                                 "developer" {
                                     "id"("gabor-boros")
                                     "name"("Gábor Boros")
-                                    "email"("gabor.brs@gmail.com")
+                                    "email"("gabor@rethinkdb.com")
                                 }
                             }
                         }
