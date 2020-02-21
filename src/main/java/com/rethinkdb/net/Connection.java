@@ -5,6 +5,7 @@ import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.gen.ast.Db;
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
@@ -19,6 +20,7 @@ import java.net.URI;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -177,7 +179,14 @@ public class Connection implements Closeable {
                                       @NotNull OptArgs optArgs,
                                       @Nullable Result.FetchMode fetchMode,
                                       @Nullable TypeReference<T> typeRef) {
-        return runAsync(term, optArgs, fetchMode, typeRef).join();
+        try {
+            return runAsync(term, optArgs, fetchMode, typeRef).join();
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof ReqlError) {
+                throw ((ReqlError) e.getCause());
+            }
+            throw e;
+        }
     }
 
     /**
@@ -200,7 +209,15 @@ public class Connection implements Closeable {
      * @return The server info.
      */
     public @NotNull Server server() {
-        return serverAsync().join();
+        try {
+            return serverAsync().join();
+        } catch (
+            CompletionException e) {
+            if (e.getCause() instanceof ReqlError) {
+                throw ((ReqlError) e.getCause());
+            }
+            throw e;
+        }
     }
 
     /**
@@ -216,7 +233,14 @@ public class Connection implements Closeable {
      * Runs a <code>noreply_wait</code> query to the server and awaits it.
      */
     public void noreplyWait() {
-        noreplyWaitAsync().join();
+        try {
+            noreplyWaitAsync().join();
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof ReqlError) {
+                throw ((ReqlError) e.getCause());
+            }
+            throw e;
+        }
     }
 
     /**

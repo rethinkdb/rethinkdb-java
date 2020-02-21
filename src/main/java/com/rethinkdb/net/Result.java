@@ -172,6 +172,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     public <R, A> R collect(@NotNull Collector<? super T, A, R> collector) {
         try {
             fetchMode = FetchMode.AGGRESSIVE;
+            onStateUpdate();
             A container = collector.supplier().get();
             BiConsumer<A, ? super T> accumulator = collector.accumulator();
             forEachRemaining(next -> accumulator.accept(container, next));
@@ -191,6 +192,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      */
     public @NotNull Stream<T> stream() {
         fetchMode = FetchMode.AGGRESSIVE;
+        onStateUpdate();
         return StreamSupport.stream(spliterator(), false).onClose(this::close);
     }
 
@@ -204,6 +206,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      */
     public @NotNull Stream<T> parallelStream() {
         fetchMode = FetchMode.AGGRESSIVE;
+        onStateUpdate();
         return StreamSupport.stream(spliterator(), true).onClose(this::close);
     }
 
@@ -364,6 +367,18 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         return currentResponse.get().type;
     }
 
+    /**
+     * Overrides the fetch mode for this Result.
+     *
+     * @param fetchMode the new fetch mode.
+     * @return itself.
+     */
+    public @NotNull Result<T> overrideFetchMode(FetchMode fetchMode) {
+        this.fetchMode = fetchMode;
+        onStateUpdate();
+        return this;
+    }
+
     @Override
     public String toString() {
         return "Result{" +
@@ -377,45 +392,53 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
 
     // protected methods
 
+    /**
+     * Function called on the first response.
+     */
     protected void handleFirstResponse() {
-        ResponseType type = firstRes.type;
-        if (type.equals(ResponseType.WAIT_COMPLETE)) {
-            completed.complete(true);
-            return;
-        }
-
-        if (type.equals(ResponseType.SUCCESS_ATOM) || type.equals(ResponseType.SUCCESS_SEQUENCE)) {
-            try {
-                emitData(firstRes);
-            } catch (IndexOutOfBoundsException ex) {
-                throw new ReqlDriverError("Atom response was empty!", ex);
+        try {
+            ResponseType type = firstRes.type;
+            if (type.equals(ResponseType.WAIT_COMPLETE)) {
+                completed.complete(true);
+                return;
             }
-            completed.complete(true);
-            return;
-        }
 
-        if (type.equals(ResponseType.SUCCESS_PARTIAL)) {
-            // Welcome to the code documentation of partial sequences, please take a seat.
-
-            // First of all, we emit all of this request. Reactor's buffer should handle this.
-            emitData(firstRes);
-
-            // It is a partial response, so connection should be able to kill us if needed,
-            // and clients should be able to stop the Result.
-            completed.thenAccept(finished -> {
-                if (!finished) {
-                    connection.sendStop(firstRes.token);
+            if (type.equals(ResponseType.SUCCESS_ATOM) || type.equals(ResponseType.SUCCESS_SEQUENCE)) {
+                try {
+                    emitData(firstRes);
+                } catch (IndexOutOfBoundsException ex) {
+                    throw new ReqlDriverError("Atom response was empty!", ex);
                 }
-                connection.loseTrackOf(this);
-            });
-            connection.keepTrackOf(this);
+                completed.complete(true);
+                return;
+            }
 
-            // We can't simply overflow buffers, so we gotta do small batches.
-            onStateUpdate();
-            return;
+            if (type.equals(ResponseType.SUCCESS_PARTIAL)) {
+                // Welcome to the code documentation of partial sequences, please take a seat.
+
+                // First of all, we emit all of this request. Reactor's buffer should handle this.
+                emitData(firstRes);
+
+                // It is a partial response, so connection should be able to kill us if needed,
+                // and clients should be able to stop the Result.
+                completed.thenAccept(finished -> {
+                    if (!finished) {
+                        connection.sendStop(firstRes.token);
+                    }
+                    connection.loseTrackOf(this);
+                });
+                connection.keepTrackOf(this);
+
+                // We can't simply overflow buffers, so we gotta do small batches.
+                onStateUpdate();
+                return;
+            }
+
+            throw firstRes.makeError(query);
+        } catch (Exception e) {
+            completed.completeExceptionally(e);
+            throw e;
         }
-
-        completed.completeExceptionally(firstRes.makeError(query));
     }
 
     protected void throwOnCompleted() {
@@ -430,6 +453,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
                 if (e.getCause() instanceof ReqlError) {
                     throw ((ReqlError) e.getCause());
                 }
+                throw e;
             }
         }
     }
@@ -452,7 +476,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
                             emitData(nextRes);
                             emitting.release();
                             completed.complete(true); // Completed. This means it's over.
-                        } catch (InterruptedException e) {
+                        } catch (Exception e) {
                             completed.completeExceptionally(e); // It errored. This means it's over.
                         }
                     } else if (nextRes.type.equals(ResponseType.SUCCESS_PARTIAL)) {
@@ -464,7 +488,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
                             emitData(nextRes);
                             emitting.release();
                             onStateUpdate(); //Recursion!
-                        } catch (InterruptedException e) {
+                        } catch (Exception e) {
                             completed.completeExceptionally(e); // It errored. This means it's over.
                         }
                     } else {
