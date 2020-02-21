@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.File
+
 plugins {
     java
     maven
@@ -6,8 +9,6 @@ plugins {
 
 version = "2.4.0"
 group = "com.rethinkdb"
-
-val isReleaseVersion = !version.toString().endsWith("-SNAPSHOT")
 
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 java.targetCompatibility = JavaVersion.VERSION_1_8
@@ -23,6 +24,12 @@ dependencies {
     compile("org.slf4j:slf4j-api:1.7.12")
     compile("com.googlecode.json-simple:json-simple:1.1.1")
     compile("com.fasterxml.jackson.core:jackson-databind:2.0.1")
+}
+
+file("confidential.properties").takeIf(File::exists)?.let {
+    val properties = Properties()
+    it.inputStream().use(properties::load)
+    allprojects { properties.forEach { name, value -> extra.set(name.toString(), value) } }
 }
 
 signing {

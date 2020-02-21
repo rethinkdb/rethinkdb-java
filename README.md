@@ -94,7 +94,8 @@ These are also checked into git, so you don't need to run the conversion script 
 
 ## Deploying a release or snapshot
 
-To deploy you'll need to create a file called `gradle.properties` at `~/.gradle` (`%USERPROFILE%\.gradle` on Windows) with the following:
+To deploy, you'll need to create a file called `confidential.properties` in the same directory as `build.gradle.kts` 
+(Alternatively, you can do the same`gradle.properties` at `~/.gradle` (`%USERPROFILE%\.gradle` on Windows) with the following:
 
 ```
 signing.keyId=<KEY_ID>
@@ -106,7 +107,8 @@ ossrhPassword=<SONATYPE_PASSWORD>
 ```
 
 You should note that there's a `gradle.properties` in this repository, but you shouldn't add the above into it,
-otherwise your credentials can be checked back into git. Create the file in the `.gradle` folder to prevent accidents.
+otherwise your credentials can be checked back into git. Create the `confidential.properties` file, which is added into
+`.gitignore`, or create the file in the `.gradle` folder, in order to prevent accidents.
 
 You'll need to add your gpg signing key id and keyring file. Usually, the keyring file is located at`~/.gnupg/secring.gpg`,
 but Gradle won't expand home-dirs in the config file so you have to put the absolute path to your keyring file.
