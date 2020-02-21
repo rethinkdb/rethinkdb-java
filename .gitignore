@@ -3,6 +3,7 @@ build/
 .#*
 *.iml
 .idea/
+confidential.properties
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
