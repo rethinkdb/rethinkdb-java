@@ -1,6 +1,9 @@
 # RethinkDB Java Driver
 
-[ ![Download](https://api.bintray.com/packages/rethinkdb/maven/rethinkdb-driver/images/download.svg) ](https://bintray.com/rethinkdb/maven/rethinkdb-driver/_latestVersion)
+[![Maven Central](https://img.shields.io/maven-central/v/com.rethinkdb/rethinkdb-driver)](https://search.maven.org/artifact/com.rethinkdb/rethinkdb-driver)
+[![Bintray](https://img.shields.io/bintray/v/rethinkdb/maven/rethinkdb-driver)](https://bintray.com/rethinkdb/maven/rethinkdb-driver/_latestVersion)
+[![Travis-CI.org](https://img.shields.io/travis/rethinkdb/rethinkdb-java)](https://travis-ci.org/rethinkdb/rethinkdb-java)
+[![Twitter](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Frethinkdb%2Frethinkdb-java)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Frethinkdb%2Frethinkdb-java)
 
 This is the official [RethinkDB](https://rethinkdb.com/) client driver for Java and other JVM languages.
 
