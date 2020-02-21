@@ -1,6 +1,9 @@
 # RethinkDB Java Driver
 
-[ ![Download](https://api.bintray.com/packages/rethinkdb/maven/rethinkdb-driver/images/download.svg) ](https://bintray.com/rethinkdb/maven/rethinkdb-driver/_latestVersion)
+[![Maven Central](https://img.shields.io/maven-central/v/com.rethinkdb/rethinkdb-driver)](https://search.maven.org/artifact/com.rethinkdb/rethinkdb-driver)
+[![Bintray](https://img.shields.io/bintray/v/rethinkdb/maven/rethinkdb-driver)](https://bintray.com/rethinkdb/maven/rethinkdb-driver/_latestVersion)
+[![Travis-CI.org](https://img.shields.io/travis/rethinkdb/rethinkdb-java)](https://travis-ci.org/rethinkdb/rethinkdb-java)
+[![Twitter](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Frethinkdb%2Frethinkdb-java)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Frethinkdb%2Frethinkdb-java)
 
 This is the official [RethinkDB](https://rethinkdb.com/) client driver for Java and other JVM languages.
 
@@ -94,7 +97,8 @@ These are also checked into git, so you don't need to run the conversion script 
 
 ## Deploying a release or snapshot
 
-To deploy you'll need to create a file called `gradle.properties` at `~/.gradle` (`%USERPROFILE%\.gradle` on Windows) with the following:
+To deploy, you'll need to create a file called `confidential.properties` in the same directory as `build.gradle.kts` 
+(Alternatively, you can do the same`gradle.properties` at `~/.gradle` (`%USERPROFILE%\.gradle` on Windows) with the following:
 
 ```
 signing.keyId=<KEY_ID>
@@ -106,7 +110,8 @@ ossrhPassword=<SONATYPE_PASSWORD>
 ```
 
 You should note that there's a `gradle.properties` in this repository, but you shouldn't add the above into it,
-otherwise your credentials can be checked back into git. Create the file in the `.gradle` folder to prevent accidents.
+otherwise your credentials can be checked back into git. Create the `confidential.properties` file, which is added into
+`.gitignore`, or create the file in the `.gradle` folder, in order to prevent accidents.
 
 You'll need to add your gpg signing key id and keyring file. Usually, the keyring file is located at`~/.gnupg/secring.gpg`,
 but Gradle won't expand home-dirs in the config file so you have to put the absolute path to your keyring file.
