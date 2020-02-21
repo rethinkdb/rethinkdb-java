@@ -355,7 +355,7 @@ public class RethinkDBTest {
     }
 
     @Test(timeout = 20000)
-    public void testConcurrentReads() throws TimeoutException {
+    public void testConcurrentReads() throws TimeoutException, InterruptedException {
         TypeReference<MapObject<String, Object>> typeRef = new TypeReference<MapObject<String, Object>>() {};
         final int total = 500;
         final AtomicInteger readCounter = new AtomicInteger(0);

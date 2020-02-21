@@ -18,11 +18,11 @@ repositories {
 
 dependencies {
     testCompile("junit:junit:4.12")
-    testCompile("net.jodah:concurrentunit:0.4.2")
+    testCompile("net.jodah:concurrentunit:0.4.6")
     testRuntime("ch.qos.logback:logback-classic:1.2.3")
-    compile("org.slf4j:slf4j-api:1.7.12")
-    compile("org.jetbrains:annotations:17.0.0")
-    compile("com.fasterxml.jackson.core:jackson-databind:2.10.0")
+    compile("org.slf4j:slf4j-api:1.7.30")
+    compile("org.jetbrains:annotations:19.0.0")
+    compile("com.fasterxml.jackson.core:jackson-databind:2.10.2")
 }
 
 signing {

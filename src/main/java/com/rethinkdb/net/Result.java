@@ -357,6 +357,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
 
     /**
      * Returns the current responses' type.
+     *
      * @return the {@link ResponseType} of the current response.
      */
     public @NotNull ResponseType responseType() {
