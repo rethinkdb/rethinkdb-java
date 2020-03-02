@@ -126,7 +126,7 @@ public class Connection implements Closeable {
      * @return itself, once reconnected.
      */
     public @NotNull Connection reconnect() {
-        return reconnect(false);
+        return reconnect(true);
     }
 
     /**
@@ -260,7 +260,7 @@ public class Connection implements Closeable {
      */
     @Override
     public void close() {
-        close(false);
+        close(true);
     }
 
     /**
