@@ -1,10 +1,15 @@
 import java.util.Properties
 import java.io.File
+import com.jfrog.bintray.gradle.BintrayExtension
+import com.jfrog.bintray.gradle.tasks.BintrayUploadTask
+
 
 plugins {
     java
     maven
+    `maven-publish`
     signing
+    id("com.jfrog.bintray") version "1.8.4"
 }
 
 version = "2.4.1"
@@ -70,66 +75,6 @@ tasks {
     artifacts {
         add("archives", sourcesJar)
         add("archives", javadocJar)
-    }
-
-    getByName<Upload>("uploadArchives") {
-        repositories {
-            withConvention(MavenRepositoryHandlerConvention::class) {
-                mavenDeployer {
-                    beforeDeployment(Action { signing.signPom(this) })
-
-                    withGroovyBuilder {
-                        "repository"("url" to uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")) {
-                            "authentication"(
-                                "userName" to findProperty("ossrhUsername"),
-                                "password" to findProperty("ossrhPassword")
-                            )
-                        }
-                        "snapshotRepository"("url" to uri("https://oss.sonatype.org/content/repositories/snapshots/")) {
-                            "authentication"(
-                                "userName" to findProperty("ossrhUsername"),
-                                "password" to findProperty("ossrhPassword")
-                            )
-                        }
-                    }
-
-                    pom.project {
-                        withGroovyBuilder {
-                            "name"("RethinkDB Java Driver")
-                            "packaging"("jar")
-                            "description"("Official java driver for RethinkDB")
-                            "url"("http://rethinkdb.com")
-
-                            "scm" {
-                                "connection"("scm:git:https://github.com/rethinkdb/rethinkdb-java")
-                                "developerConnection"("scm:git:https://github.com/rethinkdb/rethinkdb-java")
-                                "url"("https://github.com/rethinkdb/rethinkdb-java")
-                            }
-
-                            "licenses" {
-                                "license" {
-                                    "name"("The Apache License, Version 2.0")
-                                    "url"("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                                }
-                            }
-
-                            "developers" {
-                                "developer" {
-                                    "id"("adriantodt")
-                                    "name"("Adrian Todt")
-                                    "email"("adriantodt.ms@gmail.com")
-                                }
-                                "developer" {
-                                    "id"("gabor-boros")
-                                    "name"("Gábor Boros")
-                                    "email"("gabor@rethinkdb.com")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     val downloadProtoAndTests by creating {
@@ -266,9 +211,7 @@ tasks {
             src_test_gen.mkdirs()
             exec {
                 standardOutput = System.err
-                commandLine("python3",
-                    "scripts/convert_tests.py",
-                    "--debug",
+                commandLine("python3", convert_tests, "--debug",
                     "--test-dir=$tests_folder",
                     "--test-output-dir=$src_test_gen",
                     "--template-dir=$templates"
@@ -276,4 +219,134 @@ tasks {
             }
         }
     }
+
+
+    getByName<Upload>("uploadArchives") {
+        repositories {
+            withConvention(MavenRepositoryHandlerConvention::class) {
+                mavenDeployer {
+                    beforeDeployment { signing.signPom(this) }
+
+                    withGroovyBuilder {
+                        "repository"("url" to uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")) {
+                            "authentication"(
+                                "userName" to findProperty("ossrhUsername"),
+                                "password" to findProperty("ossrhPassword")
+                            )
+                        }
+                        "snapshotRepository"("url" to uri("https://oss.sonatype.org/content/repositories/snapshots/")) {
+                            "authentication"(
+                                "userName" to findProperty("ossrhUsername"),
+                                "password" to findProperty("ossrhPassword")
+                            )
+                        }
+                    }
+
+                    pom.project {
+                        withGroovyBuilder {
+                            "name"("RethinkDB Java Driver")
+                            "packaging"("jar")
+                            "description"("Official java driver for RethinkDB")
+                            "url"("http://rethinkdb.com")
+
+                            "scm" {
+                                "connection"("scm:git:https://github.com/rethinkdb/rethinkdb-java")
+                                "developerConnection"("scm:git:https://github.com/rethinkdb/rethinkdb-java")
+                                "url"("https://github.com/rethinkdb/rethinkdb-java")
+                            }
+
+                            "licenses" {
+                                "license" {
+                                    "name"("The Apache License, Version 2.0")
+                                    "url"("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                                }
+                            }
+
+                            "developers" {
+                                "developer" {
+                                    "id"("adriantodt")
+                                    "name"("Adrian Todt")
+                                    "email"("adriantodt.ms@gmail.com")
+                                }
+                                "developer" {
+                                    "id"("gabor-boros")
+                                    "name"("Gábor Boros")
+                                    "email"("gabor@rethinkdb.com")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    publishing {
+        publications.create("mavenJava", MavenPublication::class.java) {
+            groupId = project.group.toString()
+            artifactId = project.name
+            version = project.version.toString()
+
+            from(project.components["java"])
+            artifact(sourcesJar)
+            artifact(javadocJar)
+
+            pom.withXml {
+                val root = asNode()
+                root.appendNode("name", "RethinkDB Java Driver")
+                root.appendNode("packaging", "Official java driver for RethinkDB")
+                root.appendNode("url", "http://rethinkdb.com")
+
+                val scm = root.appendNode("scm")
+                scm.appendNode("connection","scm:git:https://github.com/rethinkdb/rethinkdb-java")
+                scm.appendNode("developerConnection","scm:git:https://github.com/rethinkdb/rethinkdb-java")
+                scm.appendNode("url", "https://github.com/rethinkdb/rethinkdb-java")
+
+                val license = root.appendNode("licenses").appendNode("license")
+                license.appendNode("name","The Apache License, Version 2.0")
+                license.appendNode("url","http://www.apache.org/licenses/LICENSE-2.0.txt")
+
+                val developers = root.appendNode("developers")
+
+                val dev1 = developers.appendNode("developer")
+                dev1.appendNode("id","adriantodt")
+                dev1.appendNode("name","Adrian Todt")
+                dev1.appendNode("email","adriantodt.ms@gmail.com")
+
+                val dev2 = developers.appendNode("developer")
+                dev2.appendNode("id","gabor-boros")
+                dev2.appendNode("name","Gábor Boros")
+                dev2.appendNode("email","gabor@rethinkdb.com")
+            }
+        }
+    }
+
+    withType<BintrayUploadTask> {
+        dependsOn("assemble", "publishToMavenLocal")
+    }
+}
+
+bintray {
+    user = findProperty("bintray.user")
+    key = findProperty("bintray.key")
+    publish = true
+    setPublications("mavenJava")
+    pkg(delegateClosureOf<BintrayExtension.PackageConfig> {
+        repo = "maven"
+        name = project.name
+        userOrg = "rethinkdb"
+        setLicenses("Apache-2.0")
+        vcsUrl = "https://github.com/rethinkdb/rethinkdb-java.git"
+        version(delegateClosureOf<BintrayExtension.VersionConfig> {
+            gpg(delegateClosureOf<BintrayExtension.GpgConfig> {
+                sign = true
+                passphrase = findProperty("signing.password")
+            })
+            mavenCentralSync(delegateClosureOf<BintrayExtension.MavenCentralSyncConfig> {
+                user = findProperty("ossrhUsername")
+                password = findProperty("ossrhPassword")
+                sync = !user.isNullOrBlank() && !password.isNullOrBlank()
+            })
+        })
+    })
 }
