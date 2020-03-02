@@ -9,6 +9,12 @@ This is the official [RethinkDB](https://rethinkdb.com/) client driver for Java 
 
 The driver has official docs that you can read at [the RethinkDB documentation](http://rethinkdb.com/api/java/).
 
+## What changed in Version 2.4.1?
+
+This version is **full of breaking changes**, and is equivalent to a **major release**, but being compatible with RethinkDB v2.4.0
+
+Please read the [release notes](https://github.com/rethinkdb/rethinkdb-java/releases) for v2.4.10 to know what changed.
+
 ## Building from source
 
 To build from source you just need JDK 8 or greater.
@@ -21,7 +27,7 @@ Run `./gradlew assemble` to build the jar or `./gradlew install` to install it i
 
 Besides JDK 8, to be able to contribute to the driver, you must also install:
 
-* Python *3.6* or *3.7*
+* Python **3.6** or **3.7**
 * PIP3 libraries:
   * mako
   * rethinkdb
