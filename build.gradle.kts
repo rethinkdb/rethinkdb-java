@@ -7,7 +7,7 @@ plugins {
     signing
 }
 
-version = "2.4.0"
+version = "2.4.1"
 group = "com.rethinkdb"
 
 java.sourceCompatibility = JavaVersion.VERSION_1_8
