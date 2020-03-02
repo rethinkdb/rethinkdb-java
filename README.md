@@ -13,7 +13,7 @@ The driver has official docs that you can read at [the RethinkDB documentation](
 
 This version is **full of breaking changes**, and is equivalent to a **major release**, but being compatible with RethinkDB v2.4.0
 
-Please read the [release notes](https://github.com/rethinkdb/rethinkdb-java/releases) for v2.4.10 to know what changed.
+Please read the [release notes](https://github.com/rethinkdb/rethinkdb-java/releases) for v2.4.1 to know what changed.
 
 ## Building from source
 
