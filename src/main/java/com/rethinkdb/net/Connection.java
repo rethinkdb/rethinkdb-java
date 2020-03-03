@@ -565,9 +565,7 @@ public class Connection implements Closeable {
         }
 
         public @NotNull Connection connect() {
-            final Connection conn = new Connection(this);
-            conn.reconnect();
-            return conn;
+            return new Connection(this).connect();
         }
     }
 }
