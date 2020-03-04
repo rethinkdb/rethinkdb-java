@@ -13,7 +13,7 @@ plugins {
     id("com.jfrog.bintray") version "1.8.4"
 }
 
-version = "2.4.1"
+version = "2.4.1.1"
 group = "com.rethinkdb"
 
 java.sourceCompatibility = JavaVersion.VERSION_1_8
@@ -291,7 +291,7 @@ tasks {
             pom.withXml {
                 val root = asNode()
                 root.appendNode("name", "RethinkDB Java Driver")
-                root.appendNode("packaging", "Official Java driver for RethinkDB")
+                root.appendNode("packaging", "jar")
                 root.appendNode("description", "Official Java driver for RethinkDB")
                 root.appendNode("url", "http://rethinkdb.com")
 
