@@ -2,6 +2,7 @@ import java.util.Properties
 import java.io.File
 import com.jfrog.bintray.gradle.BintrayExtension
 import com.jfrog.bintray.gradle.tasks.BintrayUploadTask
+import com.jfrog.bintray.gradle.tasks.RecordingCopyTask
 
 
 plugins {
@@ -37,15 +38,11 @@ file("confidential.properties").takeIf(File::exists)?.let {
     allprojects { properties.forEach { name, value -> extra.set(name.toString(), value) } }
 }
 
-signing {
-    // Don't sign unless this is a release version
-    sign(configurations.archives.get())
-}
-
 gradle.taskGraph.whenReady {
     val hasUploadArchives = hasTask(":uploadArchives")
+    val hasBintrayUpload = hasTask(":bintrayUpload")
     val hasDoSigning = hasTask(":doSigning")
-    signing.isRequired = hasUploadArchives || hasDoSigning
+    signing.isRequired = hasBintrayUpload || hasUploadArchives || hasDoSigning
 }
 
 fun findProperty(s: String) = project.findProperty(s) as String?
@@ -294,7 +291,8 @@ tasks {
             pom.withXml {
                 val root = asNode()
                 root.appendNode("name", "RethinkDB Java Driver")
-                root.appendNode("packaging", "Official java driver for RethinkDB")
+                root.appendNode("packaging", "Official Java driver for RethinkDB")
+                root.appendNode("description", "Official Java driver for RethinkDB")
                 root.appendNode("url", "http://rethinkdb.com")
 
                 val scm = root.appendNode("scm")
@@ -326,11 +324,31 @@ tasks {
     }
 }
 
+signing {
+    // Don't sign unless this is a release version
+    sign(configurations.archives.get())
+    sign(publishing.publications.get("mavenJava"))
+}
+
 bintray {
     user = findProperty("bintray.user")
     key = findProperty("bintray.key")
     publish = true
     setPublications("mavenJava")
+
+    filesSpec(delegateClosureOf<RecordingCopyTask> {
+        into("com/rethinkdb/${project.name}/${project.version}/")
+
+        from("${buildDir}/libs/") {
+            include("*.jar.asc")
+        }
+
+        from("${buildDir}/publications/mavenJava/") {
+            include("pom-default.xml.asc")
+            rename("pom-default.xml.asc", "${project.name}-${project.version}.pom.asc")
+        }
+    })
+
     pkg(delegateClosureOf<BintrayExtension.PackageConfig> {
         repo = "maven"
         name = project.name
@@ -338,10 +356,6 @@ bintray {
         setLicenses("Apache-2.0")
         vcsUrl = "https://github.com/rethinkdb/rethinkdb-java.git"
         version(delegateClosureOf<BintrayExtension.VersionConfig> {
-            gpg(delegateClosureOf<BintrayExtension.GpgConfig> {
-                sign = true
-                passphrase = findProperty("signing.password")
-            })
             mavenCentralSync(delegateClosureOf<BintrayExtension.MavenCentralSyncConfig> {
                 user = findProperty("ossrhUsername")
                 password = findProperty("ossrhPassword")
