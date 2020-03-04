@@ -9,8 +9,8 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.net.Result;
+import com.rethinkdb.utils.Types;
 
-import java.lang.reflect.Type;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
@@ -95,7 +95,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> Result<T> run(Connection conn, Class<T> typeRef) {
-        return conn.run(this, new OptArgs(), null, new ClassReference<>(typeRef));
+        return conn.run(this, new OptArgs(), null, Types.of(typeRef));
     }
 
     /**
@@ -135,7 +135,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> Result<T> run(Connection conn, OptArgs runOpts, Class<T> typeRef) {
-        return conn.run(this, runOpts, null, new ClassReference<>(typeRef));
+        return conn.run(this, runOpts, null, Types.of(typeRef));
     }
 
     /**
@@ -163,7 +163,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> Result<T> run(Connection conn, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return conn.run(this, new OptArgs(), fetchMode, new ClassReference<>(typeRef));
+        return conn.run(this, new OptArgs(), fetchMode, Types.of(typeRef));
     }
 
     /**
@@ -192,7 +192,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> Result<T> run(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return conn.run(this, runOpts, fetchMode, new ClassReference<>(typeRef));
+        return conn.run(this, runOpts, fetchMode, Types.of(typeRef));
     }
 
     /**
@@ -254,7 +254,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<Result<T>> runAsync(Connection conn, Class<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), null, new ClassReference<>(typeRef));
+        return conn.runAsync(this, new OptArgs(), null, Types.of(typeRef));
     }
 
     /**
@@ -294,7 +294,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<Result<T>> runAsync(Connection conn, OptArgs runOpts, Class<T> typeRef) {
-        return conn.runAsync(this, runOpts, null, new ClassReference<>(typeRef));
+        return conn.runAsync(this, runOpts, null, Types.of(typeRef));
     }
 
     /**
@@ -322,7 +322,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<Result<T>> runAsync(Connection conn, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, new ClassReference<>(typeRef));
+        return conn.runAsync(this, new OptArgs(), fetchMode, Types.of(typeRef));
     }
 
     /**
@@ -351,7 +351,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<Result<T>> runAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return conn.runAsync(this, runOpts, fetchMode, new ClassReference<>(typeRef));
+        return conn.runAsync(this, runOpts, fetchMode, Types.of(typeRef));
     }
 
     /**
@@ -436,24 +436,6 @@ public class ReqlAst {
                     indent + (tail ? "    " : "│   ") + "    ",
                     !optIterator.hasNext());
             }
-        }
-    }
-
-    /**
-     * A TypeReference that accepts an class instead of compiler type information.
-     *
-     * @param <T> the type referred to.
-     */
-    private static class ClassReference<T> extends TypeReference<T> {
-        private Class<T> c;
-
-        ClassReference(Class<T> c) {
-            this.c = c;
-        }
-
-        @Override
-        public Type getType() {
-            return c;
         }
     }
 }

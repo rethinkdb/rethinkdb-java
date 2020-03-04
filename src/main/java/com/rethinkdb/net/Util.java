@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.utils.Types;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -11,7 +12,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 
 public class Util {
-    private static final TypeReference<Map<String, Object>> mapTypeRef = new TypeReference<Map<String, Object>>() {};
+    private static final TypeReference<Map<String, Object>> mapTypeRef = Types.mapOf(String.class, Object.class);
 
     private Util() {}
 
