@@ -1,4 +1,4 @@
-package com.rethinkdb.converter;
+package com.rethinkdb.annotations;
 
 import com.fasterxml.jackson.annotation.JacksonAnnotationsInside;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -9,16 +9,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Created by thejp on 10/25/2016.
+ * Runtime annotation which configures Jackson to be aware of the non-null restriction on ids.
  */
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 @JacksonAnnotationsInside
 @JsonInclude(JsonInclude.Include.NON_NULL)
-
-/**
- * Use this with the primary key/id of your pojo
- */
-public @interface id
-{
+public @interface id {
 }

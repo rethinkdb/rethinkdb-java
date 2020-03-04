@@ -5,7 +5,7 @@
 
 package com.rethinkdb.gen.proto;
 
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 public enum ResponseNote {
 
@@ -34,22 +34,23 @@ public enum ResponseNote {
         }
     }
 
-    public static Optional<ResponseNote> maybeFromValue(int value) {
+    public static @Nullable ResponseNote maybeFromValue(int value) {
         try {
-            return Optional.of(fromValue(value));
+            return fromValue(value);
         } catch (IllegalArgumentException iae) {
-            return Optional.empty();
+            return null;
         }
     }
 
     public boolean isFeed() {
-        switch(this) {
-            case SEQUENCE_FEED: return true;
-            case ATOM_FEED: return true;
-            case ORDER_BY_LIMIT_FEED: return true;
-            case UNIONED_FEED: return true;
-            default: return false;
+        switch (this) {
+            case SEQUENCE_FEED:
+            case ATOM_FEED:
+            case ORDER_BY_LIMIT_FEED:
+            case UNIONED_FEED:
+                return true;
         }
+        return false;
     }
 
 }

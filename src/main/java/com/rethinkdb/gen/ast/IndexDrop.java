@@ -11,10 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class IndexDrop extends ReqlExpr {
-
 
     public IndexDrop(Object arg) {
         this(new Arguments(arg), null);

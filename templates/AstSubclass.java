@@ -6,11 +6,9 @@ import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
-
 <%block name="add_imports" />
-
 public class ${classname} extends ${superclass} {
-<%block name="member_vars" />
+<%block name="member_vars" />\
 <%block name="constructors">
     %if term_name is not None:
     public ${classname}(Object arg) {

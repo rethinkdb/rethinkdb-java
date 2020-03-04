@@ -15,6 +15,7 @@ import com.rethinkdb.gen.exc.ReqlDriverError;
 
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class TopLevel {
@@ -28,238 +29,249 @@ public class TopLevel {
                                   " Use lambda syntax instead");
     }
 
-    public MapObject hashMap(Object key, Object val){
-        return new MapObject().with(key, val);
+    public static Object pathspec(Object... path) {
+        if (path.length < 2) {
+            throw new ReqlDriverError("r.pathspec(...) requires at least two parameters.");
+        }
+        Object result = path[path.length - 1];
+        for (int i = path.length - 2; i >= 0; i--) {
+            result = new MapObject<>().with(path[i], result);
+        }
+        return result;
     }
 
-    public MapObject hashMap() {
-        return new MapObject();
+    public MapObject<Object, Object> hashMap(Object key, Object val){
+        return new MapObject<>().with(key, val);
     }
 
-    public List array(Object val0, Object... vals){
-        List res = new ArrayList();
-        res.add(val0);
-        res.addAll(Arrays.asList(vals));
-        return res;
-    }
-    public List array(ReqlFunction0 val0, ReqlFunction0... vals){
-        List res = new ArrayList();
-        res.add(val0);
-        res.addAll(Arrays.asList(vals));
-        return res;
-    }
-    public List array(ReqlFunction1 val0, ReqlFunction1... vals){
-        List res = new ArrayList();
-        res.add(val0);
-        res.addAll(Arrays.asList(vals));
-        return res;
-    }
-    public List array(ReqlFunction2 val0, ReqlFunction2... vals){
-        List res = new ArrayList();
-        res.add(val0);
-        res.addAll(Arrays.asList(vals));
-        return res;
-    }
-    public List array(ReqlFunction3 val0, ReqlFunction3... vals){
-        List res = new ArrayList();
-        res.add(val0);
-        res.addAll(Arrays.asList(vals));
-        return res;
-    }
-    public List array(ReqlFunction4 val0, ReqlFunction4... vals){
-        List res = new ArrayList();
-        res.add(val0);
-        res.addAll(Arrays.asList(vals));
-        return res;
-    }
-    public List array(){
-        return new ArrayList();
+    public MapObject<Object, Object> hashMap() {
+        return new MapObject<>();
     }
 
-    public Javascript js(Object expr){
+    public List<Object> array(Object val0, Object... vals) {
+        List<Object> res = new ArrayList<>();
+        res.add(val0);
+        Collections.addAll(res, vals);
+        return res;
+    }
+    public List<Object> array(ReqlFunction0 val0, ReqlFunction0... vals) {
+        List<Object> res = new ArrayList<>();
+        res.add(val0);
+        Collections.addAll(res, vals);
+        return res;
+    }
+    public List<Object> array(ReqlFunction1 val0, ReqlFunction1... vals) {
+        List<Object> res = new ArrayList<>();
+        res.add(val0);
+        Collections.addAll(res, vals);
+        return res;
+    }
+    public List<Object> array(ReqlFunction2 val0, ReqlFunction2... vals) {
+        List<Object> res = new ArrayList<>();
+        res.add(val0);
+        Collections.addAll(res, vals);
+        return res;
+    }
+    public List<Object> array(ReqlFunction3 val0, ReqlFunction3... vals) {
+        List<Object> res = new ArrayList<>();
+        res.add(val0);
+        Collections.addAll(res, vals);
+        return res;
+    }
+    public List<Object> array(ReqlFunction4 val0, ReqlFunction4... vals) {
+        List<Object> res = new ArrayList<>();
+        res.add(val0);
+        Collections.addAll(res, vals);
+        return res;
+    }
+    public List<Object> array(){
+        return new ArrayList<>();
+    }
+
+    public Javascript js(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Javascript(args);
     }
-    public Uuid uuid(){
+    public Uuid uuid() {
         Arguments args = new Arguments();
         return new Uuid(args);
     }
-    public Uuid uuid(Object expr){
+    public Uuid uuid(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Uuid(args);
     }
-    public Http http(Object expr){
+    public Http http(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Http(args);
     }
-    public Error error(){
+    public Error error() {
         Arguments args = new Arguments();
         return new Error(args);
     }
-    public Error error(Object expr){
+    public Error error(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Error(args);
     }
-    public Db db(Object expr){
+    public Db db(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Db(args);
     }
-    public Table table(Object expr){
+    public Table table(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Table(args);
     }
-    public Eq eq(Object expr, Object exprA, Object... exprs){
+    public Eq eq(Object expr, Object exprA, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Eq(args);
     }
-    public Ne ne(Object expr, Object exprA, Object... exprs){
+    public Ne ne(Object expr, Object exprA, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Ne(args);
     }
-    public Lt lt(Object expr, Object exprA, Object... exprs){
+    public Lt lt(Object expr, Object exprA, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Lt(args);
     }
-    public Le le(Object expr, Object exprA, Object... exprs){
+    public Le le(Object expr, Object exprA, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Le(args);
     }
-    public Gt gt(Object expr, Object exprA, Object... exprs){
+    public Gt gt(Object expr, Object exprA, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Gt(args);
     }
-    public Ge ge(Object expr, Object exprA, Object... exprs){
+    public Ge ge(Object expr, Object exprA, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Ge(args);
     }
-    public Not not(Object expr){
+    public Not not(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Not(args);
     }
-    public Add add(Object expr, Object... exprs){
+    public Add add(Object expr, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Add(args);
     }
-    public Sub sub(Object expr, Object... exprs){
+    public Sub sub(Object expr, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Sub(args);
     }
-    public Mul mul(Object expr, Object... exprs){
+    public Mul mul(Object expr, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Mul(args);
     }
-    public Div div(Object expr, Object... exprs){
+    public Div div(Object expr, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Div(args);
     }
-    public Mod mod(Object expr, Object exprA){
+    public Mod mod(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Mod(args);
     }
-    public BitAnd bitAnd(Object expr, Object... exprs){
+    public BitAnd bitAnd(Object expr, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new BitAnd(args);
     }
-    public BitOr bitOr(Object expr, Object... exprs){
+    public BitOr bitOr(Object expr, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new BitOr(args);
     }
-    public BitXor bitXor(Object expr, Object... exprs){
+    public BitXor bitXor(Object expr, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new BitXor(args);
     }
-    public BitNot bitNot(Object expr){
+    public BitNot bitNot(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new BitNot(args);
     }
-    public BitSal bitSal(Object expr, Object exprA){
+    public BitSal bitSal(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new BitSal(args);
     }
-    public BitSar bitSar(Object expr, Object exprA){
+    public BitSar bitSar(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new BitSar(args);
     }
-    public Floor floor(Object expr){
+    public Floor floor(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Floor(args);
     }
-    public Ceil ceil(Object expr){
+    public Ceil ceil(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Ceil(args);
     }
-    public Round round(Object expr){
+    public Round round(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Round(args);
     }
-    public Contains contains(Object expr){
+    public Contains contains(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js){
+    public Contains contains(Object expr, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js, Javascript jsA){
+    public Contains contains(Object expr, Javascript js, Javascript jsA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         args.coerceAndAdd(jsA);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js, Javascript jsA, Javascript jsB){
+    public Contains contains(Object expr, Javascript js, Javascript jsA, Javascript jsB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -267,7 +279,7 @@ public class TopLevel {
         args.coerceAndAdd(jsB);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js, Javascript jsA, Javascript jsB, Javascript jsC){
+    public Contains contains(Object expr, Javascript js, Javascript jsA, Javascript jsB, Javascript jsC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -276,7 +288,7 @@ public class TopLevel {
         args.coerceAndAdd(jsC);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js, Javascript jsA, Javascript jsB, Object exprA){
+    public Contains contains(Object expr, Javascript js, Javascript jsA, Javascript jsB, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -285,7 +297,7 @@ public class TopLevel {
         args.coerceAndAdd(exprA);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js, Javascript jsA, Object exprA){
+    public Contains contains(Object expr, Javascript js, Javascript jsA, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -293,7 +305,7 @@ public class TopLevel {
         args.coerceAndAdd(exprA);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js, Javascript jsA, Object exprA, Javascript jsB){
+    public Contains contains(Object expr, Javascript js, Javascript jsA, Object exprA, Javascript jsB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -302,7 +314,7 @@ public class TopLevel {
         args.coerceAndAdd(jsB);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js, Javascript jsA, Object exprA, Object exprB){
+    public Contains contains(Object expr, Javascript js, Javascript jsA, Object exprA, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -311,96 +323,96 @@ public class TopLevel {
         args.coerceAndAdd(exprB);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js, Object exprA){
+    public Contains contains(Object expr, Javascript js, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         args.coerceAndAdd(exprA);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js, Object exprA, Javascript jsA){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(js);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(jsA);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Javascript js, Object exprA, Javascript jsA, Javascript jsB){
+    public Contains contains(Object expr, Javascript js, Object exprA, Javascript jsA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(jsA);
-        args.coerceAndAdd(jsB);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Javascript js, Object exprA, Javascript jsA, Object exprB){
+    public Contains contains(Object expr, Javascript js, Object exprA, Javascript jsA, Javascript jsB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         args.coerceAndAdd(exprA);
-        args.coerceAndAdd(jsA);
-        args.coerceAndAdd(exprB);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Javascript js, Object exprA, Object exprB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(js);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Javascript js, Object exprA, Object exprB, Javascript jsA){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(js);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
-        args.coerceAndAdd(jsA);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Javascript js, Object exprA, Object exprB, Object exprC){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(js);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
-        args.coerceAndAdd(exprC);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Object exprA){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Object exprA, Javascript js){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(js);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Object exprA, Javascript js, Javascript jsA){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(js);
-        args.coerceAndAdd(jsA);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Object exprA, Javascript js, Javascript jsA, Javascript jsB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(js);
         args.coerceAndAdd(jsA);
         args.coerceAndAdd(jsB);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Javascript js, Javascript jsA, Object exprB){
+    public Contains contains(Object expr, Javascript js, Object exprA, Javascript jsA, Object exprB) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(jsA);
+        args.coerceAndAdd(exprB);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Javascript js, Object exprA, Object exprB) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Javascript js, Object exprA, Object exprB, Javascript jsA) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(jsA);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Javascript js, Object exprA, Object exprB, Object exprC) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(exprC);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Object exprA) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Object exprA, Javascript js) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(js);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Object exprA, Javascript js, Javascript jsA) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(jsA);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Object exprA, Javascript js, Javascript jsA, Javascript jsB) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(jsA);
+        args.coerceAndAdd(jsB);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Object exprA, Javascript js, Javascript jsA, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -409,7 +421,7 @@ public class TopLevel {
         args.coerceAndAdd(exprB);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Javascript js, Object exprB){
+    public Contains contains(Object expr, Object exprA, Javascript js, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -417,7 +429,7 @@ public class TopLevel {
         args.coerceAndAdd(exprB);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Javascript js, Object exprB, Javascript jsA){
+    public Contains contains(Object expr, Object exprA, Javascript js, Object exprB, Javascript jsA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -426,7 +438,7 @@ public class TopLevel {
         args.coerceAndAdd(jsA);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Javascript js, Object exprB, Object exprC){
+    public Contains contains(Object expr, Object exprA, Javascript js, Object exprB, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -435,14 +447,14 @@ public class TopLevel {
         args.coerceAndAdd(exprC);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB){
+    public Contains contains(Object expr, Object exprA, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(exprB);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB, Javascript js){
+    public Contains contains(Object expr, Object exprA, Object exprB, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -450,7 +462,7 @@ public class TopLevel {
         args.coerceAndAdd(js);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB, Javascript js, Javascript jsA){
+    public Contains contains(Object expr, Object exprA, Object exprB, Javascript js, Javascript jsA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -459,7 +471,7 @@ public class TopLevel {
         args.coerceAndAdd(jsA);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB, Javascript js, Object exprC){
+    public Contains contains(Object expr, Object exprA, Object exprB, Javascript js, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -468,7 +480,7 @@ public class TopLevel {
         args.coerceAndAdd(exprC);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB, Object exprC){
+    public Contains contains(Object expr, Object exprA, Object exprB, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -476,7 +488,7 @@ public class TopLevel {
         args.coerceAndAdd(exprC);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB, Object exprC, Javascript js){
+    public Contains contains(Object expr, Object exprA, Object exprB, Object exprC, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -485,7 +497,7 @@ public class TopLevel {
         args.coerceAndAdd(js);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB, Object exprC, Object exprD){
+    public Contains contains(Object expr, Object exprA, Object exprB, Object exprC, Object exprD) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -494,7 +506,7 @@ public class TopLevel {
         args.coerceAndAdd(exprD);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction1 func1){
+    public Contains contains(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -503,7 +515,7 @@ public class TopLevel {
         args.coerceAndAdd(func1);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB, ReqlFunction1 func1){
+    public Contains contains(Object expr, Object exprA, Object exprB, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -511,7 +523,7 @@ public class TopLevel {
         args.coerceAndAdd(func1);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB, ReqlFunction1 func1, Object exprC){
+    public Contains contains(Object expr, Object exprA, Object exprB, ReqlFunction1 func1, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -520,7 +532,7 @@ public class TopLevel {
         args.coerceAndAdd(exprC);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, Object exprB, ReqlFunction1 func1, ReqlFunction1 func1A){
+    public Contains contains(Object expr, Object exprA, Object exprB, ReqlFunction1 func1, ReqlFunction1 func1A) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -529,96 +541,96 @@ public class TopLevel {
         args.coerceAndAdd(func1A);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1){
+    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func1);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, Object exprB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(exprB);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, Object exprB, Object exprC){
+    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func1);
         args.coerceAndAdd(exprB);
-        args.coerceAndAdd(exprC);
         return new Contains(args);
     }
-    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, Object exprB, ReqlFunction1 func1A){
+    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, Object exprB, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func1);
-        args.coerceAndAdd(exprB);
-        args.coerceAndAdd(func1A);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(func1A);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(func1A);
-        args.coerceAndAdd(exprB);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(func1A);
-        args.coerceAndAdd(func1B);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, ReqlFunction1 func1){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(func1);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(exprA);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, Object exprB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
-        return new Contains(args);
-    }
-    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, Object exprB, Object exprC){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(exprA);
         args.coerceAndAdd(exprB);
         args.coerceAndAdd(exprC);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, Object exprB, ReqlFunction1 func1A){
+    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, Object exprB, ReqlFunction1 func1A) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(func1A);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(func1A);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprB) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(func1A);
+        args.coerceAndAdd(exprB);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(func1A);
+        args.coerceAndAdd(func1B);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, ReqlFunction1 func1) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func1);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(exprA);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, Object exprB) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, Object exprB, Object exprC) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(exprC);
+        return new Contains(args);
+    }
+    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, Object exprB, ReqlFunction1 func1A) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -627,7 +639,7 @@ public class TopLevel {
         args.coerceAndAdd(func1A);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A){
+    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -635,7 +647,7 @@ public class TopLevel {
         args.coerceAndAdd(func1A);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A, Object exprB){
+    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -644,7 +656,7 @@ public class TopLevel {
         args.coerceAndAdd(exprB);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A, ReqlFunction1 func1B){
+    public Contains contains(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A, ReqlFunction1 func1B) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -653,14 +665,14 @@ public class TopLevel {
         args.coerceAndAdd(func1B);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A){
+    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         args.coerceAndAdd(func1A);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA){
+    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -668,7 +680,7 @@ public class TopLevel {
         args.coerceAndAdd(exprA);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, Object exprB){
+    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -677,7 +689,7 @@ public class TopLevel {
         args.coerceAndAdd(exprB);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, ReqlFunction1 func1B){
+    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, ReqlFunction1 func1B) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -686,7 +698,7 @@ public class TopLevel {
         args.coerceAndAdd(func1B);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B){
+    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -694,7 +706,7 @@ public class TopLevel {
         args.coerceAndAdd(func1B);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B, Object exprA){
+    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -703,7 +715,7 @@ public class TopLevel {
         args.coerceAndAdd(exprA);
         return new Contains(args);
     }
-    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B, ReqlFunction1 func1C){
+    public Contains contains(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B, ReqlFunction1 func1C) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -712,51 +724,51 @@ public class TopLevel {
         args.coerceAndAdd(func1C);
         return new Contains(args);
     }
-    public ReqlObject object(Object... exprs){
+    public ReqlObject object(Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAddAll(exprs);
         return new ReqlObject(args);
     }
-    public Reduce reduce(Object expr, Javascript js){
+    public Reduce reduce(Object expr, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         return new Reduce(args);
     }
-    public Reduce reduce(Object expr, ReqlFunction2 func2){
+    public Reduce reduce(Object expr, ReqlFunction2 func2) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func2);
         return new Reduce(args);
     }
-    public Fold fold(Object expr, Object exprA, Javascript js){
+    public Fold fold(Object expr, Object exprA, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(js);
         return new Fold(args);
     }
-    public Fold fold(Object expr, Object exprA, ReqlFunction2 func2){
+    public Fold fold(Object expr, Object exprA, ReqlFunction2 func2) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func2);
         return new Fold(args);
     }
-    public Map map(Object expr, Javascript js){
+    public Map map(Object expr, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         return new Map(args);
     }
-    public Map map(Object expr, Object exprA, Javascript js){
+    public Map map(Object expr, Object exprA, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(js);
         return new Map(args);
     }
-    public Map map(Object expr, Object exprA, Object exprB, Javascript js){
+    public Map map(Object expr, Object exprA, Object exprB, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -764,7 +776,7 @@ public class TopLevel {
         args.coerceAndAdd(js);
         return new Map(args);
     }
-    public Map map(Object expr, Object exprA, Object exprB, Object exprC, Javascript js){
+    public Map map(Object expr, Object exprA, Object exprB, Object exprC, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -773,7 +785,7 @@ public class TopLevel {
         args.coerceAndAdd(js);
         return new Map(args);
     }
-    public Map map(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction4 func4){
+    public Map map(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction4 func4) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -782,7 +794,7 @@ public class TopLevel {
         args.coerceAndAdd(func4);
         return new Map(args);
     }
-    public Map map(Object expr, Object exprA, Object exprB, ReqlFunction3 func3){
+    public Map map(Object expr, Object exprA, Object exprB, ReqlFunction3 func3) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -790,132 +802,132 @@ public class TopLevel {
         args.coerceAndAdd(func3);
         return new Map(args);
     }
-    public Map map(Object expr, Object exprA, ReqlFunction2 func2){
+    public Map map(Object expr, Object exprA, ReqlFunction2 func2) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func2);
         return new Map(args);
     }
-    public Map map(Object expr, ReqlFunction0 func0){
+    public Map map(Object expr, ReqlFunction0 func0) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func0);
         return new Map(args);
     }
-    public Map map(Object expr, ReqlFunction1 func1){
+    public Map map(Object expr, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         return new Map(args);
     }
-    public Distinct distinct(Object expr){
+    public Distinct distinct(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Distinct(args);
     }
-    public Count count(Object expr){
+    public Count count(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Count(args);
     }
-    public Count count(Object expr, Javascript js){
+    public Count count(Object expr, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         return new Count(args);
     }
-    public Count count(Object expr, Object exprA){
+    public Count count(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Count(args);
     }
-    public Count count(Object expr, ReqlFunction1 func1){
+    public Count count(Object expr, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         return new Count(args);
     }
-    public Union union(Object expr, Object... exprs){
+    public Union union(Object expr, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Union(args);
     }
-    public Range range(){
+    public Range range() {
         Arguments args = new Arguments();
         return new Range(args);
     }
-    public Range range(Object expr){
+    public Range range(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Range(args);
     }
-    public Range range(Object expr, Object exprA){
+    public Range range(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Range(args);
     }
-    public TypeOf typeOf(Object expr){
+    public TypeOf typeOf(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new TypeOf(args);
     }
-    public DbCreate dbCreate(Object expr){
+    public DbCreate dbCreate(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new DbCreate(args);
     }
-    public DbDrop dbDrop(Object expr){
+    public DbDrop dbDrop(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new DbDrop(args);
     }
-    public DbList dbList(){
+    public DbList dbList() {
         Arguments args = new Arguments();
         return new DbList(args);
     }
-    public TableCreate tableCreate(Object expr){
+    public TableCreate tableCreate(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new TableCreate(args);
     }
-    public TableDrop tableDrop(Object expr){
+    public TableDrop tableDrop(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new TableDrop(args);
     }
-    public TableList tableList(){
+    public TableList tableList() {
         Arguments args = new Arguments();
         return new TableList(args);
     }
-    public Grant grant(Object expr, Object exprA){
+    public Grant grant(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Grant(args);
     }
-    public Funcall do_(Javascript js){
+    public Funcall do_(Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(js);
         return new Funcall(args);
     }
-    public Funcall do_(Object expr, Javascript js){
+    public Funcall do_(Object expr, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         return new Funcall(args);
     }
-    public Funcall do_(Object expr, Object exprA, Javascript js){
+    public Funcall do_(Object expr, Object exprA, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(js);
         return new Funcall(args);
     }
-    public Funcall do_(Object expr, Object exprA, Object exprB, Javascript js){
+    public Funcall do_(Object expr, Object exprA, Object exprB, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -923,7 +935,7 @@ public class TopLevel {
         args.coerceAndAdd(js);
         return new Funcall(args);
     }
-    public Funcall do_(Object expr, Object exprA, Object exprB, ReqlFunction3 func3){
+    public Funcall do_(Object expr, Object exprA, Object exprB, ReqlFunction3 func3) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -931,31 +943,31 @@ public class TopLevel {
         args.coerceAndAdd(func3);
         return new Funcall(args);
     }
-    public Funcall do_(Object expr, Object exprA, ReqlFunction2 func2){
+    public Funcall do_(Object expr, Object exprA, ReqlFunction2 func2) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func2);
         return new Funcall(args);
     }
-    public Funcall do_(Object expr, Object... exprs){
+    public Funcall do_(Object expr, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAddAll(exprs);
         return new Funcall(args);
     }
-    public Funcall do_(Object expr, ReqlFunction1 func1){
+    public Funcall do_(Object expr, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         return new Funcall(args);
     }
-    public Funcall do_(ReqlFunction0 func0){
+    public Funcall do_(ReqlFunction0 func0) {
         Arguments args = new Arguments();
         args.coerceAndAdd(func0);
         return new Funcall(args);
     }
-    public Branch branch(Object expr, Object exprA, Object exprB, Object... exprs){
+    public Branch branch(Object expr, Object exprA, Object exprB, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -963,71 +975,71 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new Branch(args);
     }
-    public Or or(Object... exprs){
+    public Or or(Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAddAll(exprs);
         return new Or(args);
     }
-    public And and(Object... exprs){
+    public And and(Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAddAll(exprs);
         return new And(args);
     }
-    public Asc asc(Javascript js){
+    public Asc asc(Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(js);
         return new Asc(args);
     }
-    public Asc asc(Object expr){
+    public Asc asc(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Asc(args);
     }
-    public Asc asc(ReqlFunction1 func1){
+    public Asc asc(ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(func1);
         return new Asc(args);
     }
-    public Desc desc(Javascript js){
+    public Desc desc(Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(js);
         return new Desc(args);
     }
-    public Desc desc(Object expr){
+    public Desc desc(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Desc(args);
     }
-    public Desc desc(ReqlFunction1 func1){
+    public Desc desc(ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(func1);
         return new Desc(args);
     }
-    public Info info(Object expr){
+    public Info info(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Info(args);
     }
-    public Json json(Object expr){
+    public Json json(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Json(args);
     }
-    public Iso8601 iso8601(Object expr){
+    public Iso8601 iso8601(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Iso8601(args);
     }
-    public EpochTime epochTime(Object expr){
+    public EpochTime epochTime(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new EpochTime(args);
     }
-    public Now now(){
+    public Now now() {
         Arguments args = new Arguments();
         return new Now(args);
     }
-    public Time time(Object expr, Object exprA, Object exprB, Object exprC){
+    public Time time(Object expr, Object exprA, Object exprB, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1035,7 +1047,7 @@ public class TopLevel {
         args.coerceAndAdd(exprC);
         return new Time(args);
     }
-    public Time time(Object expr, Object exprA, Object exprB, Object exprC, Object exprD, Object exprE, Object exprF){
+    public Time time(Object expr, Object exprA, Object exprB, Object exprC, Object exprD, Object exprE, Object exprF) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1046,110 +1058,110 @@ public class TopLevel {
         args.coerceAndAdd(exprF);
         return new Time(args);
     }
-    public Monday monday(){
+    public Monday monday() {
         Arguments args = new Arguments();
         return new Monday(args);
     }
-    public Tuesday tuesday(){
+    public Tuesday tuesday() {
         Arguments args = new Arguments();
         return new Tuesday(args);
     }
-    public Wednesday wednesday(){
+    public Wednesday wednesday() {
         Arguments args = new Arguments();
         return new Wednesday(args);
     }
-    public Thursday thursday(){
+    public Thursday thursday() {
         Arguments args = new Arguments();
         return new Thursday(args);
     }
-    public Friday friday(){
+    public Friday friday() {
         Arguments args = new Arguments();
         return new Friday(args);
     }
-    public Saturday saturday(){
+    public Saturday saturday() {
         Arguments args = new Arguments();
         return new Saturday(args);
     }
-    public Sunday sunday(){
+    public Sunday sunday() {
         Arguments args = new Arguments();
         return new Sunday(args);
     }
-    public January january(){
+    public January january() {
         Arguments args = new Arguments();
         return new January(args);
     }
-    public February february(){
+    public February february() {
         Arguments args = new Arguments();
         return new February(args);
     }
-    public March march(){
+    public March march() {
         Arguments args = new Arguments();
         return new March(args);
     }
-    public April april(){
+    public April april() {
         Arguments args = new Arguments();
         return new April(args);
     }
-    public May may(){
+    public May may() {
         Arguments args = new Arguments();
         return new May(args);
     }
-    public June june(){
+    public June june() {
         Arguments args = new Arguments();
         return new June(args);
     }
-    public July july(){
+    public July july() {
         Arguments args = new Arguments();
         return new July(args);
     }
-    public August august(){
+    public August august() {
         Arguments args = new Arguments();
         return new August(args);
     }
-    public September september(){
+    public September september() {
         Arguments args = new Arguments();
         return new September(args);
     }
-    public October october(){
+    public October october() {
         Arguments args = new Arguments();
         return new October(args);
     }
-    public November november(){
+    public November november() {
         Arguments args = new Arguments();
         return new November(args);
     }
-    public December december(){
+    public December december() {
         Arguments args = new Arguments();
         return new December(args);
     }
-    public Literal literal(){
+    public Literal literal() {
         Arguments args = new Arguments();
         return new Literal(args);
     }
-    public Literal literal(Object expr){
+    public Literal literal(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Literal(args);
     }
-    public Group group(Object expr){
+    public Group group(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js){
+    public Group group(Object expr, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js, Javascript jsA){
+    public Group group(Object expr, Javascript js, Javascript jsA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         args.coerceAndAdd(jsA);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js, Javascript jsA, Javascript jsB){
+    public Group group(Object expr, Javascript js, Javascript jsA, Javascript jsB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -1157,7 +1169,7 @@ public class TopLevel {
         args.coerceAndAdd(jsB);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js, Javascript jsA, Javascript jsB, Javascript jsC){
+    public Group group(Object expr, Javascript js, Javascript jsA, Javascript jsB, Javascript jsC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -1166,7 +1178,7 @@ public class TopLevel {
         args.coerceAndAdd(jsC);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js, Javascript jsA, Javascript jsB, Object exprA){
+    public Group group(Object expr, Javascript js, Javascript jsA, Javascript jsB, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -1175,7 +1187,7 @@ public class TopLevel {
         args.coerceAndAdd(exprA);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js, Javascript jsA, Object exprA){
+    public Group group(Object expr, Javascript js, Javascript jsA, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -1183,7 +1195,7 @@ public class TopLevel {
         args.coerceAndAdd(exprA);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js, Javascript jsA, Object exprA, Javascript jsB){
+    public Group group(Object expr, Javascript js, Javascript jsA, Object exprA, Javascript jsB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -1192,7 +1204,7 @@ public class TopLevel {
         args.coerceAndAdd(jsB);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js, Javascript jsA, Object exprA, Object exprB){
+    public Group group(Object expr, Javascript js, Javascript jsA, Object exprA, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
@@ -1201,96 +1213,96 @@ public class TopLevel {
         args.coerceAndAdd(exprB);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js, Object exprA){
+    public Group group(Object expr, Javascript js, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         args.coerceAndAdd(exprA);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js, Object exprA, Javascript jsA){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(js);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(jsA);
-        return new Group(args);
-    }
-    public Group group(Object expr, Javascript js, Object exprA, Javascript jsA, Javascript jsB){
+    public Group group(Object expr, Javascript js, Object exprA, Javascript jsA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(jsA);
-        args.coerceAndAdd(jsB);
         return new Group(args);
     }
-    public Group group(Object expr, Javascript js, Object exprA, Javascript jsA, Object exprB){
+    public Group group(Object expr, Javascript js, Object exprA, Javascript jsA, Javascript jsB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         args.coerceAndAdd(exprA);
-        args.coerceAndAdd(jsA);
-        args.coerceAndAdd(exprB);
-        return new Group(args);
-    }
-    public Group group(Object expr, Javascript js, Object exprA, Object exprB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(js);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
-        return new Group(args);
-    }
-    public Group group(Object expr, Javascript js, Object exprA, Object exprB, Javascript jsA){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(js);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
-        args.coerceAndAdd(jsA);
-        return new Group(args);
-    }
-    public Group group(Object expr, Javascript js, Object exprA, Object exprB, Object exprC){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(js);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
-        args.coerceAndAdd(exprC);
-        return new Group(args);
-    }
-    public Group group(Object expr, Object exprA){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        return new Group(args);
-    }
-    public Group group(Object expr, Object exprA, Javascript js){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(js);
-        return new Group(args);
-    }
-    public Group group(Object expr, Object exprA, Javascript js, Javascript jsA){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(js);
-        args.coerceAndAdd(jsA);
-        return new Group(args);
-    }
-    public Group group(Object expr, Object exprA, Javascript js, Javascript jsA, Javascript jsB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(js);
         args.coerceAndAdd(jsA);
         args.coerceAndAdd(jsB);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Javascript js, Javascript jsA, Object exprB){
+    public Group group(Object expr, Javascript js, Object exprA, Javascript jsA, Object exprB) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(jsA);
+        args.coerceAndAdd(exprB);
+        return new Group(args);
+    }
+    public Group group(Object expr, Javascript js, Object exprA, Object exprB) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        return new Group(args);
+    }
+    public Group group(Object expr, Javascript js, Object exprA, Object exprB, Javascript jsA) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(jsA);
+        return new Group(args);
+    }
+    public Group group(Object expr, Javascript js, Object exprA, Object exprB, Object exprC) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(exprC);
+        return new Group(args);
+    }
+    public Group group(Object expr, Object exprA) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        return new Group(args);
+    }
+    public Group group(Object expr, Object exprA, Javascript js) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(js);
+        return new Group(args);
+    }
+    public Group group(Object expr, Object exprA, Javascript js, Javascript jsA) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(jsA);
+        return new Group(args);
+    }
+    public Group group(Object expr, Object exprA, Javascript js, Javascript jsA, Javascript jsB) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(js);
+        args.coerceAndAdd(jsA);
+        args.coerceAndAdd(jsB);
+        return new Group(args);
+    }
+    public Group group(Object expr, Object exprA, Javascript js, Javascript jsA, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1299,7 +1311,7 @@ public class TopLevel {
         args.coerceAndAdd(exprB);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Javascript js, Object exprB){
+    public Group group(Object expr, Object exprA, Javascript js, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1307,7 +1319,7 @@ public class TopLevel {
         args.coerceAndAdd(exprB);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Javascript js, Object exprB, Javascript jsA){
+    public Group group(Object expr, Object exprA, Javascript js, Object exprB, Javascript jsA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1316,7 +1328,7 @@ public class TopLevel {
         args.coerceAndAdd(jsA);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Javascript js, Object exprB, Object exprC){
+    public Group group(Object expr, Object exprA, Javascript js, Object exprB, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1325,14 +1337,14 @@ public class TopLevel {
         args.coerceAndAdd(exprC);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB){
+    public Group group(Object expr, Object exprA, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(exprB);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB, Javascript js){
+    public Group group(Object expr, Object exprA, Object exprB, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1340,7 +1352,7 @@ public class TopLevel {
         args.coerceAndAdd(js);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB, Javascript js, Javascript jsA){
+    public Group group(Object expr, Object exprA, Object exprB, Javascript js, Javascript jsA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1349,7 +1361,7 @@ public class TopLevel {
         args.coerceAndAdd(jsA);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB, Javascript js, Object exprC){
+    public Group group(Object expr, Object exprA, Object exprB, Javascript js, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1358,7 +1370,7 @@ public class TopLevel {
         args.coerceAndAdd(exprC);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB, Object exprC){
+    public Group group(Object expr, Object exprA, Object exprB, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1366,7 +1378,7 @@ public class TopLevel {
         args.coerceAndAdd(exprC);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB, Object exprC, Javascript js){
+    public Group group(Object expr, Object exprA, Object exprB, Object exprC, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1375,7 +1387,7 @@ public class TopLevel {
         args.coerceAndAdd(js);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB, Object exprC, Object exprD){
+    public Group group(Object expr, Object exprA, Object exprB, Object exprC, Object exprD) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1384,7 +1396,7 @@ public class TopLevel {
         args.coerceAndAdd(exprD);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction1 func1){
+    public Group group(Object expr, Object exprA, Object exprB, Object exprC, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1393,7 +1405,7 @@ public class TopLevel {
         args.coerceAndAdd(func1);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB, ReqlFunction1 func1){
+    public Group group(Object expr, Object exprA, Object exprB, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1401,7 +1413,7 @@ public class TopLevel {
         args.coerceAndAdd(func1);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB, ReqlFunction1 func1, Object exprC){
+    public Group group(Object expr, Object exprA, Object exprB, ReqlFunction1 func1, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1410,7 +1422,7 @@ public class TopLevel {
         args.coerceAndAdd(exprC);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, Object exprB, ReqlFunction1 func1, ReqlFunction1 func1A){
+    public Group group(Object expr, Object exprA, Object exprB, ReqlFunction1 func1, ReqlFunction1 func1A) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1419,96 +1431,96 @@ public class TopLevel {
         args.coerceAndAdd(func1A);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, ReqlFunction1 func1){
+    public Group group(Object expr, Object exprA, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func1);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, ReqlFunction1 func1, Object exprB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(exprB);
-        return new Group(args);
-    }
-    public Group group(Object expr, Object exprA, ReqlFunction1 func1, Object exprB, Object exprC){
+    public Group group(Object expr, Object exprA, ReqlFunction1 func1, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func1);
         args.coerceAndAdd(exprB);
-        args.coerceAndAdd(exprC);
         return new Group(args);
     }
-    public Group group(Object expr, Object exprA, ReqlFunction1 func1, Object exprB, ReqlFunction1 func1A){
+    public Group group(Object expr, Object exprA, ReqlFunction1 func1, Object exprB, Object exprC) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(func1);
-        args.coerceAndAdd(exprB);
-        args.coerceAndAdd(func1A);
-        return new Group(args);
-    }
-    public Group group(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(func1A);
-        return new Group(args);
-    }
-    public Group group(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(func1A);
-        args.coerceAndAdd(exprB);
-        return new Group(args);
-    }
-    public Group group(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(func1A);
-        args.coerceAndAdd(func1B);
-        return new Group(args);
-    }
-    public Group group(Object expr, ReqlFunction1 func1){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(func1);
-        return new Group(args);
-    }
-    public Group group(Object expr, ReqlFunction1 func1, Object exprA){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(exprA);
-        return new Group(args);
-    }
-    public Group group(Object expr, ReqlFunction1 func1, Object exprA, Object exprB){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(exprA);
-        args.coerceAndAdd(exprB);
-        return new Group(args);
-    }
-    public Group group(Object expr, ReqlFunction1 func1, Object exprA, Object exprB, Object exprC){
-        Arguments args = new Arguments();
-        args.coerceAndAdd(expr);
-        args.coerceAndAdd(func1);
-        args.coerceAndAdd(exprA);
         args.coerceAndAdd(exprB);
         args.coerceAndAdd(exprC);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, Object exprA, Object exprB, ReqlFunction1 func1A){
+    public Group group(Object expr, Object exprA, ReqlFunction1 func1, Object exprB, ReqlFunction1 func1A) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(func1A);
+        return new Group(args);
+    }
+    public Group group(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(func1A);
+        return new Group(args);
+    }
+    public Group group(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprB) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(func1A);
+        args.coerceAndAdd(exprB);
+        return new Group(args);
+    }
+    public Group group(Object expr, Object exprA, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(func1A);
+        args.coerceAndAdd(func1B);
+        return new Group(args);
+    }
+    public Group group(Object expr, ReqlFunction1 func1) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func1);
+        return new Group(args);
+    }
+    public Group group(Object expr, ReqlFunction1 func1, Object exprA) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(exprA);
+        return new Group(args);
+    }
+    public Group group(Object expr, ReqlFunction1 func1, Object exprA, Object exprB) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        return new Group(args);
+    }
+    public Group group(Object expr, ReqlFunction1 func1, Object exprA, Object exprB, Object exprC) {
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAdd(func1);
+        args.coerceAndAdd(exprA);
+        args.coerceAndAdd(exprB);
+        args.coerceAndAdd(exprC);
+        return new Group(args);
+    }
+    public Group group(Object expr, ReqlFunction1 func1, Object exprA, Object exprB, ReqlFunction1 func1A) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -1517,7 +1529,7 @@ public class TopLevel {
         args.coerceAndAdd(func1A);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A){
+    public Group group(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -1525,7 +1537,7 @@ public class TopLevel {
         args.coerceAndAdd(func1A);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A, Object exprB){
+    public Group group(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -1534,7 +1546,7 @@ public class TopLevel {
         args.coerceAndAdd(exprB);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A, ReqlFunction1 func1B){
+    public Group group(Object expr, ReqlFunction1 func1, Object exprA, ReqlFunction1 func1A, ReqlFunction1 func1B) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -1543,14 +1555,14 @@ public class TopLevel {
         args.coerceAndAdd(func1B);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A){
+    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         args.coerceAndAdd(func1A);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA){
+    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -1558,7 +1570,7 @@ public class TopLevel {
         args.coerceAndAdd(exprA);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, Object exprB){
+    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -1567,7 +1579,7 @@ public class TopLevel {
         args.coerceAndAdd(exprB);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, ReqlFunction1 func1B){
+    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, Object exprA, ReqlFunction1 func1B) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -1576,7 +1588,7 @@ public class TopLevel {
         args.coerceAndAdd(func1B);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B){
+    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -1584,7 +1596,7 @@ public class TopLevel {
         args.coerceAndAdd(func1B);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B, Object exprA){
+    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -1593,7 +1605,7 @@ public class TopLevel {
         args.coerceAndAdd(exprA);
         return new Group(args);
     }
-    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B, ReqlFunction1 func1C){
+    public Group group(Object expr, ReqlFunction1 func1, ReqlFunction1 func1A, ReqlFunction1 func1B, ReqlFunction1 func1C) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
@@ -1602,121 +1614,121 @@ public class TopLevel {
         args.coerceAndAdd(func1C);
         return new Group(args);
     }
-    public Sum sum(Object expr){
+    public Sum sum(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Sum(args);
     }
-    public Sum sum(Object expr, Javascript js){
+    public Sum sum(Object expr, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         return new Sum(args);
     }
-    public Sum sum(Object expr, Object exprA){
+    public Sum sum(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Sum(args);
     }
-    public Sum sum(Object expr, ReqlFunction1 func1){
+    public Sum sum(Object expr, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         return new Sum(args);
     }
-    public Avg avg(Object expr){
+    public Avg avg(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Avg(args);
     }
-    public Avg avg(Object expr, Javascript js){
+    public Avg avg(Object expr, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         return new Avg(args);
     }
-    public Avg avg(Object expr, Object exprA){
+    public Avg avg(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Avg(args);
     }
-    public Avg avg(Object expr, ReqlFunction1 func1){
+    public Avg avg(Object expr, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         return new Avg(args);
     }
-    public Min min(Object expr){
+    public Min min(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Min(args);
     }
-    public Min min(Object expr, Javascript js){
+    public Min min(Object expr, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         return new Min(args);
     }
-    public Min min(Object expr, Object exprA){
+    public Min min(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Min(args);
     }
-    public Min min(Object expr, ReqlFunction1 func1){
+    public Min min(Object expr, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         return new Min(args);
     }
-    public Max max(Object expr){
+    public Max max(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Max(args);
     }
-    public Max max(Object expr, Javascript js){
+    public Max max(Object expr, Javascript js) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(js);
         return new Max(args);
     }
-    public Max max(Object expr, Object exprA){
+    public Max max(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Max(args);
     }
-    public Max max(Object expr, ReqlFunction1 func1){
+    public Max max(Object expr, ReqlFunction1 func1) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(func1);
         return new Max(args);
     }
-    public Random random(){
+    public Random random() {
         Arguments args = new Arguments();
         return new Random(args);
     }
-    public Random random(Object expr){
+    public Random random(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Random(args);
     }
-    public Random random(Object expr, Object exprA){
+    public Random random(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Random(args);
     }
-    public Args args(Object expr){
+    public Args args(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Args(args);
     }
-    public Binary binary(Object expr){
+    public Binary binary(Object expr) {
         
-        if(expr instanceof byte[]){
+        if (expr instanceof byte[]) {
             return new Binary((byte[]) expr);
         }else{
         Arguments args = new Arguments();
@@ -1724,25 +1736,25 @@ public class TopLevel {
         return new Binary(args);
         }
     }
-    public Geojson geojson(Object expr){
+    public Geojson geojson(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Geojson(args);
     }
-    public Point point(Object expr, Object exprA){
+    public Point point(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Point(args);
     }
-    public Line line(Object expr, Object exprA, Object... exprs){
+    public Line line(Object expr, Object exprA, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAddAll(exprs);
         return new Line(args);
     }
-    public Polygon polygon(Object expr, Object exprA, Object exprB, Object... exprs){
+    public Polygon polygon(Object expr, Object exprA, Object exprB, Object... exprs) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
@@ -1750,41 +1762,41 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new Polygon(args);
     }
-    public Distance distance(Object expr, Object exprA){
+    public Distance distance(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Distance(args);
     }
-    public Intersects intersects(Object expr, Object exprA){
+    public Intersects intersects(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Intersects(args);
     }
-    public Circle circle(Object expr){
+    public Circle circle(Object expr) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         return new Circle(args);
     }
-    public Circle circle(Object expr, Object exprA){
+    public Circle circle(Object expr, Object exprA) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         return new Circle(args);
     }
-    public Circle circle(Object expr, Object exprA, Object exprB){
+    public Circle circle(Object expr, Object exprA, Object exprB) {
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
         args.coerceAndAdd(exprA);
         args.coerceAndAdd(exprB);
         return new Circle(args);
     }
-    public Minval minval(){
+    public Minval minval() {
         Arguments args = new Arguments();
         return new Minval(args);
     }
-    public Maxval maxval(){
+    public Maxval maxval() {
         Arguments args = new Arguments();
         return new Maxval(args);
     }

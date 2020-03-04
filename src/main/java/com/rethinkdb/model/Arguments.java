@@ -4,23 +4,28 @@ package com.rethinkdb.model;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.ast.Util;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class Arguments extends ArrayList<ReqlAst> {
-
     public Arguments() {}
 
-    public Arguments(Object arg){
-        if(arg instanceof List){
-            coerceAndAddAll((List) arg);
+    @SuppressWarnings("unchecked")
+    public Arguments(Object arg) {
+        if (arg instanceof List) {
+            coerceAndAddAll((List<Object>) arg);
         } else {
             coerceAndAdd(arg);
         }
     }
+
     public Arguments(Arguments args) {
         addAll(args);
     }
+
     public Arguments(ReqlAst arg) {
         add(arg);
     }
@@ -30,12 +35,10 @@ public class Arguments extends ArrayList<ReqlAst> {
     }
 
     public Arguments(List<Object> args) {
-        addAll(Collections.singletonList(args).stream()
-                .map(Util::toReqlAst)
-                .collect(Collectors.toList()));
+        coerceAndAddAll(args);
     }
 
-    public static Arguments make(Object... args){
+    public static Arguments make(Object... args) {
         return new Arguments(args);
     }
 
@@ -44,12 +47,12 @@ public class Arguments extends ArrayList<ReqlAst> {
     }
 
     public void coerceAndAddAll(Object[] args) {
-        coerceAndAddAll(Arrays.asList(args));
+        for (Object arg : args) {
+            coerceAndAdd(arg);
+        }
     }
 
-    public void coerceAndAddAll(List<Object> args){
-        addAll(args.stream()
-                .map(Util::toReqlAst)
-                .collect(Collectors.toList()));
+    public void coerceAndAddAll(List<Object> args) {
+        args.forEach(this::coerceAndAdd);
     }
 }

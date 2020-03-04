@@ -11,10 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class ReqlExpr extends ReqlAst {
-
 
     protected ReqlExpr(TermType termType, Arguments args, OptArgs optargs){
         super(termType, args, optargs);

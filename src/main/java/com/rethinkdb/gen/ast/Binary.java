@@ -11,38 +11,34 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
 import com.rethinkdb.net.Converter;
-import java.util.Optional;
-
+import org.jetbrains.annotations.Nullable;
 
 public class Binary extends ReqlExpr {
 
-    Optional<byte[]> b64Data = Optional.empty();
+    public @Nullable byte[] binaryData;
 
-
-    public Binary(byte[] bytes){
+    public Binary(byte[] bytes) {
         this(new Arguments());
-        b64Data = Optional.of(bytes);
+        binaryData = bytes;
     }
     public Binary(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Binary(Arguments args){
+    public Binary(Arguments args) {
         this(args, null);
     }
     public Binary(Arguments args, OptArgs optargs) {
         this(TermType.BINARY, args, optargs);
     }
-    protected Binary(TermType termType, Arguments args, OptArgs optargs){
+    protected Binary(TermType termType, Arguments args, OptArgs optargs) {
         super(termType, args, optargs);
     }
 
-
     @Override
     public Object build(){
-        if(b64Data.isPresent()){
-            return Converter.toBinary(b64Data.get());
+        if (binaryData != null) {
+            return Converter.toBinary(binaryData);
         }else{
             return super.build();
         }

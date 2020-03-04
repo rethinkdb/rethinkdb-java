@@ -1,26 +1,24 @@
 package com.rethinkdb.model;
 
-import org.json.simple.JSONArray;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Optional;
+import java.util.List;
 
 public class Profile {
+    private List<Object> raw;
 
-    private JSONArray profileObj;
-
-    private Profile(JSONArray profileObj){
-        this.profileObj = profileObj;
+    private Profile(List<Object> raw) {
+        this.raw = raw;
     }
 
-    public static Optional<Profile> fromJSONArray(JSONArray profileObj) {
-        if(profileObj == null || profileObj.size() == 0){
-            return Optional.empty();
-        } else {
-            return Optional.of(new Profile(profileObj));
+    public static @Nullable Profile fromList(List<Object> raw) {
+        if (raw == null || raw.size() == 0) {
+            return null;
         }
+        return new Profile(raw);
     }
 
-    public JSONArray getProfileObj(){
-        return profileObj;
+    public List<Object> getRaw() {
+        return raw;
     }
 }

@@ -11,10 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
-
 public class Gt extends ReqlExpr {
-
 
     public Gt(Object arg) {
         this(new Arguments(arg), null);

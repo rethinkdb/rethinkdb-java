@@ -1,26 +1,24 @@
 package com.rethinkdb.model;
 
-import org.json.simple.JSONArray;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Optional;
+import java.util.List;
 
 public class Backtrace {
+    private List<Object> raw;
 
-    private JSONArray rawBacktrace;
-
-    private Backtrace(JSONArray rawBacktrace){
-        this.rawBacktrace = rawBacktrace;
+    private Backtrace(List<Object> raw) {
+        this.raw = raw;
     }
 
-    public static Optional<Backtrace> fromJSONArray(JSONArray rawBacktrace) {
-        if(rawBacktrace == null || rawBacktrace.size() == 0){
-            return Optional.empty();
-        }else{
-            return Optional.of(new Backtrace(rawBacktrace));
+    public static @Nullable Backtrace fromList(List<Object> raw) {
+        if (raw == null || raw.size() == 0) {
+            return null;
         }
+        return new Backtrace(raw);
     }
 
-    public JSONArray getRawBacktrace(){
-        return rawBacktrace;
+    public List<Object> getRaw() {
+        return raw;
     }
 }

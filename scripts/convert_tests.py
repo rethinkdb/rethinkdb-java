@@ -703,7 +703,7 @@ class JavaVisitor(ast.NodeVisitor):
             and type(node.op) == ast.Add
         ):
             # A hack for the transform/unordered_map case
-            self.write("concatLong(")
+            self.write("concatList(")
             self.visit(node.left)
             self.write(", ")
             self.visit(node.right)

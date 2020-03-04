@@ -1,71 +1,66 @@
 package com.rethinkdb.net;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JavaType;
 import com.rethinkdb.RethinkDB;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.rethinkdb.gen.exc.ReqlDriverError;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStreamReader;
+import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 public class Util {
+    private static final TypeReference<Map<String, Object>> mapTypeRef = new TypeReference<Map<String, Object>>() {};
 
-    public static long deadline(long timeout) {
-        return System.currentTimeMillis() + timeout;
+    private Util() {}
+
+    public static Map<String, Object> readJSON(String str) {
+        try {
+            return RethinkDB.getInternalMapper().readValue(str, mapTypeRef);
+        } catch (IOException e) {
+            throw new ReqlDriverError(e);
+        }
     }
 
-    private static Logger log = LoggerFactory.getLogger(Util.class);
-    public static ByteBuffer leByteBuffer(int capacity) {
-        // Creating the ByteBuffer over an underlying array makes
-        // it easier to turn into a string later.
-        byte[] underlying = new byte[capacity];
-        return ByteBuffer.wrap(underlying)
-                .order(ByteOrder.LITTLE_ENDIAN);
+    public static Map<String, Object> readJSON(ByteBuffer buf) {
+        try {
+            return RethinkDB.getInternalMapper().readValue(
+                buf.array(),
+                buf.arrayOffset() + buf.position(),
+                buf.remaining(),
+                mapTypeRef
+            );
+        } catch (IOException e) {
+            throw new ReqlDriverError(e);
+        }
     }
 
-    public static String bufferToString(ByteBuffer buf) {
-        // This should only be used on ByteBuffers we've created by
-        // wrapping an array
-        return new String(buf.array(), StandardCharsets.UTF_8);
-    }
-
-    public static JSONObject toJSON(String str) {
-        return (JSONObject) JSONValue.parse(str);
-    }
-
-    public static JSONObject toJSON(ByteBuffer buf) {
-        InputStreamReader codepointReader =
-                new InputStreamReader(new ByteArrayInputStream(buf.array()));
-        return (JSONObject) JSONValue.parse(codepointReader);
-    }
-
-    public static <T, P> T convertToPojo(Object value, Optional<Class<P>> pojoClass) {
-        if (pojoClass.isPresent()) {
-            if (pojoClass.get().isEnum()) {
-                Enum<?>[] enumConstants = ((Class<Enum<?>>) pojoClass.get()).getEnumConstants();
+    @SuppressWarnings("unchecked")
+    public static <T> T convertToPojo(Object value, TypeReference<T> typeRef) {
+        if (typeRef != null) {
+            JavaType type = RethinkDB.getInternalMapper().getTypeFactory().constructType(typeRef);
+            Class<T> rawClass = (Class<T>) type.getRawClass();
+            if (rawClass.isEnum()) {
+                Enum<?>[] enumConstants = ((Class<Enum<?>>) rawClass).getEnumConstants();
                 for (Enum<?> enumConst : enumConstants) {
                     if (enumConst.name().equals(value)) {
                         return (T) enumConst;
                     }
                 }
-            } else if (value instanceof Map) {
-                return (T) RethinkDB.getObjectMapper().convertValue(value, pojoClass.get());
+            } else if (rawClass.isAssignableFrom(value.getClass()) && type.containedTypeCount() == 0) {
+                // class is assignable from value and has no type parameters.
+                // since the only thing that matches those are primitives, strings and dates, it's safe
+                return rawClass.cast(value);
+            } else {
+                try {
+                    return RethinkDB.getResultMapper().convertValue(value, typeRef);
+                } catch (Exception e) {
+                    throw new ReqlDriverError("Tried to convert " + value + ", of type " + value.getClass() + ", to " + typeRef.getType() + ", but got " + e, e);
+                }
             }
         }
         return (T) value;
-    }
-
-    public static byte[] toUTF8(String s) {
-        return s.getBytes(StandardCharsets.UTF_8);
-    }
-
-    public static String fromUTF8(byte[] ba) {
-        return new String(ba, StandardCharsets.UTF_8);
     }
 }
 

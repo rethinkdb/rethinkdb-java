@@ -11,18 +11,15 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-
 import com.rethinkdb.model.ReqlLambda;
 import com.rethinkdb.ast.Util;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Arrays;
 import java.util.List;
 
-
 public class Func extends ReqlExpr {
 
     private static AtomicInteger varId = new AtomicInteger();
-
     protected Func(Arguments args){
         super(TermType.FUNC, args, null);
     }

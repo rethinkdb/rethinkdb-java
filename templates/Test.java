@@ -83,9 +83,9 @@ public class ${module_name} {
         return String.valueOf(i);
     }
 
-    // A hack to concatenate two List<Long>s -- see is_array_add in convert_tests.py.
-    private static List<Long> concatLong(List<Long> x, List<Long> y) {
-        List<Long> ret = new ArrayList<Long>(x);
+    // A hack to concatenate two Lists -- see is_array_add in convert_tests.py.
+    private static List concatList(List x, List y) {
+        List ret = new ArrayList<Long>(x);
         ret.addAll(y);
         return ret;
     }

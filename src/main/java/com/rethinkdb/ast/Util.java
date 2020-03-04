@@ -8,37 +8,44 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.ReqlLambda;
 
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.*;
+import java.lang.reflect.Array;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 
 public class Util {
-    private Util(){}
+    public static int startingDepth = 100;
+
+    private Util() {
+    }
+
     /**
-     * Coerces objects from their native type to ReqlAst
+     * Convert an object to {@link ReqlAst}
      *
-     * @param val val
+     * @param val the original object.
      * @return ReqlAst
      */
     public static ReqlAst toReqlAst(Object val) {
-        return toReqlAst(val, 100);
+        return toReqlAst(val, startingDepth);
     }
 
-    public static ReqlExpr toReqlExpr(Object val){
+    /**
+     * Convert an object to {@link ReqlExpr}
+     *
+     * @param val the original object.
+     * @return ReqlAst
+     */
+    public static ReqlExpr toReqlExpr(Object val) {
         ReqlAst converted = toReqlAst(val);
-        if(converted instanceof ReqlExpr){
+        if (converted instanceof ReqlExpr) {
             return (ReqlExpr) converted;
-        }else{
+        } else {
             throw new ReqlDriverError("Cannot convert %s to ReqlExpr", val);
         }
     }
@@ -51,31 +58,25 @@ public class Util {
             return (ReqlAst) val;
         }
 
-        if (val instanceof Object[]){
+        if (val instanceof Collection) {
             Arguments innerValues = new Arguments();
-            for (Object innerValue : Arrays.asList((Object[])val)){
-                innerValues.add(toReqlAst(innerValue, remainingDepth - 1));
-            }
-            return new MakeArray(innerValues, null);
-        }
-
-        if (val instanceof List) {
-            Arguments innerValues = new Arguments();
-            for (java.lang.Object innerValue : (List) val) {
+            for (Object innerValue : (Collection<?>) val) {
                 innerValues.add(toReqlAst(innerValue, remainingDepth - 1));
             }
             return new MakeArray(innerValues, null);
         }
 
         if (val instanceof Map) {
-            Map<String, ReqlAst> obj = new MapObject();
-            for (Map.Entry<Object, Object> entry : (Set<Map.Entry>) ((Map) val).entrySet()) {
-                if (!(entry.getKey() instanceof String)) {
+            Map<String, ReqlAst> obj = new MapObject<>();
+            ((Map<?, ?>) val).forEach((key, value) -> {
+                if (key.getClass().isEnum()) {
+                    obj.put(((Enum<?>) key).name(), toReqlAst(value, remainingDepth - 1));
+                } else if (key instanceof String) {
+                    obj.put((String) key, toReqlAst(value, remainingDepth - 1));
+                } else {
                     throw new ReqlDriverCompileError("Object keys can only be strings");
                 }
-
-                obj.put((String) entry.getKey(), toReqlAst(entry.getValue()));
-            }
+            });
             return MakeObj.fromMap(obj);
         }
 
@@ -98,41 +99,43 @@ public class Util {
         }
 
         if (val instanceof Integer) {
-            return new Datum((Integer) val);
+            return new Datum(val);
         }
 
         if (val instanceof Number) {
-            return new Datum((Number) val);
+            return new Datum(val);
         }
 
         if (val instanceof Boolean) {
-            return new Datum((Boolean) val);
+            return new Datum(val);
         }
 
         if (val instanceof String) {
-            return new Datum((String) val);
+            return new Datum(val);
         }
 
         if (val == null) {
             return new Datum(null);
         }
-        if (val.getClass().isEnum()) {
-            return new Datum(((Enum)val).toString());
+
+        Class<?> valClass = val.getClass();
+        if (valClass.isEnum()) {
+            return new Datum(((Enum<?>) val).name());
+        }
+
+        if (valClass.isArray()) {
+            if (val instanceof byte[]) {
+                return new Binary(((byte[]) val));
+            }
+            Arguments innerValues = new Arguments();
+            int length = Array.getLength(val);
+            for (int i = 0; i < length; i++) {
+                innerValues.add(toReqlAst(Array.get(val, i)));
+            }
+            return new MakeArray(innerValues, null);
         }
 
         // val is a non-null POJO, let's use jackson
-        return toReqlAst(toMap(val));
-    }
-
-    /**
-     * Converts a POJO to a map of its public properties collected using bean introspection.<br>
-     * The POJO's class must be public, or a ReqlDriverError would be thrown.<br>
-     * Numeric properties should be Long instead of Integer
-     * @param pojo POJO to be introspected
-     * @return Map of POJO's public properties
-     */
-    private static Map<String, Object> toMap(Object pojo) {
-        Map<String, Object> map = RethinkDB.getObjectMapper().convertValue(pojo, Map.class);
-        return map;
+        return toReqlAst(RethinkDB.getResultMapper().convertValue(val, Map.class), remainingDepth - 1);
     }
 }

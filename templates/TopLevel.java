@@ -11,6 +11,7 @@ import com.rethinkdb.gen.exc.ReqlDriverError;
 
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class TopLevel {
@@ -24,24 +25,35 @@ public class TopLevel {
                                   " Use lambda syntax instead");
     }
 
-    public MapObject hashMap(Object key, Object val){
-        return new MapObject().with(key, val);
+    public static Object pathspec(Object... path) {
+        if (path.length < 2) {
+            throw new ReqlDriverError("r.pathspec(...) requires at least two parameters.");
+        }
+        Object result = path[path.length - 1];
+        for (int i = path.length - 2; i >= 0; i--) {
+            result = new MapObject<>().with(path[i], result);
+        }
+        return result;
     }
 
-    public MapObject hashMap() {
-        return new MapObject();
+    public MapObject<Object, Object> hashMap(Object key, Object val){
+        return new MapObject<>().with(key, val);
+    }
+
+    public MapObject<Object, Object> hashMap() {
+        return new MapObject<>();
     }
 
 % for type in ["Object", "ReqlFunction0", "ReqlFunction1", "ReqlFunction2", "ReqlFunction3", "ReqlFunction4"]:
-    public List array(${type} val0, ${type}... vals){
-        List res = new ArrayList();
+    public List<Object> array(${type} val0, ${type}... vals) {
+        List<Object> res = new ArrayList<>();
         res.add(val0);
-        res.addAll(Arrays.asList(vals));
+        Collections.addAll(res, vals);
         return res;
     }
 % endfor
-    public List array(){
-        return new ArrayList();
+    public List<Object> array(){
+        return new ArrayList<>();
     }
 
 %for term in all_terms.values():
@@ -51,10 +63,10 @@ public class TopLevel {
         %if sig['first_arg'] not in ['Db', 'Table']:
     public ${term['classname']} ${methodname}(${
         ', '.join('%s %s' % (arg['type'], arg['var'])
-                  for arg in sig['args'])}){
+                  for arg in sig['args'])}) {
           % if methodname == 'binary':
         <% firstarg = sig['args'][0]['var'] %>
-        if(${firstarg} instanceof byte[]){
+        if (${firstarg} instanceof byte[]) {
             return new ${term['classname']}((byte[]) ${firstarg});
         }else{
           %endif

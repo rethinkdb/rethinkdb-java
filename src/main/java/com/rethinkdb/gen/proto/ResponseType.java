@@ -5,7 +5,7 @@
 
 package com.rethinkdb.gen.proto;
 
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
 public enum ResponseType {
 
@@ -40,11 +40,11 @@ public enum ResponseType {
         }
     }
 
-    public static Optional<ResponseType> maybeFromValue(int value) {
+    public static @Nullable ResponseType maybeFromValue(int value) {
         try {
-            return Optional.of(fromValue(value));
+            return fromValue(value);
         } catch (IllegalArgumentException iae) {
-            return Optional.empty();
+            return null;
         }
     }
 

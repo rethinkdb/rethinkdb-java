@@ -1,9 +1,10 @@
 package com.rethinkdb;
 
 import com.rethinkdb.ast.ReqlAst;
+import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
-import com.rethinkdb.net.Cursor;
+import com.rethinkdb.net.Result;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -344,19 +346,19 @@ public final class TestingCommon {
         if(limit < 0) {
             limit = Long.MAX_VALUE;
         }
-        Cursor cursor = (Cursor) cursor_;
+        Result cursor = (Result) cursor_;
         long total = 0;
         ArrayList result = new ArrayList((int) limit);
         for(long i = 0; i < limit; i++) {
             if(!cursor.hasNext()){
                 break;
             }
-            result.add(cursor.next(500));
+            result.add(cursor.next(500, TimeUnit.MILLISECONDS));
         }
         return result;
     }
 
-    public static ArrayList fetch(Cursor cursor) throws Exception {
+    public static ArrayList fetch(Result cursor) throws Exception {
         return fetch(cursor, -1);
     }
 
@@ -368,13 +370,11 @@ public final class TestingCommon {
             return query;
         }
         try {
-            Object res = ((ReqlAst)query).run(conn, runopts);
-            if(res instanceof com.rethinkdb.net.Cursor) {
-                ArrayList ret = new ArrayList();
-                ((com.rethinkdb.net.Cursor) res).forEachRemaining(ret::add);
-                return ret;
-            }else{
-                return res;
+            Result<Object> res = ((ReqlAst)query).run(conn, runopts);
+            if (res.responseType() == ResponseType.SUCCESS_ATOM || res.responseType().isError()) {
+                return res.single();
+            } else {
+                return res.toList();
             }
         } catch (Exception e) {
             return e;

@@ -1,150 +1,273 @@
 package com.rethinkdb.net;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.gen.ast.Db;
 import com.rethinkdb.gen.exc.ReqlDriverError;
-import com.rethinkdb.gen.proto.Protocol;
-import com.rethinkdb.gen.proto.Version;
+import com.rethinkdb.gen.exc.ReqlError;
+import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.rethinkdb.model.Server;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.Closeable;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.*;
+import java.io.InputStream;
+import java.net.URI;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * A single connection to RethinkDB.
+ * <p>
+ * This object is thread-safe.
+ */
 public class Connection implements Closeable {
-    // logger
-    private static final Logger log = LoggerFactory.getLogger(Connection.class);
+    protected final ConnectionSocket.Factory socketFactory;
+    protected final ResponsePump.Factory pumpFactory;
+    protected final String hostname;
+    protected final int port;
+    protected final @Nullable SSLContext sslContext;
+    protected final @Nullable Long timeout;
+    protected final @Nullable String user;
+    protected final @Nullable String password;
+    protected final boolean unwrapLists;
+    protected final Result.FetchMode defaultFetchMode;
 
-    // public immutable
-    public final String hostname;
-    public final int port;
+    protected final AtomicLong nextToken = new AtomicLong();
+    protected final Set<Result<?>> tracked = ConcurrentHashMap.newKeySet();
+    protected final Lock writeLock = new ReentrantLock();
 
-    private final AtomicLong nextToken = new AtomicLong();
+    protected @Nullable String dbname;
+    protected @Nullable ConnectionSocket socket;
+    protected @Nullable ResponsePump pump;
 
-    // private mutable
-    private Optional<String> dbname;
-    private Optional<Long> connectTimeout;
-    private Optional<SSLContext> sslContext;
-    private final Handshake handshake;
-
-    // network stuff
-    Optional<SocketWrapper> socket = Optional.empty();
-
-    private Map<Long, Cursor> cursorCache = new ConcurrentHashMap<>();
-
-    // execution stuff
-    private ExecutorService exec;
-    private final Map<Long, CompletableFuture<Response>> awaiters = new ConcurrentHashMap<>();
-    private Exception awaiterException = null;
-    private final ReentrantLock lock = new ReentrantLock();
-
-    public Connection(Builder builder) {
-        dbname = builder.dbname;
-        if (builder.authKey.isPresent() && builder.user.isPresent()) {
+    /**
+     * Creates a new connection based on a {@link Builder}.
+     *
+     * @param b the connection builder
+     */
+    public Connection(Builder b) {
+        if (b.authKey != null && b.user != null) {
             throw new ReqlDriverError("Either `authKey` or `user` can be used, but not both.");
         }
-        String user = builder.user.orElse("admin");
-        String password = builder.password.orElse(builder.authKey.orElse(""));
-        handshake = new Handshake(user, password);
-        hostname = builder.hostname.orElse("localhost");
-        port = builder.port.orElse(28015);
-        // is certFile provided? if so, it has precedence over SSLContext
-        this.sslContext = Crypto.handleCertfile(builder.certFile, builder.sslContext);
-        connectTimeout = builder.timeout;
+        this.socketFactory = b.socketFactory != null ? b.socketFactory : DefaultConnectionFactory.INSTANCE;
+        this.pumpFactory = b.pumpFactory != null ? b.pumpFactory : DefaultConnectionFactory.INSTANCE;
+        this.hostname = b.hostname != null ? b.hostname : "localhost";
+        this.port = b.port != null ? b.port : 28015;
+        this.dbname = b.dbname;
+        this.sslContext = b.sslContext;
+        this.timeout = b.timeout;
+        this.user = b.user != null ? b.user : "admin";
+        this.password = b.password != null ? b.password : b.authKey != null ? b.authKey : "";
+        this.unwrapLists = b.unwrapLists;
+        this.defaultFetchMode = b.defaultFetchMode != null ? b.defaultFetchMode : Result.FetchMode.LAZY;
     }
 
-    public static Builder build() {
-        return new Builder();
-    }
-
-    public Optional<String> db() {
+    /**
+     * Gets the default database of the server.
+     * <br>
+     * To set the default database, use {@link Builder#db(String)} or {@link Connection#use(String)}
+     *
+     * @return the current default database, if any, of null.
+     */
+    public @Nullable String db() {
         return dbname;
     }
 
-    public void connect() throws TimeoutException {
-        connect(Optional.empty());
-    }
-
-    public Connection reconnect() {
-        try {
-            return reconnect(false, Optional.empty());
-        } catch (TimeoutException toe) {
-            throw new RuntimeException("Timeout can't happen here.");
-        }
-    }
-
-    public Connection reconnect(boolean noreplyWait, Optional<Long> timeout) throws TimeoutException {
-        if (!timeout.isPresent()) {
-            timeout = connectTimeout;
-        }
-        close(noreplyWait);
-        connect(timeout);
+    /**
+     * Sets the default database of the server.
+     *
+     * @param db the new current default database.
+     * @return itself.
+     */
+    public @NotNull Connection use(@Nullable String db) {
+        dbname = db;
         return this;
     }
 
-    void connect(Optional<Long> timeout) throws TimeoutException {
-        final SocketWrapper sock = new SocketWrapper(hostname, port, sslContext, timeout.isPresent() ? timeout : connectTimeout);
-        sock.connect(handshake);
-        socket = Optional.of(sock);
+    /**
+     * Checks if the connection is open.
+     *
+     * @return true if the socket and the response pump are working, otherwise false.
+     */
+    public boolean isOpen() {
+        return socket != null && socket.isOpen() && pump != null && pump.isAlive();
+    }
 
-        // start response pump
-        exec = Executors.newSingleThreadExecutor();
-        exec.submit((Runnable) () -> {
-            // pump responses until canceled
-            while (true) {
-                // validate socket is open
-                if (!isOpen()) {
-                    awaiterException = new IOException("The socket is closed, exiting response pump.");
-                    this.close();
-                    break;
-                }
+    /**
+     * Begins the socket connection to the server.
+     *
+     * @return itself, once connected.
+     */
+    public @NotNull Connection connect() {
+        if (socket != null) {
+            throw new ReqlDriverError("Client already connected!");
+        }
+        ConnectionSocket socket = socketFactory.newSocket(hostname, port, sslContext, timeout);
+        this.socket = socket;
+        HandshakeProtocol.doHandshake(socket, user, password, timeout);
+        pump = pumpFactory.newPump(socket);
+        return this;
+    }
 
-                // read response and send it to whoever is waiting, if anyone
-                try {
-                    final Response response = this.socket.orElseThrow(() -> new ReqlDriverError("No socket available.")).read();
-                    final CompletableFuture<Response> awaiter = awaiters.remove(response.token);
-                    if (awaiter != null) {
-                        awaiter.complete(response);
-                    }
-                } catch (Exception e) {
-                    awaiterException = e;
-                    this.close();
-                    break;
-                }
+    /**
+     * Closes and reconnects to the server.
+     *
+     * @return itself, once reconnected.
+     */
+    public @NotNull Connection reconnect() {
+        return reconnect(true);
+    }
+
+    /**
+     * Closes and reconnects to the server.
+     *
+     * @param noreplyWait if closing should send a {@link Connection#noreplyWait()} before closing.
+     * @return itself, once reconnected.
+     */
+    public @NotNull Connection reconnect(boolean noreplyWait) {
+        close(noreplyWait);
+        connect();
+        return this;
+    }
+
+    /**
+     * Runs a ReQL query with options {@code optArgs}, the specified {@code fetchMode} and returns the result
+     * asynchronously, with the values converted to the type of {@code TypeReference<T>}
+     *
+     * @param <T>       The type of result
+     * @param term      The ReQL term
+     * @param optArgs   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef   The type to convert to
+     * @return The result of this query
+     */
+    public @NotNull <T> CompletableFuture<Result<T>> runAsync(@NotNull ReqlAst term,
+                                                              @NotNull OptArgs optArgs,
+                                                              @Nullable Result.FetchMode fetchMode,
+                                                              @Nullable TypeReference<T> typeRef) {
+        handleOptArgs(optArgs);
+        Query q = Query.createStart(nextToken.incrementAndGet(), term, optArgs);
+        if (optArgs.containsKey("noreply")) {
+            throw new ReqlDriverError("Don't provide the noreply option as an optarg. Use `.runNoReply` instead of `.run`");
+        }
+        return runQuery(q, fetchMode, typeRef);
+    }
+
+    /**
+     * Runs a ReQL query with options {@code optArgs}, the specified {@code fetchMode} and returns the result, with the
+     * values converted to the type of {@code TypeReference<T>}
+     *
+     * @param <T>       The type of result
+     * @param term      The ReQL term
+     * @param optArgs   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef   The type to convert to
+     * @return The result of this query
+     */
+    public @NotNull <T> Result<T> run(@NotNull ReqlAst term,
+                                      @NotNull OptArgs optArgs,
+                                      @Nullable Result.FetchMode fetchMode,
+                                      @Nullable TypeReference<T> typeRef) {
+        try {
+            return runAsync(term, optArgs, fetchMode, typeRef).join();
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof ReqlError) {
+                throw ((ReqlError) e.getCause());
             }
+            throw e;
+        }
+    }
+
+    /**
+     * Runs a <code>server_info</code> query to the server and returns the server info asynchronously.
+     *
+     * @return The server info.
+     */
+    public @NotNull CompletableFuture<Server> serverAsync() {
+        return sendQuery(Query.createServerInfo(nextToken.incrementAndGet())).thenApply(res -> {
+            if (res.type.equals(ResponseType.SERVER_INFO)) {
+                return Util.convertToPojo(res.data.get(0), new TypeReference<Server>() {});
+            }
+            throw new ReqlDriverError("Did not receive a SERVER_INFO response.");
         });
     }
 
-    public Optional<Integer> clientPort() {
-        return socket.map(SocketWrapper::clientPort).orElse(Optional.empty());
+    /**
+     * Runs a <code>server_info</code> query to the server and returns the server info.
+     *
+     * @return The server info.
+     */
+    public @NotNull Server server() {
+        try {
+            return serverAsync().join();
+        } catch (
+            CompletionException e) {
+            if (e.getCause() instanceof ReqlError) {
+                throw ((ReqlError) e.getCause());
+            }
+            throw e;
+        }
     }
 
-    public Optional<SocketAddress> clientAddress() {
-        return socket.map(SocketWrapper::clientAddress).orElse(Optional.empty());
+    /**
+     * Runs a <code>noreply_wait</code> query to the server and awaits it asynchronously.
+     *
+     * @return a {@link CompletableFuture} you can await.
+     */
+    public @NotNull CompletableFuture<Void> noreplyWaitAsync() {
+        return runQuery(Query.createNoreplyWait(nextToken.incrementAndGet()), null, null).thenApply(ignored -> null);
     }
 
-    public boolean isOpen() {
-        return socket.map(SocketWrapper::isOpen).orElse(false);
+    /**
+     * Runs a <code>noreply_wait</code> query to the server and awaits it.
+     */
+    public void noreplyWait() {
+        try {
+            noreplyWaitAsync().join();
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof ReqlError) {
+                throw ((ReqlError) e.getCause());
+            }
+            throw e;
+        }
     }
 
+    /**
+     * Runs this query via connection {@code conn} with options {@code optArgs} without awaiting the response.
+     *
+     * @param term    The ReQL term
+     * @param optArgs The options to run this query with
+     */
+    public void runNoReply(@NotNull ReqlAst term, @NotNull OptArgs optArgs) {
+        handleOptArgs(optArgs);
+        optArgs.with("noreply", true);
+        runQueryNoreply(Query.createStart(nextToken.incrementAndGet(), term, optArgs));
+    }
+
+    /**
+     * Closes this connection, closing all {@link Result}s, the {@link ResponsePump} and the {@link ConnectionSocket}.
+     */
     @Override
     public void close() {
-        close(false);
+        close(true);
     }
 
+    /**
+     * Closes this connection, closing all {@link Result}s, the {@link ResponsePump} and the {@link ConnectionSocket}.
+     *
+     * @param shouldNoreplyWait If the connection should noreply_wait before closing
+     */
     public void close(boolean shouldNoreplyWait) {
         // disconnect
         try {
@@ -156,273 +279,293 @@ public class Connection implements Closeable {
             nextToken.set(0);
 
             // clear cursor cache
-            for (Cursor cursor : cursorCache.values()) {
-                cursor.setError("Connection is closed.");
+            for (Result<?> handler : tracked) {
+                handler.onConnectionClosed();
             }
-            cursorCache.clear();
-
-            // handle current awaiters
-            this.awaiters.values().stream().forEach(awaiter -> {
-                // what happened?
-                if (this.awaiterException != null) { // an exception
-                    awaiter.completeExceptionally(this.awaiterException);
-                } else { // probably canceled
-                    awaiter.cancel(true);
-                }
-            });
-            awaiters.clear();
 
             // terminate response pump
-            if (exec != null && !exec.isShutdown()) {
-                exec.shutdown();
+            if (pump != null) {
+                pump.shutdownPump();
             }
 
             // close the socket
-            socket.ifPresent(SocketWrapper::close);
+            if (socket != null) {
+                socket.close();
+            }
         }
-
     }
 
-    public void use(String db) {
-        dbname = Optional.ofNullable(db);
+    /**
+     * Closes all {@link Result}s currently opened.
+     */
+    public void closeResults() {
+        for (Result<?> handler : tracked) {
+            handler.close();
+        }
     }
 
-    public Optional<Long> timeout() {
-        return connectTimeout;
+    // protected methods
+
+    protected void sendStop(long token) {
+        // While the server does reply to the stop request, we ignore that reply.
+        // This works because the response pump in `connect` ignores replies for which
+        // no waiter exists.
+        runQueryNoreply(Query.createStop(token));
+    }
+
+
+    protected @NotNull CompletableFuture<Response> sendContinue(long token) {
+        return sendQuery(Query.createContinue(token));
+    }
+
+    protected void loseTrackOf(@NotNull Result<?> r) {
+        tracked.add(r);
+    }
+
+    protected void keepTrackOf(@NotNull Result<?> r) {
+        tracked.remove(r);
     }
 
     /**
      * Writes a query and returns a completable future.
      * Said completable future value will eventually be set by the runnable response pump (see {@link #connect}).
      *
-     * @param query    the query to execute.
-     * @param deadline the timeout.
+     * @param query the query to execute.
      * @return a completable future.
      */
-    private Future<Response> sendQuery(Query query, Optional<Long> deadline) {
-        // check if response pump is running
-        if (!exec.isShutdown() && !exec.isTerminated()) {
-            final CompletableFuture<Response> awaiter = new CompletableFuture<>();
-            awaiters.put(query.token, awaiter);
-            try {
-                lock.lock();
-                socket.orElseThrow(() -> new ReqlDriverError("No socket available."))
-                        .write(query.serialize());
-                return awaiter.toCompletableFuture();
-            } finally {
-                lock.unlock();
-            }
+    protected @NotNull CompletableFuture<Response> sendQuery(@NotNull Query query) {
+        if (socket == null || !socket.isOpen()) {
+            throw new ReqlDriverError("Client not connected.");
         }
 
-        // shouldn't be here
-        throw new ReqlDriverError("Can't write query because response pump is not running.");
+        if (pump == null) {
+            throw new ReqlDriverError("Response pump is not running.");
+        }
+
+        CompletableFuture<Response> response = pump.await(query.token);
+        try {
+            writeLock.lock();
+            socket.write(query.serialize());
+            return response;
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     /**
      * Writes a query without waiting for a response
      *
-     * @param query    the query to execute.
+     * @param query the query to execute.
      */
-    private void sendQueryNoreply(Query query) {
-        // check if response pump is running
-        if (!exec.isShutdown() && !exec.isTerminated()) {
-            try {
-                lock.lock();
-                socket.orElseThrow(() -> new ReqlDriverError("No socket available."))
-                        .write(query.serialize());
-                return;
-            } finally {
-                lock.unlock();
-            }
+    protected void runQueryNoreply(@NotNull Query query) {
+        if (socket == null || !socket.isOpen()) {
+            throw new ReqlDriverError("Client not connected.");
         }
 
-        // shouldn't be here
-        throw new ReqlDriverError("Can't write query because response pump is not running.");
-    }
+        if (pump == null) {
+            throw new ReqlDriverError("Response pump is not running.");
+        }
 
-
-    void runQueryNoreply(Query query) {
-        sendQueryNoreply(query);
-    }
-
-    <T> T runQuery(Query query) {
-        return runQuery(query, Optional.empty());
-    }
-
-    <T, P> T runQuery(Query query, Optional<Class<P>> pojoClass) {
-        return runQuery(query, pojoClass, Optional.empty());
-    }
-
-    /**
-     * Runs a query and blocks until a response is retrieved.
-     *
-     * @param query
-     * @param pojoClass
-     * @param timeout
-     * @param <T>
-     * @param <P>
-     * @return
-     */
-    <T, P> T runQuery(Query query, Optional<Class<P>> pojoClass, Optional<Long> timeout) {
-        Response res = null;
         try {
-            res = sendQuery(query, timeout).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new ReqlDriverError(e);
-        }
-
-        if (res.isAtom()) {
-            try {
-                Converter.FormatOptions fmt = new Converter.FormatOptions(query.globalOptions);
-                Object value = ((List) Converter.convertPseudotypes(res.data, fmt)).get(0);
-                return Util.convertToPojo(value, pojoClass);
-            } catch (IndexOutOfBoundsException ex) {
-                throw new ReqlDriverError("Atom response was empty!", ex);
-            }
-        } else if (res.isPartial() || res.isSequence()) {
-            Cursor cursor = Cursor.create(this, query, res, pojoClass);
-            return (T) cursor;
-        } else if (res.isWaitComplete()) {
-            return null;
-        } else {
-            throw res.makeError(query);
+            writeLock.lock();
+            socket.write(query.serialize());
+        } finally {
+            writeLock.unlock();
         }
     }
 
-    private long newToken() {
-        return nextToken.incrementAndGet();
+    protected @NotNull <T> CompletableFuture<Result<T>> runQuery(@NotNull Query query,
+                                                                 @Nullable Result.FetchMode fetchMode,
+                                                                 @Nullable TypeReference<T> typeRef) {
+        return sendQuery(query).thenApply(res -> new Result<>(
+            this, query, res, fetchMode == null ? defaultFetchMode : fetchMode, typeRef
+        ));
     }
 
-    void addToCache(long token, Cursor cursor) {
-        cursorCache.put(token, cursor);
-    }
-
-    void removeFromCache(long token) {
-        cursorCache.remove(token);
-    }
-
-    public void noreplyWait() {
-        runQuery(Query.noreplyWait(newToken()));
-    }
-
-    private void setDefaultDB(OptArgs globalOpts) {
-        if (!globalOpts.containsKey("db") && dbname.isPresent()) {
+    protected void handleOptArgs(@NotNull OptArgs optArgs) {
+        if (!optArgs.containsKey("db") && dbname != null) {
             // Only override the db global arg if the user hasn't
             // specified one already and one is specified on the connection
-            globalOpts.with("db", dbname.get());
+            optArgs.with("db", dbname);
         }
-        if (globalOpts.containsKey("db")) {
+        if (optArgs.containsKey("db")) {
             // The db arg must be wrapped in a db ast object
-            globalOpts.with("db", new Db(Arguments.make(globalOpts.get("db"))));
+            optArgs.with("db", new Db(Arguments.make(optArgs.get("db"))));
         }
     }
 
-    public <T, P> T run(ReqlAst term, OptArgs globalOpts, Optional<Class<P>> pojoClass) {
-        return run(term, globalOpts, pojoClass, Optional.empty());
-    }
+    // builder
 
-    public <T, P> T run(ReqlAst term, OptArgs globalOpts, Optional<Class<P>> pojoClass, Optional<Long> timeout) {
-        setDefaultDB(globalOpts);
-        Query q = Query.start(newToken(), term, globalOpts);
-        if (globalOpts.containsKey("noreply")) {
-            throw new ReqlDriverError(
-                    "Don't provide the noreply option as an optarg. " +
-                            "Use `.runNoReply` instead of `.run`");
-        }
-        return runQuery(q, pojoClass, timeout);
-    }
-
-    public void runNoReply(ReqlAst term, OptArgs globalOpts) {
-        setDefaultDB(globalOpts);
-        globalOpts.with("noreply", true);
-        runQueryNoreply(Query.start(newToken(), term, globalOpts));
-    }
-
-    Future<Response> continue_(Cursor cursor) {
-        return sendQuery(Query.continue_(cursor.token), Optional.empty());
-    }
-
-
-    void stop(Cursor cursor) {
-        // While the server does reply to the stop request, we ignore that reply.
-        // This works because the response pump in `connect` ignores replies for which
-        // no waiter exists.
-        runQueryNoreply(Query.stop(cursor.token));
-    }
 
     /**
-     * Connection.Builder should be used to build a Connection instance.
+     * Builder should be used to build a Connection instance.
      */
-    public static class Builder implements Cloneable {
-        private Optional<String> hostname = Optional.empty();
-        private Optional<Integer> port = Optional.empty();
-        private Optional<String> dbname = Optional.empty();
-        private Optional<InputStream> certFile = Optional.empty();
-        private Optional<SSLContext> sslContext = Optional.empty();
-        private Optional<Long> timeout = Optional.empty();
-        private Optional<String> authKey = Optional.empty();
-        private Optional<String> user = Optional.empty();
-        private Optional<String> password = Optional.empty();
+    public static class Builder {
+        private @Nullable ConnectionSocket.Factory socketFactory;
+        private @Nullable ResponsePump.Factory pumpFactory;
+        private @Nullable String hostname;
+        private @Nullable Integer port;
+        private @Nullable String dbname;
+        private @Nullable SSLContext sslContext;
+        private @Nullable Long timeout;
+        private @Nullable String authKey;
+        private @Nullable String user;
+        private @Nullable String password;
+        private @Nullable Result.FetchMode defaultFetchMode;
+        private boolean unwrapLists = false;
 
-        public Builder clone() throws CloneNotSupportedException {
-            Builder c = (Builder)super.clone();
+        public Builder() {
+        }
+
+        public Builder(@NotNull URI uri) {
+            Objects.requireNonNull(uri, "URI can't be null. Use the default constructor instead.");
+            if (!"rethinkdb".equals(uri.getScheme())) {
+                throw new IllegalArgumentException("Schema of the URL is not 'rethinkdb'.");
+            }
+
+            String userInfo = uri.getUserInfo();
+            String host = uri.getHost();
+            int port = uri.getPort();
+            String path = uri.getPath();
+            String query = uri.getQuery();
+
+            if (userInfo != null && !userInfo.isEmpty()) {
+                String[] split = userInfo.split(":");
+                if (split.length > 2) {
+                    throw new IllegalArgumentException("Invalid user info.");
+                }
+                if (split.length > 0) {
+                    this.user = split[0];
+                }
+                if (split.length > 1) {
+                    this.password = split[1];
+                }
+            }
+            if (host != null && !host.isEmpty()) {
+                this.hostname = host.trim();
+            }
+            if (port != -1) {
+                this.port = port;
+            }
+            if (path != null) {
+                if (path.charAt(0) == '/') {
+                    path = path.substring(1);
+                }
+                if (!path.isEmpty()) {
+                    this.dbname = path;
+                }
+            }
+            if (query != null) {
+                String[] kvs = query.split("&");
+                for (String kv : kvs) {
+                    String[] split = kv.split("=");
+                    if (split.length != 2) {
+                        throw new IllegalArgumentException("Invalid query.");
+                    }
+                    switch (split[0]) {
+                        case "auth_key": {
+                            String authKey = split[1];
+                            if (authKey.isEmpty()) {
+                                throw new IllegalArgumentException("Invalid query value.");
+                            }
+                            if (authKey.charAt(0) == '\'' && authKey.charAt(authKey.length() - 1) == '\'') {
+                                authKey = authKey.substring(1, authKey.length() - 1).replace("\\'", "'");
+                            }
+                            this.authKey = authKey;
+                            break;
+                        }
+                        case "timeout": {
+                            this.timeout = Long.parseLong(split[1]);
+                            break;
+                        }
+                        default: {
+                            throw new IllegalArgumentException("Invalid query parameter.");
+                        }
+                    }
+                }
+            }
+        }
+
+        public @NotNull Builder copyOf() {
+            Builder c = new Builder();
+            c.socketFactory = socketFactory;
+            c.pumpFactory = pumpFactory;
             c.hostname = hostname;
             c.port = port;
             c.dbname = dbname;
-            c.certFile = certFile;
             c.sslContext = sslContext;
             c.timeout = timeout;
             c.authKey = authKey;
             c.user = user;
             c.password = password;
+            c.unwrapLists = unwrapLists;
+            c.defaultFetchMode = defaultFetchMode;
             return c;
         }
 
-        public Builder hostname(String val) {
-            hostname = Optional.of(val);
+        public @NotNull Builder socketFactory(@Nullable ConnectionSocket.Factory factory) {
+            socketFactory = factory;
             return this;
         }
 
-        public Builder port(int val) {
-            port = Optional.of(val);
+        public @NotNull Builder pumpFactory(@Nullable ResponsePump.Factory factory) {
+            pumpFactory = factory;
             return this;
         }
 
-        public Builder db(String val) {
-            dbname = Optional.of(val);
+        public @NotNull Builder hostname(@Nullable String val) {
+            hostname = val;
             return this;
         }
 
-        public Builder authKey(String key) {
-            authKey = Optional.of(key);
+        public @NotNull Builder port(@Nullable Integer val) {
+            port = val;
             return this;
         }
 
-        public Builder user(String user, String password) {
-            this.user = Optional.of(user);
-            this.password = Optional.of(password);
+        public @NotNull Builder db(@Nullable String val) {
+            dbname = val;
             return this;
         }
 
-        public Builder certFile(InputStream val) {
-            certFile = Optional.of(val);
+        public @NotNull Builder authKey(@Nullable String key) {
+            authKey = key;
             return this;
         }
 
-        public Builder sslContext(SSLContext val) {
-            sslContext = Optional.of(val);
+        public @NotNull Builder user(@Nullable String user, @Nullable String password) {
+            this.user = user;
+            this.password = password;
             return this;
         }
 
-        public Builder timeout(long val) {
-            timeout = Optional.of(val);
+        public @NotNull Builder certFile(@Nullable InputStream val) {
+            sslContext = Crypto.readCertFile(val);
             return this;
         }
 
-        public Connection connect() {
-            final Connection conn = new Connection(this);
-            conn.reconnect();
-            return conn;
+        public @NotNull Builder sslContext(@Nullable SSLContext val) {
+            sslContext = val;
+            return this;
+        }
+
+        public @NotNull Builder unwrapLists(boolean val) {
+            unwrapLists = val;
+            return this;
+        }
+
+        public @NotNull Builder defaultFetchMode(@Nullable Result.FetchMode val) {
+            defaultFetchMode = val;
+            return this;
+        }
+
+        public @NotNull Builder timeout(@Nullable Long val) {
+            timeout = val;
+            return this;
+        }
+
+        public @NotNull Connection connect() {
+            return new Connection(this).connect();
         }
     }
 }
