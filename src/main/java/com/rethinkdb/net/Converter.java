@@ -60,8 +60,6 @@ public class Converter {
         return obj;
     }
 
-    //convertPseudotypes
-
     private static Object handlePseudotypes(Map<?, ?> value, FormatOptions fmt) {
         switch ((String) value.get(PSEUDOTYPE_KEY)) {
             case TIME: {
@@ -80,7 +78,7 @@ public class Converter {
                     return value;
                 }
                 return ((List<?>) value.get("data")).stream()
-                    .map(it -> new ArrayList<>((List<?>) it))
+                    .map(it -> new ArrayList<>((Collection<?>) it))
                     .map(it -> new GroupedResult<>(it.remove(0), it))
                     .collect(Collectors.toList());
             }
