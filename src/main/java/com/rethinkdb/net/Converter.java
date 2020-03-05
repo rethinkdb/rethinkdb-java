@@ -88,7 +88,7 @@ public class Converter {
                 if (fmt.rawBinary) {
                     return value;
                 }
-                return Base64.getDecoder().decode((String) value.get("data"));
+                return Base64.getMimeDecoder().decode((String) value.get("data"));
             }
             case GEOMETRY: {
                 // Nothing specific here
