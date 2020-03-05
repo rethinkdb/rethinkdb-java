@@ -16,7 +16,7 @@ public class Grant extends ReqlExpr {
     public Grant(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Grant(Arguments args){
+    public Grant(Arguments args) {
         this(args, null);
     }
     public Grant(Arguments args, OptArgs optargs) {

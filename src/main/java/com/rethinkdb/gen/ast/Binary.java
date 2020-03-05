@@ -11,7 +11,7 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.ast.ReqlAst;
 
-import com.rethinkdb.net.Converter;
+import com.rethinkdb.utils.Internals;
 import org.jetbrains.annotations.Nullable;
 
 public class Binary extends ReqlExpr {
@@ -38,8 +38,8 @@ public class Binary extends ReqlExpr {
     @Override
     public Object build(){
         if (binaryData != null) {
-            return Converter.toBinary(binaryData);
-        }else{
+            return Internals.asBinaryPseudotype(binaryData);
+        } else {
             return super.build();
         }
     }

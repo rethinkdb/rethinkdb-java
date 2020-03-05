@@ -16,7 +16,7 @@ public class Union extends ReqlExpr {
     public Union(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Union(Arguments args){
+    public Union(Arguments args) {
         this(args, null);
     }
     public Union(Arguments args, OptArgs optargs) {

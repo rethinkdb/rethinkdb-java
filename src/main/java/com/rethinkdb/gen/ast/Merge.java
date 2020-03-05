@@ -16,7 +16,7 @@ public class Merge extends ReqlExpr {
     public Merge(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Merge(Arguments args){
+    public Merge(Arguments args) {
         this(args, null);
     }
     public Merge(Arguments args, OptArgs optargs) {

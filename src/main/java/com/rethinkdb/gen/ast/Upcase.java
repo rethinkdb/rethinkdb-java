@@ -16,7 +16,7 @@ public class Upcase extends ReqlExpr {
     public Upcase(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Upcase(Arguments args){
+    public Upcase(Arguments args) {
         this(args, null);
     }
     public Upcase(Arguments args, OptArgs optargs) {

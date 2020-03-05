@@ -16,7 +16,7 @@ public class Avg extends ReqlExpr {
     public Avg(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Avg(Arguments args){
+    public Avg(Arguments args) {
         this(args, null);
     }
     public Avg(Arguments args, OptArgs optargs) {

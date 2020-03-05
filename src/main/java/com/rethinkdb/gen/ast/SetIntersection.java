@@ -16,7 +16,7 @@ public class SetIntersection extends ReqlExpr {
     public SetIntersection(Object arg) {
         this(new Arguments(arg), null);
     }
-    public SetIntersection(Arguments args){
+    public SetIntersection(Arguments args) {
         this(args, null);
     }
     public SetIntersection(Arguments args, OptArgs optargs) {

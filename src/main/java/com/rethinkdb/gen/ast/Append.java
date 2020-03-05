@@ -16,7 +16,7 @@ public class Append extends ReqlExpr {
     public Append(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Append(Arguments args){
+    public Append(Arguments args) {
         this(args, null);
     }
     public Append(Arguments args, OptArgs optargs) {

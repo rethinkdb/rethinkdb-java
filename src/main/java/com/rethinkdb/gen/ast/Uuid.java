@@ -16,7 +16,7 @@ public class Uuid extends ReqlExpr {
     public Uuid(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Uuid(Arguments args){
+    public Uuid(Arguments args) {
         this(args, null);
     }
     public Uuid(Arguments args, OptArgs optargs) {

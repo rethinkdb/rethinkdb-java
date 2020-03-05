@@ -16,7 +16,7 @@ public class Wait extends ReqlExpr {
     public Wait(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Wait(Arguments args){
+    public Wait(Arguments args) {
         this(args, null);
     }
     public Wait(Arguments args, OptArgs optargs) {

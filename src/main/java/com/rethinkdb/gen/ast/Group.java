@@ -16,7 +16,7 @@ public class Group extends ReqlExpr {
     public Group(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Group(Arguments args){
+    public Group(Arguments args) {
         this(args, null);
     }
     public Group(Arguments args, OptArgs optargs) {

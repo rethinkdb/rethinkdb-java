@@ -16,7 +16,7 @@ public class IndexList extends ReqlExpr {
     public IndexList(Object arg) {
         this(new Arguments(arg), null);
     }
-    public IndexList(Arguments args){
+    public IndexList(Arguments args) {
         this(args, null);
     }
     public IndexList(Arguments args, OptArgs optargs) {

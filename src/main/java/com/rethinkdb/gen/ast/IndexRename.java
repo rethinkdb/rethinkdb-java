@@ -16,7 +16,7 @@ public class IndexRename extends ReqlExpr {
     public IndexRename(Object arg) {
         this(new Arguments(arg), null);
     }
-    public IndexRename(Arguments args){
+    public IndexRename(Arguments args) {
         this(args, null);
     }
     public IndexRename(Arguments args, OptArgs optargs) {

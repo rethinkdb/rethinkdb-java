@@ -16,7 +16,7 @@ public class Gt extends ReqlExpr {
     public Gt(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Gt(Arguments args){
+    public Gt(Arguments args) {
         this(args, null);
     }
     public Gt(Arguments args, OptArgs optargs) {

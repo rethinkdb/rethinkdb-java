@@ -16,7 +16,7 @@ public class DbCreate extends ReqlExpr {
     public DbCreate(Object arg) {
         this(new Arguments(arg), null);
     }
-    public DbCreate(Arguments args){
+    public DbCreate(Arguments args) {
         this(args, null);
     }
     public DbCreate(Arguments args, OptArgs optargs) {

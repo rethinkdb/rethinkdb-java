@@ -16,7 +16,7 @@ public class ToIso8601 extends ReqlExpr {
     public ToIso8601(Object arg) {
         this(new Arguments(arg), null);
     }
-    public ToIso8601(Arguments args){
+    public ToIso8601(Arguments args) {
         this(args, null);
     }
     public ToIso8601(Arguments args, OptArgs optargs) {

@@ -4,6 +4,7 @@ import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
 import com.rethinkdb.gen.proto.QueryType;
 import com.rethinkdb.model.OptArgs;
+import com.rethinkdb.utils.Internals;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +50,7 @@ public class Query {
             if (!globalOptions.isEmpty()) {
                 list.add(ReqlAst.buildOptarg(globalOptions));
             }
-            String json = RethinkDB.getInternalMapper().writeValueAsString(list);
+            String json = Internals.getInternalMapper().writeValueAsString(list);
             byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
             ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES + Integer.BYTES + bytes.length)
                 .order(ByteOrder.LITTLE_ENDIAN)

@@ -1,10 +1,10 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.gen.ast.Wait;
 import com.rethinkdb.gen.exc.ReqlAuthError;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.proto.Protocol;
 import com.rethinkdb.gen.proto.Version;
+import com.rethinkdb.utils.Internals;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
@@ -14,7 +14,6 @@ import java.security.MessageDigest;
 import java.util.Map;
 
 import static com.rethinkdb.net.Crypto.*;
-import static com.rethinkdb.net.Util.readJSON;
 
 /**
  * Internal class used by {@link Connection#connect()} to do a proper handshake with the server.
@@ -96,7 +95,7 @@ abstract class HandshakeProtocol {
 
         @Override
         public HandshakeProtocol nextState(String response) {
-            Map<String, Object> json = Util.readJSON(response);
+            Map<String, Object> json = Internals.readJson(response);
             throwIfFailure(json);
             long minVersion = (long) json.get("min_protocol_version");
             long maxVersion = (long) json.get("max_protocol_version");
@@ -133,7 +132,7 @@ abstract class HandshakeProtocol {
 
         @Override
         public HandshakeProtocol nextState(String response) {
-            Map<String, Object> json = Util.readJSON(response);
+            Map<String, Object> json = Internals.readJson(response);
             throwIfFailure(json);
             String serverFirstMessage = (String) json.get("authentication");
             ScramAttributes serverAuth = ScramAttributes.from(serverFirstMessage);
@@ -223,7 +222,7 @@ abstract class HandshakeProtocol {
 
         @Override
         public HandshakeProtocol nextState(String response) {
-            Map<String, Object> json = Util.readJSON(response);
+            Map<String, Object> json = Internals.readJson(response);
             throwIfFailure(json);
             ScramAttributes auth = ScramAttributes
                 .from((String) json.get("authentication"));

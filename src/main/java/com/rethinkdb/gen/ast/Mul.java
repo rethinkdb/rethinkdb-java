@@ -16,7 +16,7 @@ public class Mul extends ReqlExpr {
     public Mul(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Mul(Arguments args){
+    public Mul(Arguments args) {
         this(args, null);
     }
     public Mul(Arguments args, OptArgs optargs) {

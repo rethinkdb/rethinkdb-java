@@ -16,7 +16,7 @@ public class Distinct extends ReqlExpr {
     public Distinct(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Distinct(Arguments args){
+    public Distinct(Arguments args) {
         this(args, null);
     }
     public Distinct(Arguments args, OptArgs optargs) {

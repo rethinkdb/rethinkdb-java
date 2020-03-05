@@ -16,7 +16,7 @@ public class Keys extends ReqlExpr {
     public Keys(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Keys(Arguments args){
+    public Keys(Arguments args) {
         this(args, null);
     }
     public Keys(Arguments args, OptArgs optargs) {

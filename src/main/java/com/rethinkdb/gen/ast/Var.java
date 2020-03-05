@@ -16,7 +16,7 @@ public class Var extends ReqlExpr {
     public Var(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Var(Arguments args){
+    public Var(Arguments args) {
         this(args, null);
     }
     public Var(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class Match extends ReqlExpr {
     public Match(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Match(Arguments args){
+    public Match(Arguments args) {
         this(args, null);
     }
     public Match(Arguments args, OptArgs optargs) {

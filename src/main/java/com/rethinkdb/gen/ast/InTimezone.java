@@ -16,7 +16,7 @@ public class InTimezone extends ReqlExpr {
     public InTimezone(Object arg) {
         this(new Arguments(arg), null);
     }
-    public InTimezone(Arguments args){
+    public InTimezone(Arguments args) {
         this(args, null);
     }
     public InTimezone(Arguments args, OptArgs optargs) {

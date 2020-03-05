@@ -16,7 +16,7 @@ public class EpochTime extends ReqlExpr {
     public EpochTime(Object arg) {
         this(new Arguments(arg), null);
     }
-    public EpochTime(Arguments args){
+    public EpochTime(Arguments args) {
         this(args, null);
     }
     public EpochTime(Arguments args, OptArgs optargs) {

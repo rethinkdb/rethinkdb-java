@@ -2,7 +2,7 @@
 
 <%block name="add_imports">
 import com.rethinkdb.model.ReqlLambda;
-import com.rethinkdb.ast.Util;
+import com.rethinkdb.utils.Internals;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Arrays;
 import java.util.List;
@@ -25,12 +25,11 @@ import java.util.List;
 </%block>
 <%block name="static_factories">\
     public static Func fromLambda(ReqlLambda function) {
-        if(function instanceof ReqlFunction0) {
-            return new Func(Arguments.make(new MakeArray(Arrays.asList()),
-                            Util.toReqlAst(((ReqlFunction0) function).apply())));
+        if (function instanceof ReqlFunction0)  {
+            return new Func(Arguments.make(new MakeArray(Arrays.asList()), Internals.toReqlAst(((ReqlFunction0) function).apply())));
         }
         % for i in range(1, max_arity+1):
-        else if(function instanceof ReqlFunction${i}){
+        else if (function instanceof ReqlFunction${i}) {
             ReqlFunction${i} func${i} = (ReqlFunction${i}) function;
             % for j in range(1, i+1):
             int var${j} = nextVarId();
@@ -40,9 +39,7 @@ import java.util.List;
             Object appliedFunction = func${i}.apply(
                 ${", ".join("new Var(var%s)"%(j,) for j in range(1, j+1))}
             );
-            return new Func(Arguments.make(
-                  new MakeArray(varIds),
-                  Util.toReqlAst(appliedFunction)));
+            return new Func(Arguments.make(new MakeArray(varIds), Internals.toReqlAst(appliedFunction)));
         }
         % endfor
         else {

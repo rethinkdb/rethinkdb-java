@@ -14,14 +14,14 @@ public class ${classname} extends ${superclass} {
     public ${classname}(Object arg) {
         this(new Arguments(arg), null);
     }
-    public ${classname}(Arguments args){
+    public ${classname}(Arguments args) {
         this(args, null);
     }
     public ${classname}(Arguments args, OptArgs optargs) {
         super(TermType.${term_name}, args, optargs);
     }
     %else:
-    protected ${classname}(TermType termType, Arguments args, OptArgs optargs){
+    protected ${classname}(TermType termType, Arguments args, OptArgs optargs) {
         super(termType, args, optargs);
     }
     %endif

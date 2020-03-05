@@ -16,7 +16,7 @@ public class Hours extends ReqlExpr {
     public Hours(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Hours(Arguments args){
+    public Hours(Arguments args) {
         this(args, null);
     }
     public Hours(Arguments args, OptArgs optargs) {

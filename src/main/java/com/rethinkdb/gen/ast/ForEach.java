@@ -16,7 +16,7 @@ public class ForEach extends ReqlExpr {
     public ForEach(Object arg) {
         this(new Arguments(arg), null);
     }
-    public ForEach(Arguments args){
+    public ForEach(Arguments args) {
         this(args, null);
     }
     public ForEach(Arguments args, OptArgs optargs) {

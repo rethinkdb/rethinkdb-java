@@ -16,7 +16,7 @@ public class DbDrop extends ReqlExpr {
     public DbDrop(Object arg) {
         this(new Arguments(arg), null);
     }
-    public DbDrop(Arguments args){
+    public DbDrop(Arguments args) {
         this(args, null);
     }
     public DbDrop(Arguments args, OptArgs optargs) {

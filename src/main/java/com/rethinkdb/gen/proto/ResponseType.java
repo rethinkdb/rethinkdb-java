@@ -20,7 +20,7 @@ public enum ResponseType {
 
     public final int value;
 
-    private ResponseType(int value){
+    private ResponseType(int value) {
         this.value = value;
     }
 
@@ -35,8 +35,7 @@ public enum ResponseType {
             case 17: return ResponseType.COMPILE_ERROR;
             case 18: return ResponseType.RUNTIME_ERROR;
             default:
-                throw new IllegalArgumentException(String.format(
-                "%s is not a legal value for ResponseType", value));
+                throw new IllegalArgumentException(String.format("%s is not a legal value for ResponseType", value));
         }
     }
 

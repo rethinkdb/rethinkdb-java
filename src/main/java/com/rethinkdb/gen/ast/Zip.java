@@ -16,7 +16,7 @@ public class Zip extends ReqlExpr {
     public Zip(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Zip(Arguments args){
+    public Zip(Arguments args) {
         this(args, null);
     }
     public Zip(Arguments args, OptArgs optargs) {

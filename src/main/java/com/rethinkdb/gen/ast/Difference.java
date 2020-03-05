@@ -16,7 +16,7 @@ public class Difference extends ReqlExpr {
     public Difference(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Difference(Arguments args){
+    public Difference(Arguments args) {
         this(args, null);
     }
     public Difference(Arguments args, OptArgs optargs) {

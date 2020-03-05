@@ -16,7 +16,7 @@ public class Db extends ReqlAst {
     public Db(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Db(Arguments args){
+    public Db(Arguments args) {
         this(args, null);
     }
     public Db(Arguments args, OptArgs optargs) {

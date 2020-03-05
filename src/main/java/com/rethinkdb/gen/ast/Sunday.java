@@ -16,7 +16,7 @@ public class Sunday extends ReqlExpr {
     public Sunday(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Sunday(Arguments args){
+    public Sunday(Arguments args) {
         this(args, null);
     }
     public Sunday(Arguments args, OptArgs optargs) {

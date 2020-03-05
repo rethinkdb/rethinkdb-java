@@ -16,7 +16,7 @@ public class OrderBy extends ReqlExpr {
     public OrderBy(Object arg) {
         this(new Arguments(arg), null);
     }
-    public OrderBy(Arguments args){
+    public OrderBy(Arguments args) {
         this(args, null);
     }
     public OrderBy(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class Sync extends ReqlExpr {
     public Sync(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Sync(Arguments args){
+    public Sync(Arguments args) {
         this(args, null);
     }
     public Sync(Arguments args, OptArgs optargs) {

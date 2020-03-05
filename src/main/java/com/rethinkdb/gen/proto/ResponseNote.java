@@ -17,7 +17,7 @@ public enum ResponseNote {
 
     public final int value;
 
-    private ResponseNote(int value){
+    private ResponseNote(int value) {
         this.value = value;
     }
 
@@ -29,8 +29,7 @@ public enum ResponseNote {
             case 4: return ResponseNote.UNIONED_FEED;
             case 5: return ResponseNote.INCLUDES_STATES;
             default:
-                throw new IllegalArgumentException(String.format(
-                "%s is not a legal value for ResponseNote", value));
+                throw new IllegalArgumentException(String.format("%s is not a legal value for ResponseNote", value));
         }
     }
 

@@ -16,7 +16,7 @@ public class OffsetsOf extends ReqlExpr {
     public OffsetsOf(Object arg) {
         this(new Arguments(arg), null);
     }
-    public OffsetsOf(Arguments args){
+    public OffsetsOf(Arguments args) {
         this(args, null);
     }
     public OffsetsOf(Arguments args, OptArgs optargs) {

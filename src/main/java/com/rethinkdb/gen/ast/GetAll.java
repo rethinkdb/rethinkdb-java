@@ -16,7 +16,7 @@ public class GetAll extends ReqlExpr {
     public GetAll(Object arg) {
         this(new Arguments(arg), null);
     }
-    public GetAll(Arguments args){
+    public GetAll(Arguments args) {
         this(args, null);
     }
     public GetAll(Arguments args, OptArgs optargs) {

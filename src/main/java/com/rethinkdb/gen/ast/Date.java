@@ -16,7 +16,7 @@ public class Date extends ReqlExpr {
     public Date(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Date(Arguments args){
+    public Date(Arguments args) {
         this(args, null);
     }
     public Date(Arguments args, OptArgs optargs) {

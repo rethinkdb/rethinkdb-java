@@ -16,7 +16,7 @@ public class SpliceAt extends ReqlExpr {
     public SpliceAt(Object arg) {
         this(new Arguments(arg), null);
     }
-    public SpliceAt(Arguments args){
+    public SpliceAt(Arguments args) {
         this(args, null);
     }
     public SpliceAt(Arguments args, OptArgs optargs) {

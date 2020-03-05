@@ -16,7 +16,7 @@ public class Asc extends ReqlExpr {
     public Asc(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Asc(Arguments args){
+    public Asc(Arguments args) {
         this(args, null);
     }
     public Asc(Arguments args, OptArgs optargs) {

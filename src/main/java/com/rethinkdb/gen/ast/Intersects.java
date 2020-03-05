@@ -16,7 +16,7 @@ public class Intersects extends ReqlExpr {
     public Intersects(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Intersects(Arguments args){
+    public Intersects(Arguments args) {
         this(args, null);
     }
     public Intersects(Arguments args, OptArgs optargs) {

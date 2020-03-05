@@ -16,7 +16,7 @@ public class Map extends ReqlExpr {
     public Map(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Map(Arguments args){
+    public Map(Arguments args) {
         this(args, null);
     }
     public Map(Arguments args, OptArgs optargs) {

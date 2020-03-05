@@ -9,7 +9,7 @@ public enum ${classname} {
 
     public final ${value_type} value;
 
-    private ${classname}(${value_type} value){
+    private ${classname}(${value_type} value) {
         this.value = value;
     }
 
@@ -19,8 +19,7 @@ public enum ${classname} {
             case ${val}: return ${classname}.${key};
     % endfor
             default:
-                throw new IllegalArgumentException(String.format(
-                "%s is not a legal value for ${classname}", value));
+                throw new IllegalArgumentException(String.format("%s is not a legal value for ${classname}", value));
         }
     }
 

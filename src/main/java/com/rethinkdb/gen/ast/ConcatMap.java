@@ -16,7 +16,7 @@ public class ConcatMap extends ReqlExpr {
     public ConcatMap(Object arg) {
         this(new Arguments(arg), null);
     }
-    public ConcatMap(Arguments args){
+    public ConcatMap(Arguments args) {
         this(args, null);
     }
     public ConcatMap(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class Div extends ReqlExpr {
     public Div(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Div(Arguments args){
+    public Div(Arguments args) {
         this(args, null);
     }
     public Div(Arguments args, OptArgs optargs) {

@@ -8,6 +8,7 @@ import com.rethinkdb.gen.proto.ResponseNote;
 import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Backtrace;
 import com.rethinkdb.model.Profile;
+import com.rethinkdb.utils.Internals;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,7 +100,7 @@ public class Response {
             );
         }
 
-        Map<String, Object> json = Util.readJSON(buffer);
+        Map<String, Object> json = Internals.readJson(buffer);
         return new Response(
             token,
             ResponseType.fromValue(((Long) json.get("t")).intValue()),

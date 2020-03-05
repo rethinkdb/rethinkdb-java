@@ -16,7 +16,7 @@ public class TableDrop extends ReqlExpr {
     public TableDrop(Object arg) {
         this(new Arguments(arg), null);
     }
-    public TableDrop(Arguments args){
+    public TableDrop(Arguments args) {
         this(args, null);
     }
     public TableDrop(Arguments args, OptArgs optargs) {

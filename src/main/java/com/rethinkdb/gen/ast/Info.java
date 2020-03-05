@@ -16,7 +16,7 @@ public class Info extends ReqlExpr {
     public Info(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Info(Arguments args){
+    public Info(Arguments args) {
         this(args, null);
     }
     public Info(Arguments args, OptArgs optargs) {

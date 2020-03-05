@@ -16,7 +16,7 @@ public class Reconfigure extends ReqlExpr {
     public Reconfigure(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Reconfigure(Arguments args){
+    public Reconfigure(Arguments args) {
         this(args, null);
     }
     public Reconfigure(Arguments args, OptArgs optargs) {

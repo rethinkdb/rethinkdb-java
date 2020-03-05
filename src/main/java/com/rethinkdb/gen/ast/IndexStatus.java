@@ -16,7 +16,7 @@ public class IndexStatus extends ReqlExpr {
     public IndexStatus(Object arg) {
         this(new Arguments(arg), null);
     }
-    public IndexStatus(Arguments args){
+    public IndexStatus(Arguments args) {
         this(args, null);
     }
     public IndexStatus(Arguments args, OptArgs optargs) {

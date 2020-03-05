@@ -16,7 +16,7 @@ public class MakeArray extends ReqlExpr {
     public MakeArray(Object arg) {
         this(new Arguments(arg), null);
     }
-    public MakeArray(Arguments args){
+    public MakeArray(Arguments args) {
         this(args, null);
     }
     public MakeArray(Arguments args, OptArgs optargs) {

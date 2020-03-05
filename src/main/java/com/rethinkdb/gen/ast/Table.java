@@ -16,7 +16,7 @@ public class Table extends ReqlExpr {
     public Table(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Table(Arguments args){
+    public Table(Arguments args) {
         this(args, null);
     }
     public Table(Arguments args, OptArgs optargs) {

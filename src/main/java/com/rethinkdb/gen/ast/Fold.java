@@ -16,7 +16,7 @@ public class Fold extends ReqlExpr {
     public Fold(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Fold(Arguments args){
+    public Fold(Arguments args) {
         this(args, null);
     }
     public Fold(Arguments args, OptArgs optargs) {

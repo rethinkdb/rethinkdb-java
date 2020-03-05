@@ -16,7 +16,7 @@ public class Iso8601 extends ReqlExpr {
     public Iso8601(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Iso8601(Arguments args){
+    public Iso8601(Arguments args) {
         this(args, null);
     }
     public Iso8601(Arguments args, OptArgs optargs) {

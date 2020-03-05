@@ -16,7 +16,7 @@ public class IndexCreate extends ReqlExpr {
     public IndexCreate(Object arg) {
         this(new Arguments(arg), null);
     }
-    public IndexCreate(Arguments args){
+    public IndexCreate(Arguments args) {
         this(args, null);
     }
     public IndexCreate(Arguments args, OptArgs optargs) {

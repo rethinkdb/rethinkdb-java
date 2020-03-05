@@ -16,7 +16,7 @@ public class SetDifference extends ReqlExpr {
     public SetDifference(Object arg) {
         this(new Arguments(arg), null);
     }
-    public SetDifference(Arguments args){
+    public SetDifference(Arguments args) {
         this(args, null);
     }
     public SetDifference(Arguments args, OptArgs optargs) {

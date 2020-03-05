@@ -16,7 +16,7 @@ public class Changes extends ReqlExpr {
     public Changes(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Changes(Arguments args){
+    public Changes(Arguments args) {
         this(args, null);
     }
     public Changes(Arguments args, OptArgs optargs) {
