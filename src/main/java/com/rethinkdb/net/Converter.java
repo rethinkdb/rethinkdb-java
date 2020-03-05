@@ -3,6 +3,7 @@ package com.rethinkdb.net;
 
 import com.rethinkdb.gen.ast.Datum;
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.model.GroupedResult;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
 
@@ -80,7 +81,8 @@ public class Converter {
                 }
                 return ((List<?>) value.get("data")).stream()
                     .map(it -> new ArrayList<>((List<?>) it))
-                    .collect(Collectors.toMap(it -> it.remove(0), UnaryOperator.identity()));
+                    .map(it -> new GroupedResult<>(it.remove(0), it))
+                    .collect(Collectors.toList());
             }
             case BINARY: {
                 if (fmt.rawBinary) {
