@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
+@Deprecated
 public class GroupedResult<G, V> {
     private final G group;
     private final List<V> values;
