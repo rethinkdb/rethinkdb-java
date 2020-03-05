@@ -88,7 +88,7 @@ public class Converter {
                 if (fmt.rawBinary) {
                     return value;
                 }
-                return Base64.getMimeDecoder().decode((String) value.get("data"));
+                return Base64.getDecoder().decode((String) value.get("data"));
             }
             case GEOMETRY: {
                 // Nothing specific here
@@ -101,6 +101,6 @@ public class Converter {
     public static Map<String, Object> toBinary(byte[] data) {
         return new MapObject<String, Object>()
             .with("$reql_type$", BINARY)
-            .with("data", Base64.getMimeEncoder().encodeToString(data));
+            .with("data", Base64.getEncoder().encodeToString(data));
     }
 }
