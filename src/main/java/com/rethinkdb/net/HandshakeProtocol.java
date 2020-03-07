@@ -38,7 +38,7 @@ class HandshakeProtocol {
     private HandshakeProtocol() {
     }
 
-    static void doHandshake_old(ConnectionSocket socket, String username, String password, Long timeout) {
+    static void doHandshake(ConnectionSocket socket, String username, String password, Long timeout) {
         // initialize handshake
         HandshakeProtocol handshake = new WaitingForProtocolRange(username, password);
         // Sit in the handshake until it's completed. Exceptions will be thrown if
