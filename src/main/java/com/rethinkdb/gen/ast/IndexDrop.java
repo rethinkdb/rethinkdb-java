@@ -16,7 +16,7 @@ public class IndexDrop extends ReqlExpr {
     public IndexDrop(Object arg) {
         this(new Arguments(arg), null);
     }
-    public IndexDrop(Arguments args){
+    public IndexDrop(Arguments args) {
         this(args, null);
     }
     public IndexDrop(Arguments args, OptArgs optargs) {

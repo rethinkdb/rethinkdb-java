@@ -16,7 +16,7 @@ public class Prepend extends ReqlExpr {
     public Prepend(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Prepend(Arguments args){
+    public Prepend(Arguments args) {
         this(args, null);
     }
     public Prepend(Arguments args, OptArgs optargs) {

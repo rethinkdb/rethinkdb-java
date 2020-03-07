@@ -16,7 +16,7 @@ public class Get extends ReqlExpr {
     public Get(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Get(Arguments args){
+    public Get(Arguments args) {
         this(args, null);
     }
     public Get(Arguments args, OptArgs optargs) {

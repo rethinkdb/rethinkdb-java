@@ -16,7 +16,7 @@ public class IsEmpty extends ReqlExpr {
     public IsEmpty(Object arg) {
         this(new Arguments(arg), null);
     }
-    public IsEmpty(Arguments args){
+    public IsEmpty(Arguments args) {
         this(args, null);
     }
     public IsEmpty(Arguments args, OptArgs optargs) {

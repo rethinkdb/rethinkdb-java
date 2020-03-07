@@ -16,7 +16,7 @@ public class IndexWait extends ReqlExpr {
     public IndexWait(Object arg) {
         this(new Arguments(arg), null);
     }
-    public IndexWait(Arguments args){
+    public IndexWait(Arguments args) {
         this(args, null);
     }
     public IndexWait(Arguments args, OptArgs optargs) {

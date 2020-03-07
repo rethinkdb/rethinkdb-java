@@ -16,7 +16,7 @@ public class Update extends ReqlExpr {
     public Update(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Update(Arguments args){
+    public Update(Arguments args) {
         this(args, null);
     }
     public Update(Arguments args, OptArgs optargs) {

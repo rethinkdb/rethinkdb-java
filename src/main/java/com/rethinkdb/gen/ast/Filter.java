@@ -16,7 +16,7 @@ public class Filter extends ReqlExpr {
     public Filter(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Filter(Arguments args){
+    public Filter(Arguments args) {
         this(args, null);
     }
     public Filter(Arguments args, OptArgs optargs) {

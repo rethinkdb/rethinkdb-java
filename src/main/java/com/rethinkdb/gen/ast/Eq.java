@@ -16,7 +16,7 @@ public class Eq extends ReqlExpr {
     public Eq(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Eq(Arguments args){
+    public Eq(Arguments args) {
         this(args, null);
     }
     public Eq(Arguments args, OptArgs optargs) {

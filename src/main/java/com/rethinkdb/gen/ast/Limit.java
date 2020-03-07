@@ -16,7 +16,7 @@ public class Limit extends ReqlExpr {
     public Limit(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Limit(Arguments args){
+    public Limit(Arguments args) {
         this(args, null);
     }
     public Limit(Arguments args, OptArgs optargs) {

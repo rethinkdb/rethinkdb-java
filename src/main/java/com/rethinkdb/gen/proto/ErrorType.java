@@ -20,7 +20,7 @@ public enum ErrorType {
 
     public final int value;
 
-    private ErrorType(int value){
+    private ErrorType(int value) {
         this.value = value;
     }
 
@@ -35,8 +35,7 @@ public enum ErrorType {
             case 5000000: return ErrorType.USER;
             case 6000000: return ErrorType.PERMISSION_ERROR;
             default:
-                throw new IllegalArgumentException(String.format(
-                "%s is not a legal value for ErrorType", value));
+                throw new IllegalArgumentException(String.format("%s is not a legal value for ErrorType", value));
         }
     }
 

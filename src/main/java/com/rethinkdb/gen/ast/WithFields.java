@@ -16,7 +16,7 @@ public class WithFields extends ReqlExpr {
     public WithFields(Object arg) {
         this(new Arguments(arg), null);
     }
-    public WithFields(Arguments args){
+    public WithFields(Arguments args) {
         this(args, null);
     }
     public WithFields(Arguments args, OptArgs optargs) {

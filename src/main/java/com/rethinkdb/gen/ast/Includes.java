@@ -16,7 +16,7 @@ public class Includes extends ReqlExpr {
     public Includes(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Includes(Arguments args){
+    public Includes(Arguments args) {
         this(args, null);
     }
     public Includes(Arguments args, OptArgs optargs) {

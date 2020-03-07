@@ -16,7 +16,7 @@ public class Replace extends ReqlExpr {
     public Replace(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Replace(Arguments args){
+    public Replace(Arguments args) {
         this(args, null);
     }
     public Replace(Arguments args, OptArgs optargs) {

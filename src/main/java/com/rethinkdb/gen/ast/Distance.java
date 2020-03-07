@@ -16,7 +16,7 @@ public class Distance extends ReqlExpr {
     public Distance(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Distance(Arguments args){
+    public Distance(Arguments args) {
         this(args, null);
     }
     public Distance(Arguments args, OptArgs optargs) {

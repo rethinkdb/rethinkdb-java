@@ -1,7 +1,7 @@
 package com.rethinkdb.model;
 
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.ast.Util;
+import com.rethinkdb.utils.Internals;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,14 +10,14 @@ import java.util.Map;
 public class OptArgs extends LinkedHashMap<String, ReqlAst> {
     public OptArgs with(String key, Object value) {
         if (key != null) {
-            put(key, Util.toReqlAst(value));
+            put(key, Internals.toReqlAst(value));
         }
         return this;
     }
 
     public OptArgs with(String key, List<Object> value) {
         if (key != null) {
-            put(key, Util.toReqlAst(value));
+            put(key, Internals.toReqlAst(value));
         }
         return this;
     }

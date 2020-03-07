@@ -14,7 +14,7 @@ public enum Protocol {
 
     public final int value;
 
-    private Protocol(int value){
+    private Protocol(int value) {
         this.value = value;
     }
 
@@ -23,8 +23,7 @@ public enum Protocol {
             case 656407617: return Protocol.PROTOBUF;
             case 2120839367: return Protocol.JSON;
             default:
-                throw new IllegalArgumentException(String.format(
-                "%s is not a legal value for Protocol", value));
+                throw new IllegalArgumentException(String.format("%s is not a legal value for Protocol", value));
         }
     }
 

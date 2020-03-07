@@ -16,7 +16,7 @@ public class Min extends ReqlExpr {
     public Min(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Min(Arguments args){
+    public Min(Arguments args) {
         this(args, null);
     }
     public Min(Arguments args, OptArgs optargs) {

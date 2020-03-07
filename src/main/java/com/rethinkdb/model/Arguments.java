@@ -2,21 +2,17 @@ package com.rethinkdb.model;
 
 
 import com.rethinkdb.ast.ReqlAst;
-import com.rethinkdb.ast.Util;
+import com.rethinkdb.utils.Internals;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Arguments extends ArrayList<ReqlAst> {
     public Arguments() {}
 
-    @SuppressWarnings("unchecked")
     public Arguments(Object arg) {
         if (arg instanceof List) {
-            coerceAndAddAll((List<Object>) arg);
+            coerceAndAddAll((List<?>) arg);
         } else {
             coerceAndAdd(arg);
         }
@@ -34,7 +30,7 @@ public class Arguments extends ArrayList<ReqlAst> {
         coerceAndAddAll(args);
     }
 
-    public Arguments(List<Object> args) {
+    public Arguments(List<?> args) {
         coerceAndAddAll(args);
     }
 
@@ -43,7 +39,7 @@ public class Arguments extends ArrayList<ReqlAst> {
     }
 
     public void coerceAndAdd(Object obj) {
-        add(Util.toReqlAst(obj));
+        add(Internals.toReqlAst(obj));
     }
 
     public void coerceAndAddAll(Object[] args) {
@@ -52,7 +48,7 @@ public class Arguments extends ArrayList<ReqlAst> {
         }
     }
 
-    public void coerceAndAddAll(List<Object> args) {
+    public void coerceAndAddAll(List<?> args) {
         args.forEach(this::coerceAndAdd);
     }
 }

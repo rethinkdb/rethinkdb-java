@@ -16,7 +16,7 @@ public class Split extends ReqlExpr {
     public Split(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Split(Arguments args){
+    public Split(Arguments args) {
         this(args, null);
     }
     public Split(Arguments args, OptArgs optargs) {

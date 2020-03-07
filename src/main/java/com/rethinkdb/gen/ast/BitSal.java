@@ -16,7 +16,7 @@ public class BitSal extends ReqlExpr {
     public BitSal(Object arg) {
         this(new Arguments(arg), null);
     }
-    public BitSal(Arguments args){
+    public BitSal(Arguments args) {
         this(args, null);
     }
     public BitSal(Arguments args, OptArgs optargs) {

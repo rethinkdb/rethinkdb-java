@@ -16,7 +16,7 @@ public class TableCreate extends ReqlExpr {
     public TableCreate(Object arg) {
         this(new Arguments(arg), null);
     }
-    public TableCreate(Arguments args){
+    public TableCreate(Arguments args) {
         this(args, null);
     }
     public TableCreate(Arguments args, OptArgs optargs) {

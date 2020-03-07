@@ -16,7 +16,7 @@ public class Without extends ReqlExpr {
     public Without(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Without(Arguments args){
+    public Without(Arguments args) {
         this(args, null);
     }
     public Without(Arguments args, OptArgs optargs) {

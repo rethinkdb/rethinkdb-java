@@ -16,7 +16,7 @@ public class Line extends ReqlExpr {
     public Line(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Line(Arguments args){
+    public Line(Arguments args) {
         this(args, null);
     }
     public Line(Arguments args, OptArgs optargs) {

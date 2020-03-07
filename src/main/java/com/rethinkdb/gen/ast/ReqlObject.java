@@ -16,7 +16,7 @@ public class ReqlObject extends ReqlExpr {
     public ReqlObject(Object arg) {
         this(new Arguments(arg), null);
     }
-    public ReqlObject(Arguments args){
+    public ReqlObject(Arguments args) {
         this(args, null);
     }
     public ReqlObject(Arguments args, OptArgs optargs) {

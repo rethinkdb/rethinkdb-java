@@ -16,7 +16,7 @@ public class DayOfWeek extends ReqlExpr {
     public DayOfWeek(Object arg) {
         this(new Arguments(arg), null);
     }
-    public DayOfWeek(Arguments args){
+    public DayOfWeek(Arguments args) {
         this(args, null);
     }
     public DayOfWeek(Arguments args, OptArgs optargs) {

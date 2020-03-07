@@ -16,7 +16,7 @@ public class OuterJoin extends ReqlExpr {
     public OuterJoin(Object arg) {
         this(new Arguments(arg), null);
     }
-    public OuterJoin(Arguments args){
+    public OuterJoin(Arguments args) {
         this(args, null);
     }
     public OuterJoin(Arguments args, OptArgs optargs) {

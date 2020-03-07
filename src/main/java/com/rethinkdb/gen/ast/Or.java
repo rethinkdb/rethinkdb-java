@@ -16,7 +16,7 @@ public class Or extends ReqlExpr {
     public Or(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Or(Arguments args){
+    public Or(Arguments args) {
         this(args, null);
     }
     public Or(Arguments args, OptArgs optargs) {

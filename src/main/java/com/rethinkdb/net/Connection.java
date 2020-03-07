@@ -10,6 +10,7 @@ import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.model.Server;
+import com.rethinkdb.utils.Internals;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -197,7 +198,7 @@ public class Connection implements Closeable {
     public @NotNull CompletableFuture<Server> serverAsync() {
         return sendQuery(Query.createServerInfo(nextToken.incrementAndGet())).thenApply(res -> {
             if (res.type.equals(ResponseType.SERVER_INFO)) {
-                return Util.convertToPojo(res.data.get(0), new TypeReference<Server>() {});
+                return Internals.toPojo(res.data.get(0), new TypeReference<Server>() {});
             }
             throw new ReqlDriverError("Did not receive a SERVER_INFO response.");
         });

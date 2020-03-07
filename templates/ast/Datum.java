@@ -1,13 +1,13 @@
 <%inherit file="../AstSubclass.java" />
 
-<%block name="member_vars">
-    public final java.lang.Object datum;</%block>
+<%block name="member_vars">\
+    public final java.lang.Object datum;
+</%block>
 <%block name="constructors">
     public Datum(java.lang.Object arg) {
         super(TermType.DATUM, null, null);
         datum = arg;
-    }
-</%block>
+    }</%block>
 
 <%block name="static_factories"/>
 

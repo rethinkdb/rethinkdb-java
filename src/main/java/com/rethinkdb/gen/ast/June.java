@@ -16,7 +16,7 @@ public class June extends ReqlExpr {
     public June(Object arg) {
         this(new Arguments(arg), null);
     }
-    public June(Arguments args){
+    public June(Arguments args) {
         this(args, null);
     }
     public June(Arguments args, OptArgs optargs) {

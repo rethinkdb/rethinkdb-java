@@ -16,7 +16,7 @@ public class GetNearest extends ReqlExpr {
     public GetNearest(Object arg) {
         this(new Arguments(arg), null);
     }
-    public GetNearest(Arguments args){
+    public GetNearest(Arguments args) {
         this(args, null);
     }
     public GetNearest(Arguments args, OptArgs optargs) {

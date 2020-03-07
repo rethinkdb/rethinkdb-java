@@ -16,7 +16,7 @@ public class Downcase extends ReqlExpr {
     public Downcase(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Downcase(Arguments args){
+    public Downcase(Arguments args) {
         this(args, null);
     }
     public Downcase(Arguments args, OptArgs optargs) {

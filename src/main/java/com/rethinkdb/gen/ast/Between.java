@@ -16,7 +16,7 @@ public class Between extends ReqlExpr {
     public Between(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Between(Arguments args){
+    public Between(Arguments args) {
         this(args, null);
     }
     public Between(Arguments args, OptArgs optargs) {

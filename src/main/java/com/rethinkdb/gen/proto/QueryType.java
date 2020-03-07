@@ -17,7 +17,7 @@ public enum QueryType {
 
     public final int value;
 
-    private QueryType(int value){
+    private QueryType(int value) {
         this.value = value;
     }
 
@@ -29,8 +29,7 @@ public enum QueryType {
             case 4: return QueryType.NOREPLY_WAIT;
             case 5: return QueryType.SERVER_INFO;
             default:
-                throw new IllegalArgumentException(String.format(
-                "%s is not a legal value for QueryType", value));
+                throw new IllegalArgumentException(String.format("%s is not a legal value for QueryType", value));
         }
     }
 

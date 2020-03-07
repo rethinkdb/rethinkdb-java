@@ -16,7 +16,7 @@ public class Sample extends ReqlExpr {
     public Sample(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Sample(Arguments args){
+    public Sample(Arguments args) {
         this(args, null);
     }
     public Sample(Arguments args, OptArgs optargs) {

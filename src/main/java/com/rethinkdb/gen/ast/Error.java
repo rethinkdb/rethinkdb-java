@@ -16,7 +16,7 @@ public class Error extends ReqlExpr {
     public Error(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Error(Arguments args){
+    public Error(Arguments args) {
         this(args, null);
     }
     public Error(Arguments args, OptArgs optargs) {

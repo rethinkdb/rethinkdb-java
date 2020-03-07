@@ -16,7 +16,7 @@ public class TimeOfDay extends ReqlExpr {
     public TimeOfDay(Object arg) {
         this(new Arguments(arg), null);
     }
-    public TimeOfDay(Arguments args){
+    public TimeOfDay(Arguments args) {
         this(args, null);
     }
     public TimeOfDay(Arguments args, OptArgs optargs) {

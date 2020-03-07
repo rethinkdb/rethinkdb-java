@@ -16,7 +16,7 @@ public class ChangeAt extends ReqlExpr {
     public ChangeAt(Object arg) {
         this(new Arguments(arg), null);
     }
-    public ChangeAt(Arguments args){
+    public ChangeAt(Arguments args) {
         this(args, null);
     }
     public ChangeAt(Arguments args, OptArgs optargs) {

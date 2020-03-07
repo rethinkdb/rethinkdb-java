@@ -16,7 +16,7 @@ public class DbList extends ReqlExpr {
     public DbList(Object arg) {
         this(new Arguments(arg), null);
     }
-    public DbList(Arguments args){
+    public DbList(Arguments args) {
         this(args, null);
     }
     public DbList(Arguments args, OptArgs optargs) {

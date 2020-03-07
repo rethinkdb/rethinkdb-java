@@ -16,7 +16,7 @@ public class BitOr extends ReqlExpr {
     public BitOr(Object arg) {
         this(new Arguments(arg), null);
     }
-    public BitOr(Arguments args){
+    public BitOr(Arguments args) {
         this(args, null);
     }
     public BitOr(Arguments args, OptArgs optargs) {

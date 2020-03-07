@@ -16,7 +16,7 @@ public class Http extends ReqlExpr {
     public Http(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Http(Arguments args){
+    public Http(Arguments args) {
         this(args, null);
     }
     public Http(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class Ceil extends ReqlExpr {
     public Ceil(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Ceil(Arguments args){
+    public Ceil(Arguments args) {
         this(args, null);
     }
     public Ceil(Arguments args, OptArgs optargs) {

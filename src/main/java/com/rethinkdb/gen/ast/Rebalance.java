@@ -16,7 +16,7 @@ public class Rebalance extends ReqlExpr {
     public Rebalance(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Rebalance(Arguments args){
+    public Rebalance(Arguments args) {
         this(args, null);
     }
     public Rebalance(Arguments args, OptArgs optargs) {

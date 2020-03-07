@@ -16,7 +16,7 @@ public class Default extends ReqlExpr {
     public Default(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Default(Arguments args){
+    public Default(Arguments args) {
         this(args, null);
     }
     public Default(Arguments args, OptArgs optargs) {

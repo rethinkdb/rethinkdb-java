@@ -16,7 +16,7 @@ public class Minval extends ReqlExpr {
     public Minval(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Minval(Arguments args){
+    public Minval(Arguments args) {
         this(args, null);
     }
     public Minval(Arguments args, OptArgs optargs) {

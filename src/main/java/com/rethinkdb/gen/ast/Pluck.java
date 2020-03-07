@@ -16,7 +16,7 @@ public class Pluck extends ReqlExpr {
     public Pluck(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Pluck(Arguments args){
+    public Pluck(Arguments args) {
         this(args, null);
     }
     public Pluck(Arguments args, OptArgs optargs) {

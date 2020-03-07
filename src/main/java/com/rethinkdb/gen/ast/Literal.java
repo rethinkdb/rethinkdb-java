@@ -16,7 +16,7 @@ public class Literal extends ReqlExpr {
     public Literal(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Literal(Arguments args){
+    public Literal(Arguments args) {
         this(args, null);
     }
     public Literal(Arguments args, OptArgs optargs) {

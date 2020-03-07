@@ -16,7 +16,7 @@ public class InsertAt extends ReqlExpr {
     public InsertAt(Object arg) {
         this(new Arguments(arg), null);
     }
-    public InsertAt(Arguments args){
+    public InsertAt(Arguments args) {
         this(args, null);
     }
     public InsertAt(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class ToGeojson extends ReqlExpr {
     public ToGeojson(Object arg) {
         this(new Arguments(arg), null);
     }
-    public ToGeojson(Arguments args){
+    public ToGeojson(Arguments args) {
         this(args, null);
     }
     public ToGeojson(Arguments args, OptArgs optargs) {

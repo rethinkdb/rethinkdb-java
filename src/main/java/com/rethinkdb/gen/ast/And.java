@@ -16,7 +16,7 @@ public class And extends ReqlExpr {
     public And(Object arg) {
         this(new Arguments(arg), null);
     }
-    public And(Arguments args){
+    public And(Arguments args) {
         this(args, null);
     }
     public And(Arguments args, OptArgs optargs) {

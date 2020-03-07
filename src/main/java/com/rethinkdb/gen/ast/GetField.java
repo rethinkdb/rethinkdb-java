@@ -16,7 +16,7 @@ public class GetField extends ReqlExpr {
     public GetField(Object arg) {
         this(new Arguments(arg), null);
     }
-    public GetField(Arguments args){
+    public GetField(Arguments args) {
         this(args, null);
     }
     public GetField(Arguments args, OptArgs optargs) {

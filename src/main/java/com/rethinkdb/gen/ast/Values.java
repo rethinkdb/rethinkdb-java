@@ -16,7 +16,7 @@ public class Values extends ReqlExpr {
     public Values(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Values(Arguments args){
+    public Values(Arguments args) {
         this(args, null);
     }
     public Values(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class Desc extends ReqlExpr {
     public Desc(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Desc(Arguments args){
+    public Desc(Arguments args) {
         this(args, null);
     }
     public Desc(Arguments args, OptArgs optargs) {

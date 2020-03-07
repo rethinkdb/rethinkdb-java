@@ -16,7 +16,7 @@ public class Insert extends ReqlExpr {
     public Insert(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Insert(Arguments args){
+    public Insert(Arguments args) {
         this(args, null);
     }
     public Insert(Arguments args, OptArgs optargs) {

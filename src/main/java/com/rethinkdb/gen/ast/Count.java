@@ -16,7 +16,7 @@ public class Count extends ReqlExpr {
     public Count(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Count(Arguments args){
+    public Count(Arguments args) {
         this(args, null);
     }
     public Count(Arguments args, OptArgs optargs) {

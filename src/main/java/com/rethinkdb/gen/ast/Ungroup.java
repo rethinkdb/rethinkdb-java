@@ -16,7 +16,7 @@ public class Ungroup extends ReqlExpr {
     public Ungroup(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Ungroup(Arguments args){
+    public Ungroup(Arguments args) {
         this(args, null);
     }
     public Ungroup(Arguments args, OptArgs optargs) {
