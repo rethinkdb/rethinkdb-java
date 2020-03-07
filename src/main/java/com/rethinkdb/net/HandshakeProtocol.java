@@ -22,8 +22,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.rethinkdb.net.HandshakeProtocol.Crypto.*;
-
 /**
  * Internal class used by {@link Connection#connect()} to do a proper handshake with the server.
  */
@@ -40,7 +38,7 @@ class HandshakeProtocol {
     private HandshakeProtocol() {
     }
 
-    static void doHandshake(ConnectionSocket socket, String username, String password, Long timeout) {
+    static void doHandshake_old(ConnectionSocket socket, String username, String password, Long timeout) {
         // initialize handshake
         HandshakeProtocol handshake = new WaitingForProtocolRange(username, password);
         // Sit in the handshake until it's completed. Exceptions will be thrown if
@@ -54,12 +52,12 @@ class HandshakeProtocol {
         }
     }
 
-    protected HandshakeProtocol nextState(String response) {
+    @Nullable
+    protected ByteBuffer toSend() {
         throw new IllegalStateException();
     }
 
-    @Nullable
-    protected ByteBuffer toSend() {
+    protected HandshakeProtocol nextState(String response) {
         throw new IllegalStateException();
     }
 
@@ -75,6 +73,9 @@ class HandshakeProtocol {
     }
 
     static class WaitingForProtocolRange extends HandshakeProtocol {
+        private static final SecureRandom secureRandom = new SecureRandom();
+        private static final int NONCE_BYTES = 18;
+
         private final String nonce;
         private final ScramAttributes clientFirstMessageBare;
         private final byte[] password;
@@ -85,18 +86,6 @@ class HandshakeProtocol {
             this.clientFirstMessageBare = new ScramAttributes()
                 .username(username)
                 .nonce(nonce);
-        }
-
-        @Override
-        public HandshakeProtocol nextState(String response) {
-            Map<String, Object> json = Internals.readJson(response);
-            throwIfFailure(json);
-            long minVersion = (long) json.get("min_protocol_version");
-            long maxVersion = (long) json.get("max_protocol_version");
-            if (SUB_PROTOCOL_VERSION < minVersion || SUB_PROTOCOL_VERSION > maxVersion) {
-                throw new ReqlDriverError("Unsupported protocol version " + SUB_PROTOCOL_VERSION + ", expected between " + minVersion + " and " + maxVersion);
-            }
-            return new WaitingForAuthResponse(nonce, password, clientFirstMessageBare);
         }
 
         @Override
@@ -116,6 +105,25 @@ class HandshakeProtocol {
                 .put(jsonBytes)
                 .put(new byte[1]);
         }
+
+        @Override
+        public HandshakeProtocol nextState(String response) {
+            Map<String, Object> json = Internals.readJson(response);
+            throwIfFailure(json);
+            long minVersion = (long) json.get("min_protocol_version");
+            long maxVersion = (long) json.get("max_protocol_version");
+            if (SUB_PROTOCOL_VERSION < minVersion || SUB_PROTOCOL_VERSION > maxVersion) {
+                throw new ReqlDriverError("Unsupported protocol version " + SUB_PROTOCOL_VERSION + ", expected between " + minVersion + " and " + maxVersion);
+            }
+            return new WaitingForAuthResponse(nonce, password, clientFirstMessageBare);
+        }
+
+        static String makeNonce() {
+            byte[] rawNonce = new byte[NONCE_BYTES];
+            secureRandom.nextBytes(rawNonce);
+            return Base64.getEncoder().encodeToString(rawNonce);
+        }
+
     }
 
     static class WaitingForAuthResponse extends HandshakeProtocol {
@@ -128,6 +136,11 @@ class HandshakeProtocol {
             this.nonce = nonce;
             this.password = password;
             this.clientFirstMessageBare = clientFirstMessageBare;
+        }
+
+        @Override
+        public ByteBuffer toSend() {
+            return null;
         }
 
         @Override
@@ -145,7 +158,7 @@ class HandshakeProtocol {
             // SaltedPassword := Hi(Normalize(password), salt, i)
             // ClientKey := HMAC(SaltedPassword, "Client Key")
             // StoredKey := H(ClientKey)
-            byte[] saltedPassword = pbkdf2(password, serverScram._salt, serverScram._iterationCount);
+            byte[] saltedPassword = PBKDF2.compute(password, serverScram._salt, serverScram._iterationCount);
             byte[] clientKey = hmac(saltedPassword, CLIENT_KEY);
             byte[] storedKey = sha256(clientKey);
 
@@ -166,9 +179,82 @@ class HandshakeProtocol {
             return new WaitingForAuthSuccess(serverSignature, clientScram.clientProof(clientProof));
         }
 
-        @Override
-        public ByteBuffer toSend() {
-            return null;
+        static byte[] sha256(byte[] clientKey) {
+            try {
+                return MessageDigest.getInstance("SHA-256").digest(clientKey);
+            } catch (NoSuchAlgorithmException e) {
+                throw new ReqlDriverError(e);
+            }
+        }
+
+        static byte[] hmac(byte[] key, String string) {
+            try {
+                Mac mac = Mac.getInstance("HmacSHA256");
+                mac.init(new SecretKeySpec(key, "HmacSHA256"));
+                return mac.doFinal(string.getBytes(StandardCharsets.UTF_8));
+            } catch (InvalidKeyException | NoSuchAlgorithmException e) {
+                throw new ReqlDriverError(e);
+            }
+        }
+
+        static byte[] xor(byte[] a, byte[] b) {
+            if (a.length != b.length) {
+                throw new ReqlDriverError("arrays must be the same length");
+            }
+            byte[] result = new byte[a.length];
+            for (int i = 0; i < result.length; i++) {
+                result[i] = (byte) (a[i] ^ b[i]);
+            }
+            return result;
+        }
+
+        private static class PBKDF2 {
+            static byte[] compute(byte[] password, byte[] salt, Integer iterationCount) {
+                return cache.computeIfAbsent(new PBKDF2(password, salt, iterationCount), PBKDF2::compute);
+            }
+
+            private static final Map<PBKDF2, byte[]> cache = new ConcurrentHashMap<>();
+
+            final byte[] password;
+            final byte[] salt;
+            final int iterations;
+
+            PBKDF2(byte[] password, byte[] salt, int iterations) {
+                this.password = password;
+                this.salt = salt;
+                this.iterations = iterations;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                PBKDF2 that = (PBKDF2) o;
+
+                if (iterations != that.iterations) return false;
+                if (!Arrays.equals(password, that.password)) return false;
+                return Arrays.equals(salt, that.salt);
+            }
+
+            @Override
+            public int hashCode() {
+                int result = Arrays.hashCode(password);
+                result = 31 * result + Arrays.hashCode(salt);
+                result = 31 * result + iterations;
+                return result;
+            }
+
+            public byte[] compute() {
+                final PBEKeySpec spec = new PBEKeySpec(
+                    new String(password, StandardCharsets.UTF_8).toCharArray(),
+                    salt, iterations, 256
+                );
+                try {
+                    return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).getEncoded();
+                } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                    throw new ReqlDriverError(e);
+                }
+            }
         }
     }
 
@@ -182,6 +268,14 @@ class HandshakeProtocol {
         }
 
         @Override
+        public ByteBuffer toSend() {
+            byte[] authJson = ("{\"authentication\":\"" + auth + "\"}").getBytes(StandardCharsets.UTF_8);
+            return ByteBuffer.allocate(authJson.length + 1).order(ByteOrder.LITTLE_ENDIAN)
+                .put(authJson)
+                .put(new byte[1]);
+        }
+
+        @Override
         public HandshakeProtocol nextState(String response) {
             Map<String, Object> json = Internals.readJson(response);
             throwIfFailure(json);
@@ -190,14 +284,6 @@ class HandshakeProtocol {
                 throw new ReqlAuthError("Invalid server signature");
             }
             return FINISHED;
-        }
-
-        @Override
-        public ByteBuffer toSend() {
-            byte[] authJson = ("{\"authentication\":\"" + auth + "\"}").getBytes(StandardCharsets.UTF_8);
-            return ByteBuffer.allocate(authJson.length + 1).order(ByteOrder.LITTLE_ENDIAN)
-                .put(authJson)
-                .put(new byte[1]);
         }
     }
 
@@ -319,97 +405,6 @@ class HandshakeProtocol {
             ScramAttributes next = ScramAttributes.from(this);
             next._clientProof = Base64.getEncoder().encodeToString(clientProof);
             return next;
-        }
-    }
-
-    static class Crypto {
-        private static final String HMAC_SHA_256 = "HmacSHA256";
-        private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
-
-        private static final SecureRandom secureRandom = new SecureRandom();
-        private static final Map<PasswordLookup, byte[]> pbkdf2Cache = new ConcurrentHashMap<>();
-        private static final int NONCE_BYTES = 18;
-
-        private static class PasswordLookup {
-            final byte[] password;
-            final byte[] salt;
-            final int iterations;
-
-            PasswordLookup(byte[] password, byte[] salt, int iterations) {
-                this.password = password;
-                this.salt = salt;
-                this.iterations = iterations;
-            }
-
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (o == null || getClass() != o.getClass()) return false;
-                PasswordLookup that = (PasswordLookup) o;
-
-                if (iterations != that.iterations) return false;
-                if (!Arrays.equals(password, that.password)) return false;
-                return Arrays.equals(salt, that.salt);
-            }
-
-            @Override
-            public int hashCode() {
-                int result = Arrays.hashCode(password);
-                result = 31 * result + Arrays.hashCode(salt);
-                result = 31 * result + iterations;
-                return result;
-            }
-
-            public byte[] compute() {
-                final PBEKeySpec spec = new PBEKeySpec(
-                    new String(password, StandardCharsets.UTF_8).toCharArray(),
-                    salt, iterations, 256
-                );
-                try {
-                    return SecretKeyFactory.getInstance(PBKDF2_ALGORITHM).generateSecret(spec).getEncoded();
-                } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                    throw new ReqlDriverError(e);
-                }
-            }
-        }
-
-        static byte[] sha256(byte[] clientKey) {
-            try {
-                return MessageDigest.getInstance("SHA-256").digest(clientKey);
-            } catch (NoSuchAlgorithmException e) {
-                throw new ReqlDriverError(e);
-            }
-        }
-
-        static byte[] hmac(byte[] key, String string) {
-            try {
-                Mac mac = Mac.getInstance(HMAC_SHA_256);
-                mac.init(new SecretKeySpec(key, HMAC_SHA_256));
-                return mac.doFinal(string.getBytes(StandardCharsets.UTF_8));
-            } catch (InvalidKeyException | NoSuchAlgorithmException e) {
-                throw new ReqlDriverError(e);
-            }
-        }
-
-        static byte[] pbkdf2(byte[] password, byte[] salt, Integer iterationCount) {
-            return pbkdf2Cache.computeIfAbsent(new PasswordLookup(password, salt, iterationCount), PasswordLookup::compute);
-        }
-
-        static String makeNonce() {
-            byte[] rawNonce = new byte[NONCE_BYTES];
-            secureRandom.nextBytes(rawNonce);
-            return Base64.getEncoder().encodeToString(rawNonce);
-        }
-
-        static byte[] xor(byte[] a, byte[] b) {
-            if (a.length != b.length) {
-                throw new ReqlDriverError("arrays must be the same length");
-            }
-            byte[] result = new byte[a.length];
-            for (int i = 0; i < result.length; i++) {
-                result[i] = (byte) (a[i] ^ b[i]);
-            }
-            return result;
         }
     }
 }
