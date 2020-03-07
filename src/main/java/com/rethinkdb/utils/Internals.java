@@ -10,10 +10,21 @@ import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.gen.exc.ReqlDriverCompileError;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.model.*;
+import org.jetbrains.annotations.NotNull;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.Temporal;
@@ -26,6 +37,7 @@ import java.util.stream.Collectors;
  * Methods and fields are subject to change at any moment.
  */
 public class Internals {
+    private static final String DEFAULT_SSL_PROTOCOL = "TLSv1.2";
     private static final TypeReference<Map<String, Object>> mapTypeRef = Types.mapOf(String.class, Object.class);
     private static final ObjectMapper internalMapper = new ObjectMapper()
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -239,6 +251,25 @@ public class Internals {
 
         // val is a non-null POJO, let's use jackson
         return toReqlAst(RethinkDB.getResultMapper().convertValue(val, Map.class), remainingDepth - 1);
+    }
+
+    public static SSLContext readCertFile(@NotNull InputStream certFile) {
+        try {
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            Certificate cert = CertificateFactory.getInstance("X.509").generateCertificate(certFile);
+
+            ks.load(null);
+            ks.setCertificateEntry("caCert", cert);
+            tmf.init(ks);
+
+            SSLContext ctx = SSLContext.getInstance(DEFAULT_SSL_PROTOCOL);
+            ctx.init(null, tmf.getTrustManagers(), null);
+            certFile.close();
+            return ctx;
+        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
+            throw new ReqlDriverError(e);
+        }
     }
 
     public static class FormatOptions {

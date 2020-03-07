@@ -542,9 +542,8 @@ public class Connection implements Closeable {
             return this;
         }
 
-        public @NotNull Builder certFile(@Nullable InputStream val) {
-            sslContext = Crypto.readCertFile(val);
-            return this;
+        public @NotNull Builder certFile(@NotNull InputStream val) {
+            return sslContext(Internals.readCertFile(val));
         }
 
         public @NotNull Builder sslContext(@Nullable SSLContext val) {
