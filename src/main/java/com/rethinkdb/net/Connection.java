@@ -183,11 +183,12 @@ public class Connection implements Closeable {
                                       @Nullable TypeReference<T> typeRef) {
         try {
             return runAsync(term, optArgs, fetchMode, typeRef).join();
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof ReqlError) {
-                throw ((ReqlError) e.getCause());
+        } catch (CompletionException ce) {
+            Throwable t = ce.getCause();
+            if (t instanceof ReqlError) {
+                throw ((ReqlError) t);
             }
-            throw e;
+            throw new ReqlDriverError(t);
         }
     }
 
@@ -213,12 +214,12 @@ public class Connection implements Closeable {
     public @NotNull Server server() {
         try {
             return serverAsync().join();
-        } catch (
-            CompletionException e) {
-            if (e.getCause() instanceof ReqlError) {
-                throw ((ReqlError) e.getCause());
+        } catch (CompletionException ce) {
+            Throwable t = ce.getCause();
+            if (t instanceof ReqlError) {
+                throw ((ReqlError) t);
             }
-            throw e;
+            throw new ReqlDriverError(t);
         }
     }
 
@@ -237,11 +238,12 @@ public class Connection implements Closeable {
     public void noreplyWait() {
         try {
             noreplyWaitAsync().join();
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof ReqlError) {
-                throw ((ReqlError) e.getCause());
+        } catch (CompletionException ce) {
+            Throwable t = ce.getCause();
+            if (t instanceof ReqlError) {
+                throw ((ReqlError) t);
             }
-            throw e;
+            throw new ReqlDriverError(t);
         }
     }
 

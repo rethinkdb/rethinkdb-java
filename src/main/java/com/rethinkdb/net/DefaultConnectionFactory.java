@@ -106,25 +106,30 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
 
         @Override
         public @NotNull String readCString(@Nullable Long deadline) {
-            try {
-                final StringBuilder sb = new StringBuilder();
-                int next;
-                char c;
-                while ((next = inputStream.read()) != -1 && (c = (char) next) != '\0') {
-                    // is there a deadline?
-                    if (deadline != null) {
-                        // have we timed-out?
-                        if (deadline < System.currentTimeMillis()) { // reached time-out
-                            throw new ReqlDriverError("Connection timed out.");
-                        }
+            Long timeout = deadline == null ? null : System.currentTimeMillis() + deadline;
+            final StringBuilder b = new StringBuilder();
+            int has;
+            int next;
+            char c;
+            while (timeout == null || System.currentTimeMillis() < timeout) {
+                try {
+                    has = inputStream.available();
+                    if (has < 0) {
+                        break;
                     }
-                    sb.append(c);
+                    if (has == 0) {
+                        Thread.yield();
+                        continue;
+                    }
+                    if ((next = inputStream.read()) == -1 || (c = (char) next) == '\0') {
+                        return b.toString();
+                    }
+                } catch (IOException e) {
+                    throw new ReqlDriverError(e);
                 }
-
-                return sb.toString();
-            } catch (IOException e) {
-                throw new ReqlDriverError(e);
+                b.append(c);
             }
+            throw new ReqlDriverError("Read timed out.");
         }
 
         @Override
@@ -230,6 +235,11 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         @Override
         public void shutdownPump() {
             shutdown(new ReqlDriverError("Response pump closed."));
+        }
+
+        @Override
+        public String toString() {
+            return "ThreadResponsePump";
         }
     }
 }
