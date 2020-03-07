@@ -7,18 +7,29 @@ import com.rethinkdb.gen.proto.Version;
 import com.rethinkdb.utils.Internals;
 import org.jetbrains.annotations.Nullable;
 
+import javax.crypto.Mac;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
-import java.util.Map;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
-import static com.rethinkdb.net.Crypto.*;
+import static com.rethinkdb.net.HandshakeProtocol.Crypto.*;
 
 /**
  * Internal class used by {@link Connection#connect()} to do a proper handshake with the server.
  */
-abstract class HandshakeProtocol {
+class HandshakeProtocol {
+    private static final HandshakeProtocol FINISHED = new HandshakeProtocol();
+
     public static final Version VERSION = Version.V1_0;
     public static final Long SUB_PROTOCOL_VERSION = 0L;
     public static final Protocol PROTOCOL = Protocol.JSON;
@@ -26,12 +37,15 @@ abstract class HandshakeProtocol {
     public static final String CLIENT_KEY = "Client Key";
     public static final String SERVER_KEY = "Server Key";
 
+    private HandshakeProtocol() {
+    }
+
     static void doHandshake(ConnectionSocket socket, String username, String password, Long timeout) {
         // initialize handshake
         HandshakeProtocol handshake = new WaitingForProtocolRange(username, password);
         // Sit in the handshake until it's completed. Exceptions will be thrown if
         // anything goes wrong.
-        while (!handshake.isFinished()) {
+        while (handshake != FINISHED) {
             ByteBuffer toWrite = handshake.toSend();
             if (toWrite != null) {
                 socket.write(toWrite);
@@ -40,15 +54,14 @@ abstract class HandshakeProtocol {
         }
     }
 
-    private HandshakeProtocol() {
+    protected HandshakeProtocol nextState(String response) {
+        throw new IllegalStateException();
     }
 
-    protected abstract HandshakeProtocol nextState(String response);
-
     @Nullable
-    protected abstract ByteBuffer toSend();
-
-    protected abstract boolean isFinished();
+    protected ByteBuffer toSend() {
+        throw new IllegalStateException();
+    }
 
     private static void throwIfFailure(Map<String, Object> json) {
         if (!(boolean) json.get("success")) {
@@ -63,34 +76,15 @@ abstract class HandshakeProtocol {
 
     static class WaitingForProtocolRange extends HandshakeProtocol {
         private final String nonce;
-        private final ByteBuffer message;
         private final ScramAttributes clientFirstMessageBare;
         private final byte[] password;
 
         WaitingForProtocolRange(String username, String password) {
             this.password = password.getBytes(StandardCharsets.UTF_8);
             this.nonce = makeNonce();
-
-            // We could use a json serializer, but it's fairly straightforward
             this.clientFirstMessageBare = new ScramAttributes()
                 .username(username)
                 .nonce(nonce);
-            byte[] jsonBytes = ("{" +
-                "\"protocol_version\":" + SUB_PROTOCOL_VERSION + "," +
-                "\"authentication_method\":\"SCRAM-SHA-256\"," +
-                "\"authentication\":" + "\"n,," + clientFirstMessageBare + "\"" +
-                "}").getBytes(StandardCharsets.UTF_8);
-            // Creating the ByteBuffer over an underlying array makes
-            // it easier to turn into a string later.
-            //return ByteBuffer.wrap(new byte[capacity]).order(ByteOrder.LITTLE_ENDIAN);
-            // size of VERSION
-            // json auth payload
-            // terminating null byte
-            this.message = ByteBuffer.allocate(Integer.BYTES +    // size of VERSION
-                jsonBytes.length + // json auth payload
-                1).order(ByteOrder.LITTLE_ENDIAN).putInt(VERSION.value)
-                .put(jsonBytes)
-                .put(new byte[1]);
         }
 
         @Override
@@ -100,21 +94,27 @@ abstract class HandshakeProtocol {
             long minVersion = (long) json.get("min_protocol_version");
             long maxVersion = (long) json.get("max_protocol_version");
             if (SUB_PROTOCOL_VERSION < minVersion || SUB_PROTOCOL_VERSION > maxVersion) {
-                throw new ReqlDriverError(
-                    "Unsupported protocol version " + SUB_PROTOCOL_VERSION +
-                        ", expected between " + minVersion + " and " + maxVersion);
+                throw new ReqlDriverError("Unsupported protocol version " + SUB_PROTOCOL_VERSION + ", expected between " + minVersion + " and " + maxVersion);
             }
             return new WaitingForAuthResponse(nonce, password, clientFirstMessageBare);
         }
 
         @Override
         public ByteBuffer toSend() {
-            return message;
-        }
-
-        @Override
-        public boolean isFinished() {
-            return false;
+            byte[] jsonBytes = ("{" +
+                "\"protocol_version\":" + SUB_PROTOCOL_VERSION + "," +
+                "\"authentication_method\":\"SCRAM-SHA-256\"," +
+                "\"authentication\":" + "\"n,," + clientFirstMessageBare + "\"" +
+                "}").getBytes(StandardCharsets.UTF_8);
+            // Creating the ByteBuffer over an underlying array makes
+            // it easier to turn into a string later.
+            //return ByteBuffer.wrap(new byte[capacity]).order(ByteOrder.LITTLE_ENDIAN);
+            // size of VERSION + json auth payload + terminating null byte
+            return ByteBuffer.allocate(Integer.BYTES + jsonBytes.length + 1)
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .putInt(VERSION.value)
+                .put(jsonBytes)
+                .put(new byte[1]);
         }
     }
 
@@ -134,112 +134,70 @@ abstract class HandshakeProtocol {
         public HandshakeProtocol nextState(String response) {
             Map<String, Object> json = Internals.readJson(response);
             throwIfFailure(json);
-            String serverFirstMessage = (String) json.get("authentication");
-            ScramAttributes serverAuth = ScramAttributes.from(serverFirstMessage);
-            if (!serverAuth.nonce().startsWith(nonce)) {
+            ScramAttributes serverScram = ScramAttributes.from((String) json.get("authentication"));
+            if (!Objects.requireNonNull(serverScram._nonce).startsWith(nonce)) {
                 throw new ReqlAuthError("Invalid nonce from server");
             }
-            ScramAttributes clientFinalMessageWithoutProof = new ScramAttributes()
+            ScramAttributes clientScram = new ScramAttributes()
                 .headerAndChannelBinding("biws")
-                .nonce(serverAuth.nonce());
+                .nonce(serverScram._nonce);
 
             // SaltedPassword := Hi(Normalize(password), salt, i)
-            byte[] saltedPassword = pbkdf2(
-                password, serverAuth.salt(), serverAuth.iterationCount());
-
             // ClientKey := HMAC(SaltedPassword, "Client Key")
-            byte[] clientKey = hmac(saltedPassword, CLIENT_KEY);
-
             // StoredKey := H(ClientKey)
+            byte[] saltedPassword = pbkdf2(password, serverScram._salt, serverScram._iterationCount);
+            byte[] clientKey = hmac(saltedPassword, CLIENT_KEY);
             byte[] storedKey = sha256(clientKey);
 
             // AuthMessage := client-first-message-bare + "," +
             //                server-first-message + "," +
             //                client-final-message-without-proof
-            String authMessage =
-                clientFirstMessageBare + "," +
-                    serverFirstMessage + "," +
-                    clientFinalMessageWithoutProof;
+            String authMessage = clientFirstMessageBare + "," + serverScram + "," + clientScram;
 
             // ClientSignature := HMAC(StoredKey, AuthMessage)
-            byte[] clientSignature = hmac(storedKey, authMessage);
-
             // ClientProof := ClientKey XOR ClientSignature
-            byte[] clientProof = xor(clientKey, clientSignature);
-
             // ServerKey := HMAC(SaltedPassword, "Server Key")
-            byte[] serverKey = hmac(saltedPassword, SERVER_KEY);
-
             // ServerSignature := HMAC(ServerKey, AuthMessage)
+            byte[] clientSignature = hmac(storedKey, authMessage);
+            byte[] clientProof = xor(clientKey, clientSignature);
+            byte[] serverKey = hmac(saltedPassword, SERVER_KEY);
             byte[] serverSignature = hmac(serverKey, authMessage);
 
-            ScramAttributes auth = clientFinalMessageWithoutProof
-                .clientProof(clientProof);
-            byte[] authJson = ("{\"authentication\":\"" + auth + "\"}").getBytes(StandardCharsets.UTF_8);
-
-            ByteBuffer message = ByteBuffer.allocate(authJson.length + 1).order(ByteOrder.LITTLE_ENDIAN)
-                .put(authJson)
-                .put(new byte[1]);
-            return new WaitingForAuthSuccess(serverSignature, message);
+            return new WaitingForAuthSuccess(serverSignature, clientScram.clientProof(clientProof));
         }
 
         @Override
         public ByteBuffer toSend() {
             return null;
-        }
-
-        @Override
-        public boolean isFinished() {
-            return false;
-        }
-    }
-
-    static class HandshakeSuccess extends HandshakeProtocol {
-        @Override
-        public HandshakeProtocol nextState(String response) {
-            return this;
-        }
-
-        @Override
-        public ByteBuffer toSend() {
-            return null;
-        }
-
-        @Override
-        public boolean isFinished() {
-            return true;
         }
     }
 
     static class WaitingForAuthSuccess extends HandshakeProtocol {
         private final byte[] serverSignature;
-        private final ByteBuffer message;
+        private final ScramAttributes auth;
 
-        public WaitingForAuthSuccess(byte[] serverSignature, ByteBuffer message) {
+        public WaitingForAuthSuccess(byte[] serverSignature, ScramAttributes auth) {
             this.serverSignature = serverSignature;
-            this.message = message;
+            this.auth = auth;
         }
 
         @Override
         public HandshakeProtocol nextState(String response) {
             Map<String, Object> json = Internals.readJson(response);
             throwIfFailure(json);
-            ScramAttributes auth = ScramAttributes
-                .from((String) json.get("authentication"));
-            if (!MessageDigest.isEqual(auth.serverSignature(), serverSignature)) {
+            ScramAttributes auth = ScramAttributes.from((String) json.get("authentication"));
+            if (!MessageDigest.isEqual(auth._serverSignature, serverSignature)) {
                 throw new ReqlAuthError("Invalid server signature");
             }
-            return new HandshakeSuccess();
+            return FINISHED;
         }
 
         @Override
         public ByteBuffer toSend() {
-            return message;
-        }
-
-        @Override
-        public boolean isFinished() {
-            return false;
+            byte[] authJson = ("{\"authentication\":\"" + auth + "\"}").getBytes(StandardCharsets.UTF_8);
+            return ByteBuffer.allocate(authJson.length + 1).order(ByteOrder.LITTLE_ENDIAN)
+                .put(authJson)
+                .put(new byte[1]);
         }
     }
 
@@ -299,7 +257,7 @@ abstract class HandshakeProtocol {
                     _headerAndChannelBinding = val;
                     break;
                 case "s":
-                    _salt = Crypto.fromBase64(val);
+                    _salt = Base64.getDecoder().decode(val);
                     break;
                 case "i":
                     _iterationCount = Integer.parseInt(val);
@@ -308,7 +266,7 @@ abstract class HandshakeProtocol {
                     _clientProof = val;
                     break;
                 case "v":
-                    _serverSignature = Crypto.fromBase64(val);
+                    _serverSignature = Base64.getDecoder().decode(val);
                     break;
                 case "e":
                     _error = val;
@@ -322,24 +280,20 @@ abstract class HandshakeProtocol {
             if (_originalString != null) {
                 return _originalString;
             }
-            String output = "";
+            StringJoiner j = new StringJoiner(",");
             if (_username != null) {
-                output += ",n=" + _username;
+                j.add("n=" + _username);
             }
             if (_nonce != null) {
-                output += ",r=" + _nonce;
+                j.add("r=" + _nonce);
             }
             if (_headerAndChannelBinding != null) {
-                output += ",c=" + _headerAndChannelBinding;
+                j.add("c=" + _headerAndChannelBinding);
             }
             if (_clientProof != null) {
-                output += ",p=" + _clientProof;
+                j.add("p=" + _clientProof);
             }
-            if (output.startsWith(",")) {
-                return output.substring(1);
-            } else {
-                return output;
-            }
+            return j.toString();
         }
 
         // Setters with coercion
@@ -363,45 +317,99 @@ abstract class HandshakeProtocol {
 
         ScramAttributes clientProof(byte[] clientProof) {
             ScramAttributes next = ScramAttributes.from(this);
-            next._clientProof = Crypto.toBase64(clientProof);
+            next._clientProof = Base64.getEncoder().encodeToString(clientProof);
             return next;
         }
+    }
 
-        // Getters
-        String authIdentity() {
-            return _authIdentity;
+    static class Crypto {
+        private static final String HMAC_SHA_256 = "HmacSHA256";
+        private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
+
+        private static final SecureRandom secureRandom = new SecureRandom();
+        private static final Map<PasswordLookup, byte[]> pbkdf2Cache = new ConcurrentHashMap<>();
+        private static final int NONCE_BYTES = 18;
+
+        private static class PasswordLookup {
+            final byte[] password;
+            final byte[] salt;
+            final int iterations;
+
+            PasswordLookup(byte[] password, byte[] salt, int iterations) {
+                this.password = password;
+                this.salt = salt;
+                this.iterations = iterations;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                PasswordLookup that = (PasswordLookup) o;
+
+                if (iterations != that.iterations) return false;
+                if (!Arrays.equals(password, that.password)) return false;
+                return Arrays.equals(salt, that.salt);
+            }
+
+            @Override
+            public int hashCode() {
+                int result = Arrays.hashCode(password);
+                result = 31 * result + Arrays.hashCode(salt);
+                result = 31 * result + iterations;
+                return result;
+            }
+
+            public byte[] compute() {
+                final PBEKeySpec spec = new PBEKeySpec(
+                    new String(password, StandardCharsets.UTF_8).toCharArray(),
+                    salt, iterations, 256
+                );
+                try {
+                    return SecretKeyFactory.getInstance(PBKDF2_ALGORITHM).generateSecret(spec).getEncoded();
+                } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                    throw new ReqlDriverError(e);
+                }
+            }
         }
 
-        String username() {
-            return _username;
+        static byte[] sha256(byte[] clientKey) {
+            try {
+                return MessageDigest.getInstance("SHA-256").digest(clientKey);
+            } catch (NoSuchAlgorithmException e) {
+                throw new ReqlDriverError(e);
+            }
         }
 
-        String nonce() {
-            return _nonce;
+        static byte[] hmac(byte[] key, String string) {
+            try {
+                Mac mac = Mac.getInstance(HMAC_SHA_256);
+                mac.init(new SecretKeySpec(key, HMAC_SHA_256));
+                return mac.doFinal(string.getBytes(StandardCharsets.UTF_8));
+            } catch (InvalidKeyException | NoSuchAlgorithmException e) {
+                throw new ReqlDriverError(e);
+            }
         }
 
-        String headerAndChannelBinding() {
-            return _headerAndChannelBinding;
+        static byte[] pbkdf2(byte[] password, byte[] salt, Integer iterationCount) {
+            return pbkdf2Cache.computeIfAbsent(new PasswordLookup(password, salt, iterationCount), PasswordLookup::compute);
         }
 
-        byte[] salt() {
-            return _salt;
+        static String makeNonce() {
+            byte[] rawNonce = new byte[NONCE_BYTES];
+            secureRandom.nextBytes(rawNonce);
+            return Base64.getEncoder().encodeToString(rawNonce);
         }
 
-        Integer iterationCount() {
-            return _iterationCount;
-        }
-
-        String clientProof() {
-            return _clientProof;
-        }
-
-        byte[] serverSignature() {
-            return _serverSignature;
-        }
-
-        String error() {
-            return _error;
+        static byte[] xor(byte[] a, byte[] b) {
+            if (a.length != b.length) {
+                throw new ReqlDriverError("arrays must be the same length");
+            }
+            byte[] result = new byte[a.length];
+            for (int i = 0; i < result.length; i++) {
+                result[i] = (byte) (a[i] ^ b[i]);
+            }
+            return result;
         }
     }
 }
