@@ -2,7 +2,11 @@ package com.rethinkdb;
 
 import com.rethinkdb.net.Connection;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -40,7 +44,7 @@ public class TestingFramework {
             Properties config = new Properties();
 
             try (InputStream is = TestingFramework.class.getClassLoader().getResourceAsStream(DEFAULT_CONFIG_RESOURCE)) {
-                config.load(is);
+                config.load(Objects.requireNonNull(is));
             } catch (NullPointerException | IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -61,7 +65,7 @@ public class TestingFramework {
             // mandatory fields
             defaultConnectionBuilder = defaultConnectionBuilder.hostname(config.getProperty(PROP_HOSTNAME).trim());
             defaultConnectionBuilder = defaultConnectionBuilder.port(Integer.parseInt(config.getProperty(PROP_PORT).trim()));
-            // optinal fields
+            // optional fields
             final String authKey = config.getProperty(PROP_AUTHKEY);
             if (authKey != null) {
                 defaultConnectionBuilder.authKey(config.getProperty(PROP_AUTHKEY).trim());
@@ -74,7 +78,7 @@ public class TestingFramework {
     /**
      * @return A new connection from the configuration.
      */
-    public static Connection createConnection() throws Exception {
+    public static Connection createConnection() {
         return createConnection(defaultConnectionBuilder());
     }
 
@@ -82,8 +86,7 @@ public class TestingFramework {
      * @return A new connection from a specific builder to be used in tests where a specific connection is needed,
      * i.e. connection secured with SSL.
      */
-    public static Connection createConnection(Connection.Builder builder) throws Exception {
+    public static Connection createConnection(Connection.Builder builder) {
         return builder.connect();
     }
-
 }
