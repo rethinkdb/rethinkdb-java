@@ -14,10 +14,11 @@ import com.rethinkdb.utils.Internals;
 import com.rethinkdb.utils.Types;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-import java.io.Closeable;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URI;
 import java.util.Objects;
 import java.util.Set;
@@ -34,6 +35,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * This object is thread-safe.
  */
 public class Connection implements Closeable {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Connection.class);
+
     protected final ConnectionSocket.Factory socketFactory;
     protected final ResponsePump.Factory pumpFactory;
     protected final String hostname;
@@ -64,7 +67,7 @@ public class Connection implements Closeable {
         }
         this.socketFactory = b.socketFactory != null ? b.socketFactory : DefaultConnectionFactory.INSTANCE;
         this.pumpFactory = b.pumpFactory != null ? b.pumpFactory : DefaultConnectionFactory.INSTANCE;
-        this.hostname = b.hostname != null ? b.hostname : "localhost";
+        this.hostname = b.hostname != null ? b.hostname : "127.0.0.1";
         this.port = b.port != null ? b.port : 28015;
         this.dbname = b.dbname;
         this.sslContext = b.sslContext;
@@ -435,7 +438,7 @@ public class Connection implements Closeable {
             if (userInfo != null && !userInfo.isEmpty()) {
                 String[] split = userInfo.split(":");
                 if (split.length > 2) {
-                    throw new IllegalArgumentException("Invalid user info.");
+                    throw new IllegalArgumentException("Invalid user info: '" + userInfo + "'");
                 }
                 if (split.length > 0) {
                     this.user = split[0];
@@ -461,15 +464,16 @@ public class Connection implements Closeable {
             if (query != null) {
                 String[] kvs = query.split("&");
                 for (String kv : kvs) {
-                    String[] split = kv.split("=");
-                    if (split.length != 2) {
-                        throw new IllegalArgumentException("Invalid query.");
-                    }
-                    switch (split[0]) {
-                        case "auth_key": {
-                            String authKey = split[1];
+                    int i = kv.indexOf('=');
+                    String k = i != -1 ? kv.substring(0, i) : kv;
+                    String v = i != -1 ? kv.substring(i + 1) : "";
+                    switch (k) {
+                        case "auth_key":
+                        case "authKey": {
+                            String authKey = v;
                             if (authKey.isEmpty()) {
-                                throw new IllegalArgumentException("Invalid query value.");
+                                LOGGER.debug("Ignoring empty '{}'", v);
+                                break;
                             }
                             if (authKey.charAt(0) == '\'' && authKey.charAt(authKey.length() - 1) == '\'') {
                                 authKey = authKey.substring(1, authKey.length() - 1).replace("\\'", "'");
@@ -478,11 +482,21 @@ public class Connection implements Closeable {
                             break;
                         }
                         case "timeout": {
-                            this.timeout = Long.parseLong(split[1]);
+                            this.timeout = Long.parseLong(v);
+                            break;
+                        }
+                        case "java.default_fetch_mode":
+                        case "java.defaultFetchMode": {
+                            this.defaultFetchMode = Result.FetchMode.fromString(v);
+                            break;
+                        }
+                        case "java.unwrap_lists":
+                        case "java.unwrapLists": {
+                            this.unwrapLists = v.isEmpty() || "true".equals(v) || "enabled".equals(v);
                             break;
                         }
                         default: {
-                            throw new IllegalArgumentException("Invalid query parameter.");
+                            LOGGER.debug("Invalid query parameter '{}', skipping", k);
                         }
                     }
                 }
@@ -542,8 +556,20 @@ public class Connection implements Closeable {
             return this;
         }
 
+        public @NotNull Builder certFile(@NotNull File val) {
+            try (InputStream stream = new FileInputStream(val)) {
+                return sslContext(Internals.readCertFile(stream));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         public @NotNull Builder certFile(@NotNull InputStream val) {
-            return sslContext(Internals.readCertFile(val));
+            try (InputStream stream = val) {
+                return sslContext(Internals.readCertFile(stream));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         public @NotNull Builder sslContext(@Nullable SSLContext val) {
@@ -568,6 +594,84 @@ public class Connection implements Closeable {
 
         public @NotNull Connection connect() {
             return new Connection(this).connect();
+        }
+
+        public @NotNull URI dbUrl() {
+            return URI.create(dbUrlString());
+        }
+
+        public @NotNull String dbUrlString() {
+            StringBuilder b = new StringBuilder("rethinkdb://");
+
+            if (user != null) {
+                b.append(user);
+                if (password != null) {
+                    b.append(':').append(password);
+                }
+                b.append('@');
+            }
+
+            b.append(hostname != null ? hostname : "127.0.0.1");
+
+            if (port != null) {
+                b.append(':').append(port);
+            }
+
+            if (dbname != null) {
+                b.append('/').append(dbname);
+            }
+
+            boolean first = true;
+            if (authKey != null) {
+                first = false;
+                b.append('?');
+
+                b.append("auth_key=").append(authKey);
+            }
+            if (timeout != null) {
+                b.append(first ? '?' : "&");
+                first = false;
+
+                b.append("timeout=").append(timeout);
+            }
+            if (defaultFetchMode != null) {
+                b.append(first ? '?' : "&");
+                first = false;
+
+                b.append("java.default_fetch_mode=").append(defaultFetchMode.name().toLowerCase());
+            }
+            if (unwrapLists) {
+                b.append(first ? '?' : "&");
+                first = false;
+                b.append("java.unwrap_lists=true");
+            }
+
+            return b.toString();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Builder builder = (Builder) o;
+            return unwrapLists == builder.unwrapLists &&
+                Objects.equals(socketFactory, builder.socketFactory) &&
+                Objects.equals(pumpFactory, builder.pumpFactory) &&
+                Objects.equals(hostname, builder.hostname) &&
+                Objects.equals(port, builder.port) &&
+                Objects.equals(dbname, builder.dbname) &&
+                Objects.equals(sslContext, builder.sslContext) &&
+                Objects.equals(timeout, builder.timeout) &&
+                Objects.equals(authKey, builder.authKey) &&
+                Objects.equals(user, builder.user) &&
+                Objects.equals(password, builder.password) &&
+                defaultFetchMode == builder.defaultFetchMode;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(socketFactory, pumpFactory, hostname, port, dbname,
+                sslContext, timeout, authKey, user, password, defaultFetchMode, unwrapLists);
         }
     }
 }
