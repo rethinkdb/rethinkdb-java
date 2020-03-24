@@ -535,7 +535,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn) {
-        return conn.runAsync(this, new OptArgs(), null, null, null).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), null, null, null).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -547,7 +547,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn, OptArgs runOpts) {
-        return conn.runAsync(this, runOpts, null, null, null).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, null, null, null).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -559,7 +559,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn, Result.FetchMode fetchMode) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, null, null).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), fetchMode, null, null).thenApplyAsync(ReqlAst::handleAtom);
     }
 
 
@@ -573,7 +573,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, Class<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), null, null, Types.of(typeRef)).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), null, null, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -586,7 +586,7 @@ public class ReqlAst {
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, TypeReference<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), null, null, typeRef).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), null, null, typeRef).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -599,7 +599,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode) {
-        return conn.runAsync(this, runOpts, fetchMode, null, null).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, fetchMode, null, null).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -613,7 +613,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, Class<T> typeRef) {
-        return conn.runAsync(this, runOpts, null, null, Types.of(typeRef)).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, null, null, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -627,7 +627,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, TypeReference<T> typeRef) {
-        return conn.runAsync(this, runOpts, null, null, typeRef).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, null, null, typeRef).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -641,7 +641,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, null, Types.of(typeRef)).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), fetchMode, null, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -655,7 +655,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, null, typeRef).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), fetchMode, null, typeRef).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -670,7 +670,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return conn.runAsync(this, runOpts, fetchMode, null, Types.of(typeRef)).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, fetchMode, null, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -685,7 +685,639 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
-        return conn.runAsync(this, runOpts, fetchMode, null, typeRef).thenApply(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, fetchMode, null, typeRef).thenApplyAsync(ReqlAst::handleAtom);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the unwrapped grouping result, with
+     * the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @param conn     The connection to run this query
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, Class<K> keyRef, Class<V> valueRef) {
+        return handleGrouping(conn.run(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the unwrapped grouping result, with
+     * the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @param conn     The connection to run this query
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, TypeReference<K> keyRef, Class<V> valueRef) {
+        return handleGrouping(conn.run(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the unwrapped grouping result, with
+     * the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @param conn     The connection to run this query
+     * @return The result of this query (either a {@code P or a Cursor<P>}
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, Class<K> keyRef, TypeReference<V> valueRef) {
+        return handleGrouping(conn.run(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the unwrapped grouping result, with
+     * the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @param conn     The connection to run this query
+     * @return The result of this query (either a {@code P or a Cursor<P>}
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, TypeReference<K> keyRef, TypeReference<V> valueRef) {
+        return handleGrouping(conn.run(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the unwrapped grouping result, with
+     * the values converted to the defined grouping and value types.
+     *
+     * @param <K>     The grouping type
+     * @param <V>     The value type
+     * @param conn    The connection to run this query
+     * @param typeRef The type to convert to
+     * @return The result of this query (either a {@code P or a Cursor<P>}
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, TypeReference<GroupedResult<K, V>> typeRef) {
+        return handleGrouping(conn.run(this, new OptArgs(), null, true, typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the unwrapped grouping result,
+     * with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @param conn     The connection to run this query
+     * @param runOpts  The options to run this query with
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, OptArgs runOpts, Class<K> keyRef, Class<V> valueRef) {
+        return handleGrouping(conn.run(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the unwrapped grouping result,
+     * with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @param conn     The connection to run this query
+     * @param runOpts  The options to run this query with
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, OptArgs runOpts, TypeReference<K> keyRef, Class<V> valueRef) {
+        return handleGrouping(conn.run(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the unwrapped grouping result,
+     * with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @param conn     The connection to run this query
+     * @param runOpts  The options to run this query with
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, OptArgs runOpts, Class<K> keyRef, TypeReference<V> valueRef) {
+        return handleGrouping(conn.run(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the unwrapped grouping result,
+     * with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @param conn     The connection to run this query
+     * @param runOpts  The options to run this query with
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, OptArgs runOpts, TypeReference<K> keyRef, TypeReference<V> valueRef) {
+        return handleGrouping(conn.run(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the unwrapped grouping result,
+     * with the values converted to the defined grouping and value types.
+     *
+     * @param <K>     The grouping type
+     * @param <V>     The value type
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, OptArgs runOpts, TypeReference<GroupedResult<K, V>> typeRef) {
+        return handleGrouping(conn.run(this, runOpts, null, true, typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the unwrapped grouping result,
+     * with the values converted to the defined grouping and value types.
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, Result.FetchMode fetchMode, Class<K> keyRef, Class<V> valueRef) {
+        return handleGrouping(conn.run(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the unwrapped grouping result,
+     * with the values converted to the defined grouping and value types.
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, Result.FetchMode fetchMode, TypeReference<K> keyRef, Class<V> valueRef) {
+        return handleGrouping(conn.run(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the unwrapped grouping result,
+     * with the values converted to the defined grouping and value types.
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, Result.FetchMode fetchMode, Class<K> keyRef, TypeReference<V> valueRef) {
+        return handleGrouping(conn.run(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the unwrapped grouping result,
+     * with the values converted to the defined grouping and value types.
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, Result.FetchMode fetchMode, TypeReference<K> keyRef, TypeReference<V> valueRef) {
+        return handleGrouping(conn.run(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the unwrapped grouping result,
+     * with the values converted to the defined grouping and value types.
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param typeRef   The type to convert to
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, Result.FetchMode fetchMode, TypeReference<GroupedResult<K, V>> typeRef) {
+        return handleGrouping(conn.run(this, new OptArgs(), fetchMode, true, typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the unwrapped grouping result, with the values converted to the defined grouping and value types
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<K> keyRef, Class<V> valueRef) {
+        return handleGrouping(conn.run(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the unwrapped grouping result, with the values converted to the defined grouping and value types
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<K> keyRef, Class<V> valueRef) {
+        return handleGrouping(conn.run(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the unwrapped grouping result, with the values converted to the defined grouping and value types
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<K> keyRef, TypeReference<V> valueRef) {
+        return handleGrouping(conn.run(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the unwrapped grouping result, with the values converted to the defined grouping and value types
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<K> keyRef, TypeReference<V> valueRef) {
+        return handleGrouping(conn.run(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the unwrapped grouping result, with the values converted to the defined grouping and value types
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef   The type to convert to
+     * @return The result of this query
+     */
+    public <K, V> Map<K, Set<V>> runGrouping(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<GroupedResult<K, V>> typeRef) {
+        return handleGrouping(conn.run(this, runOpts, fetchMode, true, typeRef));
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param conn     The connection to run this query
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Class<K> keyRef, Class<V> valueRef) {
+        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param conn     The connection to run this query
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, TypeReference<K> keyRef, Class<V> valueRef) {
+        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param conn     The connection to run this query
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @return The result of this query (either a {@code P or a Cursor<P>}
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Class<K> keyRef, TypeReference<V> valueRef) {
+        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param conn     The connection to run this query
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @return The result of this query (either a {@code P or a Cursor<P>}
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, TypeReference<K> keyRef, TypeReference<V> valueRef) {
+        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with default options and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>     The grouping type
+     * @param <V>     The value type
+     * @param conn    The connection to run this query
+     * @param typeRef The type to convert to
+     * @return The result of this query (either a {@code P or a Cursor<P>}
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, TypeReference<GroupedResult<K, V>> typeRef) {
+        return conn.runAsync(this, new OptArgs(), null, true, typeRef).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param conn     The connection to run this query
+     * @param runOpts  The options to run this query with
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Class<K> keyRef, Class<V> valueRef) {
+        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param conn     The connection to run this query
+     * @param runOpts  The options to run this query with
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, TypeReference<K> keyRef, Class<V> valueRef) {
+        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param conn     The connection to run this query
+     * @param runOpts  The options to run this query with
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Class<K> keyRef, TypeReference<V> valueRef) {
+        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>      The grouping type
+     * @param <V>      The value type
+     * @param conn     The connection to run this query
+     * @param runOpts  The options to run this query with
+     * @param keyRef   The grouping type to convert to
+     * @param valueRef The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, TypeReference<K> keyRef, TypeReference<V> valueRef) {
+        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts} and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>     The grouping type
+     * @param <V>     The value type
+     * @param conn    The connection to run this query
+     * @param runOpts The options to run this query with
+     * @param typeRef The type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, TypeReference<GroupedResult<K, V>> typeRef) {
+        return conn.runAsync(this, runOpts, null, true, typeRef).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Result.FetchMode fetchMode, Class<K> keyRef, Class<V> valueRef) {
+        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<K> keyRef, Class<V> valueRef) {
+        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Result.FetchMode fetchMode, Class<K> keyRef, TypeReference<V> valueRef) {
+        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<K> keyRef, TypeReference<V> valueRef) {
+        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with the specified {@code fetchMode} and returns the unwrapped grouping result
+     * asynchronously, with the values converted to the defined grouping and value types.
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef   The type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<GroupedResult<K, V>> typeRef) {
+        return conn.runAsync(this, new OptArgs(), fetchMode, true, typeRef).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the unwrapped grouping result asynchronously, with the values converted to the defined grouping and value types
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<K> keyRef, Class<V> valueRef) {
+        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the unwrapped grouping result asynchronously, with the values converted to the defined grouping and value types
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<K> keyRef, Class<V> valueRef) {
+        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the unwrapped grouping result asynchronously, with the values converted to the defined grouping and value types
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<K> keyRef, TypeReference<V> valueRef) {
+        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the unwrapped grouping result asynchronously, with the values converted to the defined grouping and value types
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param keyRef    The grouping type to convert to
+     * @param valueRef  The value type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<K> keyRef, TypeReference<V> valueRef) {
+        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+    }
+
+    /**
+     * Runs this query via connection {@code conn} with options {@code runOpts}, the specified {@code fetchMode}
+     * and returns the unwrapped grouping result asynchronously, with the values converted to the defined grouping and value types
+     *
+     * @param <K>       The grouping type
+     * @param <V>       The value type
+     * @param conn      The connection to run this query
+     * @param runOpts   The options to run this query with
+     * @param fetchMode The fetch mode to use in partial sequences
+     * @param typeRef   The type to convert to
+     * @return The result of this query
+     */
+    public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<GroupedResult<K, V>> typeRef) {
+        return conn.runAsync(this, runOpts, fetchMode, true, typeRef).thenApplyAsync(ReqlAst::handleGrouping);
     }
 
     /**
@@ -766,7 +1398,7 @@ public class ReqlAst {
         return result.single();
     }
 
-    private static <K, V> Map<K, List<V>> handleGrouping(Result<GroupedResult<K, V>> result) {
-
+    private static <K, V> Map<K, Set<V>> handleGrouping(Result<GroupedResult<K, V>> result) {
+        return GroupedResult.toMap(result.toList());
     }
 }
