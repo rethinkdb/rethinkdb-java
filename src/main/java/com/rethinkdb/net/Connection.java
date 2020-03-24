@@ -45,7 +45,6 @@ public class Connection implements Closeable {
     protected final @Nullable Long timeout;
     protected final @Nullable String user;
     protected final @Nullable String password;
-    protected final boolean unwrapLists;
     protected final Result.FetchMode defaultFetchMode;
 
     protected final AtomicLong nextToken = new AtomicLong();
@@ -55,6 +54,7 @@ public class Connection implements Closeable {
     protected @Nullable String dbname;
     protected @Nullable ConnectionSocket socket;
     protected @Nullable ResponsePump pump;
+    protected boolean unwrapLists;
 
     /**
      * Creates a new connection based on a {@link Builder}.
@@ -97,6 +97,11 @@ public class Connection implements Closeable {
      */
     public @NotNull Connection use(@Nullable String db) {
         dbname = db;
+        return this;
+    }
+
+    public @NotNull Connection unwrapLists(boolean val) {
+        unwrapLists = val;
         return this;
     }
 
