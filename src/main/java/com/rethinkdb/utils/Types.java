@@ -1,6 +1,7 @@
 package com.rethinkdb.utils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.rethinkdb.model.GroupedResult;
 
 import java.lang.reflect.MalformedParameterizedTypeException;
 import java.lang.reflect.ParameterizedType;
@@ -64,6 +65,30 @@ public class Types {
     public static <K, V> TypeReference<Map<K, V>> mapOf(TypeReference<K> keyType, TypeReference<V> valueType) {
         return new BuiltTypeRef<>(
             new BuiltParametrizedType(Map.class, Objects.requireNonNull(keyType, "keyType").getType(), Objects.requireNonNull(valueType, "valueType").getType())
+        );
+    }
+
+    public static <K, V> TypeReference<GroupedResult<K, V>> groupOf(Class<K> keyType, Class<V> valueType) {
+        return new BuiltTypeRef<>(
+            new BuiltParametrizedType(GroupedResult.class, Objects.requireNonNull(keyType, "keyType"), Objects.requireNonNull(valueType, "valueType"))
+        );
+    }
+
+    public static <K, V> TypeReference<GroupedResult<K, V>> groupOf(TypeReference<K> keyType, Class<V> valueType) {
+        return new BuiltTypeRef<>(
+            new BuiltParametrizedType(GroupedResult.class, Objects.requireNonNull(keyType, "keyType").getType(), Objects.requireNonNull(valueType, "valueType"))
+        );
+    }
+
+    public static <K, V> TypeReference<GroupedResult<K, V>> groupOf(Class<K> keyType, TypeReference<V> valueType) {
+        return new BuiltTypeRef<>(
+            new BuiltParametrizedType(GroupedResult.class, Objects.requireNonNull(keyType, "keyType"), Objects.requireNonNull(valueType, "valueType").getType())
+        );
+    }
+
+    public static <K, V> TypeReference<GroupedResult<K, V>> groupOf(TypeReference<K> keyType, TypeReference<V> valueType) {
+        return new BuiltTypeRef<>(
+            new BuiltParametrizedType(GroupedResult.class, Objects.requireNonNull(keyType, "keyType").getType(), Objects.requireNonNull(valueType, "valueType").getType())
         );
     }
 

@@ -151,19 +151,21 @@ public class Connection implements Closeable {
      * @param term      The ReQL term
      * @param optArgs   The options to run this query with
      * @param fetchMode The fetch mode to use in partial sequences
+     * @param unwrap    Override for the connection's unwrapLists setting
      * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public @NotNull <T> CompletableFuture<Result<T>> runAsync(@NotNull ReqlAst term,
                                                               @NotNull OptArgs optArgs,
                                                               @Nullable Result.FetchMode fetchMode,
+                                                              @Nullable Boolean unwrap,
                                                               @Nullable TypeReference<T> typeRef) {
         handleOptArgs(optArgs);
         Query q = Query.createStart(nextToken.incrementAndGet(), term, optArgs);
         if (optArgs.containsKey("noreply")) {
             throw new ReqlDriverError("Don't provide the noreply option as an optarg. Use `.runNoReply` instead of `.run`");
         }
-        return runQuery(q, fetchMode, typeRef);
+        return runQuery(q, fetchMode, unwrap, typeRef);
     }
 
     /**
@@ -174,15 +176,17 @@ public class Connection implements Closeable {
      * @param term      The ReQL term
      * @param optArgs   The options to run this query with
      * @param fetchMode The fetch mode to use in partial sequences
+     * @param unwrap
      * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public @NotNull <T> Result<T> run(@NotNull ReqlAst term,
                                       @NotNull OptArgs optArgs,
                                       @Nullable Result.FetchMode fetchMode,
+                                      @Nullable Boolean unwrap,
                                       @Nullable TypeReference<T> typeRef) {
         try {
-            return runAsync(term, optArgs, fetchMode, typeRef).join();
+            return runAsync(term, optArgs, fetchMode, unwrap, typeRef).join();
         } catch (CompletionException ce) {
             Throwable t = ce.getCause();
             if (t instanceof ReqlError) {
@@ -229,7 +233,7 @@ public class Connection implements Closeable {
      * @return a {@link CompletableFuture} you can await.
      */
     public @NotNull CompletableFuture<Void> noreplyWaitAsync() {
-        return runQuery(Query.createNoreplyWait(nextToken.incrementAndGet()), null, null).thenApply(ignored -> null);
+        return runQuery(Query.createNoreplyWait(nextToken.incrementAndGet()), null, null, null).thenApply(ignored -> null);
     }
 
     /**
@@ -380,10 +384,13 @@ public class Connection implements Closeable {
 
     protected @NotNull <T> CompletableFuture<Result<T>> runQuery(@NotNull Query query,
                                                                  @Nullable Result.FetchMode fetchMode,
+                                                                 @Nullable Boolean unwrap,
                                                                  @Nullable TypeReference<T> typeRef) {
         return sendQuery(query).thenApply(res -> new Result<>(
-            this, query, res, fetchMode == null ? defaultFetchMode : fetchMode, typeRef
-        ));
+            this, query, res,
+            fetchMode == null ? defaultFetchMode : fetchMode,
+            unwrap == null ? unwrapLists : unwrap,
+            typeRef));
     }
 
     protected void handleOptArgs(@NotNull OptArgs optArgs) {
