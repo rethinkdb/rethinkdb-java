@@ -35,7 +35,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     /**
      * The object which represents {@code null} inside the BlockingQueue.
      */
-    private static final Object NIL = new Object();;
+    private static final Object NIL = new Object();
 
     /**
      * The fetch mode to use on partial sequences.
