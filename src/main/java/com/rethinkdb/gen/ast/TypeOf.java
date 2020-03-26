@@ -16,7 +16,7 @@ public class TypeOf extends ReqlExpr {
     public TypeOf(Object arg) {
         this(new Arguments(arg), null);
     }
-    public TypeOf(Arguments args){
+    public TypeOf(Arguments args) {
         this(args, null);
     }
     public TypeOf(Arguments args, OptArgs optargs) {

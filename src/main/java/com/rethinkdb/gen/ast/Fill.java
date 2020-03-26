@@ -16,7 +16,7 @@ public class Fill extends ReqlExpr {
     public Fill(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Fill(Arguments args){
+    public Fill(Arguments args) {
         this(args, null);
     }
     public Fill(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class ToJsonString extends ReqlExpr {
     public ToJsonString(Object arg) {
         this(new Arguments(arg), null);
     }
-    public ToJsonString(Arguments args){
+    public ToJsonString(Arguments args) {
         this(args, null);
     }
     public ToJsonString(Arguments args, OptArgs optargs) {

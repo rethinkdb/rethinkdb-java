@@ -16,7 +16,7 @@ public class PolygonSub extends ReqlExpr {
     public PolygonSub(Object arg) {
         this(new Arguments(arg), null);
     }
-    public PolygonSub(Arguments args){
+    public PolygonSub(Arguments args) {
         this(args, null);
     }
     public PolygonSub(Arguments args, OptArgs optargs) {

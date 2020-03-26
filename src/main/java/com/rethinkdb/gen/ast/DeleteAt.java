@@ -16,7 +16,7 @@ public class DeleteAt extends ReqlExpr {
     public DeleteAt(Object arg) {
         this(new Arguments(arg), null);
     }
-    public DeleteAt(Arguments args){
+    public DeleteAt(Arguments args) {
         this(args, null);
     }
     public DeleteAt(Arguments args, OptArgs optargs) {

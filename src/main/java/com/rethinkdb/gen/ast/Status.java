@@ -16,7 +16,7 @@ public class Status extends ReqlExpr {
     public Status(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Status(Arguments args){
+    public Status(Arguments args) {
         this(args, null);
     }
     public Status(Arguments args, OptArgs optargs) {

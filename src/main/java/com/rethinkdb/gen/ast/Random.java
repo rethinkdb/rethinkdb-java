@@ -16,7 +16,7 @@ public class Random extends ReqlExpr {
     public Random(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Random(Arguments args){
+    public Random(Arguments args) {
         this(args, null);
     }
     public Random(Arguments args, OptArgs optargs) {

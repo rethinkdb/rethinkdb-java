@@ -16,7 +16,7 @@ public class Range extends ReqlExpr {
     public Range(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Range(Arguments args){
+    public Range(Arguments args) {
         this(args, null);
     }
     public Range(Arguments args, OptArgs optargs) {

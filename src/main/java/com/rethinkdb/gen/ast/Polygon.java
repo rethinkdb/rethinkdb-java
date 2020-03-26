@@ -16,7 +16,7 @@ public class Polygon extends ReqlExpr {
     public Polygon(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Polygon(Arguments args){
+    public Polygon(Arguments args) {
         this(args, null);
     }
     public Polygon(Arguments args, OptArgs optargs) {

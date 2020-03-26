@@ -19,7 +19,7 @@ public enum DatumType {
 
     public final int value;
 
-    private DatumType(int value){
+    private DatumType(int value) {
         this.value = value;
     }
 
@@ -33,8 +33,7 @@ public enum DatumType {
             case 6: return DatumType.R_OBJECT;
             case 7: return DatumType.R_JSON;
             default:
-                throw new IllegalArgumentException(String.format(
-                "%s is not a legal value for DatumType", value));
+                throw new IllegalArgumentException(String.format("%s is not a legal value for DatumType", value));
         }
     }
 

@@ -16,7 +16,7 @@ public class March extends ReqlExpr {
     public March(Object arg) {
         this(new Arguments(arg), null);
     }
-    public March(Arguments args){
+    public March(Arguments args) {
         this(args, null);
     }
     public March(Arguments args, OptArgs optargs) {

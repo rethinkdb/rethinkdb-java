@@ -16,7 +16,7 @@ public class SetUnion extends ReqlExpr {
     public SetUnion(Object arg) {
         this(new Arguments(arg), null);
     }
-    public SetUnion(Arguments args){
+    public SetUnion(Arguments args) {
         this(args, null);
     }
     public SetUnion(Arguments args, OptArgs optargs) {

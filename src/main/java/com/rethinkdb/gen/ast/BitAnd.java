@@ -16,7 +16,7 @@ public class BitAnd extends ReqlExpr {
     public BitAnd(Object arg) {
         this(new Arguments(arg), null);
     }
-    public BitAnd(Arguments args){
+    public BitAnd(Arguments args) {
         this(args, null);
     }
     public BitAnd(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class Contains extends ReqlExpr {
     public Contains(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Contains(Arguments args){
+    public Contains(Arguments args) {
         this(args, null);
     }
     public Contains(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class Sum extends ReqlExpr {
     public Sum(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Sum(Arguments args){
+    public Sum(Arguments args) {
         this(args, null);
     }
     public Sum(Arguments args, OptArgs optargs) {

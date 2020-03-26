@@ -16,7 +16,7 @@ public class Json extends ReqlExpr {
     public Json(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Json(Arguments args){
+    public Json(Arguments args) {
         this(args, null);
     }
     public Json(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class Skip extends ReqlExpr {
     public Skip(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Skip(Arguments args){
+    public Skip(Arguments args) {
         this(args, null);
     }
     public Skip(Arguments args, OptArgs optargs) {

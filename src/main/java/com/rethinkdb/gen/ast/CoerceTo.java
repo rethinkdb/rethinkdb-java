@@ -16,7 +16,7 @@ public class CoerceTo extends ReqlExpr {
     public CoerceTo(Object arg) {
         this(new Arguments(arg), null);
     }
-    public CoerceTo(Arguments args){
+    public CoerceTo(Arguments args) {
         this(args, null);
     }
     public CoerceTo(Arguments args, OptArgs optargs) {

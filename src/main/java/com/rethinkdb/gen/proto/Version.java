@@ -17,7 +17,7 @@ public enum Version {
 
     public final int value;
 
-    private Version(int value){
+    private Version(int value) {
         this.value = value;
     }
 
@@ -29,8 +29,7 @@ public enum Version {
             case 1074539808: return Version.V0_4;
             case 885177795: return Version.V1_0;
             default:
-                throw new IllegalArgumentException(String.format(
-                "%s is not a legal value for Version", value));
+                throw new IllegalArgumentException(String.format("%s is not a legal value for Version", value));
         }
     }
 

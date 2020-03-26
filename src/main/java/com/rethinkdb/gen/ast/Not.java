@@ -16,7 +16,7 @@ public class Not extends ReqlExpr {
     public Not(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Not(Arguments args){
+    public Not(Arguments args) {
         this(args, null);
     }
     public Not(Arguments args, OptArgs optargs) {

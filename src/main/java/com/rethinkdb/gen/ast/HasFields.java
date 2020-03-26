@@ -16,7 +16,7 @@ public class HasFields extends ReqlExpr {
     public HasFields(Object arg) {
         this(new Arguments(arg), null);
     }
-    public HasFields(Arguments args){
+    public HasFields(Arguments args) {
         this(args, null);
     }
     public HasFields(Arguments args, OptArgs optargs) {

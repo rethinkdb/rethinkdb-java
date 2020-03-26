@@ -16,7 +16,7 @@ public class During extends ReqlExpr {
     public During(Object arg) {
         this(new Arguments(arg), null);
     }
-    public During(Arguments args){
+    public During(Arguments args) {
         this(args, null);
     }
     public During(Arguments args, OptArgs optargs) {

@@ -16,7 +16,7 @@ public class Branch extends ReqlExpr {
     public Branch(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Branch(Arguments args){
+    public Branch(Arguments args) {
         this(args, null);
     }
     public Branch(Arguments args, OptArgs optargs) {

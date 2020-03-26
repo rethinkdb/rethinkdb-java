@@ -16,7 +16,7 @@ public class Javascript extends ReqlExpr {
     public Javascript(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Javascript(Arguments args){
+    public Javascript(Arguments args) {
         this(args, null);
     }
     public Javascript(Arguments args, OptArgs optargs) {

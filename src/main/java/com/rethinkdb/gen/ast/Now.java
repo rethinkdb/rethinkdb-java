@@ -16,7 +16,7 @@ public class Now extends ReqlExpr {
     public Now(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Now(Arguments args){
+    public Now(Arguments args) {
         this(args, null);
     }
     public Now(Arguments args, OptArgs optargs) {

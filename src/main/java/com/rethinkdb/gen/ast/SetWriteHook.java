@@ -16,7 +16,7 @@ public class SetWriteHook extends ReqlExpr {
     public SetWriteHook(Object arg) {
         this(new Arguments(arg), null);
     }
-    public SetWriteHook(Arguments args){
+    public SetWriteHook(Arguments args) {
         this(args, null);
     }
     public SetWriteHook(Arguments args, OptArgs optargs) {

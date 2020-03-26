@@ -16,7 +16,7 @@ public class Geojson extends ReqlExpr {
     public Geojson(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Geojson(Arguments args){
+    public Geojson(Arguments args) {
         this(args, null);
     }
     public Geojson(Arguments args, OptArgs optargs) {

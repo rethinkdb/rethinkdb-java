@@ -16,7 +16,7 @@ public class Circle extends ReqlExpr {
     public Circle(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Circle(Arguments args){
+    public Circle(Arguments args) {
         this(args, null);
     }
     public Circle(Arguments args, OptArgs optargs) {

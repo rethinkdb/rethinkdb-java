@@ -16,7 +16,7 @@ public class BitXor extends ReqlExpr {
     public BitXor(Object arg) {
         this(new Arguments(arg), null);
     }
-    public BitXor(Arguments args){
+    public BitXor(Arguments args) {
         this(args, null);
     }
     public BitXor(Arguments args, OptArgs optargs) {

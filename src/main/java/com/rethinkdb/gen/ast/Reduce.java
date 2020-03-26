@@ -16,7 +16,7 @@ public class Reduce extends ReqlExpr {
     public Reduce(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Reduce(Arguments args){
+    public Reduce(Arguments args) {
         this(args, null);
     }
     public Reduce(Arguments args, OptArgs optargs) {

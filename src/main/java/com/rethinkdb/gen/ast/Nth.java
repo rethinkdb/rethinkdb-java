@@ -16,7 +16,7 @@ public class Nth extends ReqlExpr {
     public Nth(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Nth(Arguments args){
+    public Nth(Arguments args) {
         this(args, null);
     }
     public Nth(Arguments args, OptArgs optargs) {

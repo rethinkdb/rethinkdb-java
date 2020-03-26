@@ -16,7 +16,7 @@ public class Config extends ReqlExpr {
     public Config(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Config(Arguments args){
+    public Config(Arguments args) {
         this(args, null);
     }
     public Config(Arguments args, OptArgs optargs) {

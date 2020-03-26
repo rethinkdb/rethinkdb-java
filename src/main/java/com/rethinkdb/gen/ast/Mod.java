@@ -16,7 +16,7 @@ public class Mod extends ReqlExpr {
     public Mod(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Mod(Arguments args){
+    public Mod(Arguments args) {
         this(args, null);
     }
     public Mod(Arguments args, OptArgs optargs) {

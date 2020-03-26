@@ -16,7 +16,7 @@ public class EqJoin extends ReqlExpr {
     public EqJoin(Object arg) {
         this(new Arguments(arg), null);
     }
-    public EqJoin(Arguments args){
+    public EqJoin(Arguments args) {
         this(args, null);
     }
     public EqJoin(Arguments args, OptArgs optargs) {

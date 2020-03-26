@@ -16,7 +16,7 @@ public class ToEpochTime extends ReqlExpr {
     public ToEpochTime(Object arg) {
         this(new Arguments(arg), null);
     }
-    public ToEpochTime(Arguments args){
+    public ToEpochTime(Arguments args) {
         this(args, null);
     }
     public ToEpochTime(Arguments args, OptArgs optargs) {

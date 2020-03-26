@@ -16,7 +16,7 @@ public class Funcall extends ReqlExpr {
     public Funcall(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Funcall(Arguments args){
+    public Funcall(Arguments args) {
         this(args, null);
     }
     public Funcall(Arguments args, OptArgs optargs) {
@@ -25,8 +25,7 @@ public class Funcall extends ReqlExpr {
 
 
     @Override
-    protected Object build()
-    {
+    protected Object build() {
         /*
           This object should be constructed with arguments first, and the
           function itself as the last parameter.  This makes it easier for

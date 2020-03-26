@@ -16,7 +16,7 @@ public class Slice extends ReqlExpr {
     public Slice(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Slice(Arguments args){
+    public Slice(Arguments args) {
         this(args, null);
     }
     public Slice(Arguments args, OptArgs optargs) {

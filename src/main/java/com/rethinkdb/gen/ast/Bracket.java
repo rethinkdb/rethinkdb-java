@@ -16,7 +16,7 @@ public class Bracket extends ReqlExpr {
     public Bracket(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Bracket(Arguments args){
+    public Bracket(Arguments args) {
         this(args, null);
     }
     public Bracket(Arguments args, OptArgs optargs) {

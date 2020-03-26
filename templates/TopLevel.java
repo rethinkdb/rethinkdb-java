@@ -6,8 +6,8 @@ import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.gen.ast.Error;
 import com.rethinkdb.gen.ast.*;
-import com.rethinkdb.ast.Util;
 import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.utils.Internals;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import java.util.List;
 public class TopLevel {
 
     public ReqlExpr expr(Object value){
-        return Util.toReqlExpr(value);
+        return Internals.toReqlExpr(value);
     }
 
     public ReqlExpr row(Object... values) {

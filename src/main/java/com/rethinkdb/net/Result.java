@@ -7,6 +7,7 @@ import com.rethinkdb.gen.exc.ReqlError;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
 import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Profile;
+import com.rethinkdb.utils.Internals;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -83,7 +84,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     protected final Query query;
     protected final Response firstRes;
     protected final TypeReference<T> typeRef;
-    protected final Converter.FormatOptions fmt;
+    protected final Internals.FormatOptions fmt;
     // can be altered depending on the operation
     protected FetchMode fetchMode;
 
@@ -107,7 +108,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         this.firstRes = firstRes;
         this.fetchMode = fetchMode;
         this.typeRef = typeRef;
-        fmt = new Converter.FormatOptions(query.globalOptions);
+        fmt = new Internals.FormatOptions(query.globalOptions);
         currentResponse.set(firstRes);
         handleFirstResponse();
     }
@@ -240,7 +241,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             if (next == NIL) {
                 return null;
             }
-            return Util.convertToPojo(next, typeRef);
+            return Internals.toPojo(next, typeRef);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -260,7 +261,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             if (next == NIL) {
                 return null;
             }
-            return Util.convertToPojo(next, typeRef);
+            return Internals.toPojo(next, typeRef);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -281,7 +282,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             if (next == NIL) {
                 return null;
             }
-            return Util.convertToPojo(next, typeRef);
+            return Internals.toPojo(next, typeRef);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
@@ -308,7 +309,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             if (next == NIL) {
                 return null;
             }
-            return Util.convertToPojo(next, typeRef);
+            return Internals.toPojo(next, typeRef);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
@@ -549,8 +550,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             }
         }
         lastRequestCount.set(0);
-        List<?> objects = (List<?>) Converter.convertPseudotypes(res.data, fmt);
-        for (Object each : objects) {
+        for (Object each : (List<?>) Internals.convertPseudotypes(res.data, fmt)) {
             if (connection.unwrapLists && firstRes.type.equals(ResponseType.SUCCESS_ATOM) && each instanceof List) {
                 for (Object o : ((List<?>) each)) {
                     rawQueue.offer(o == null ? NIL : o);

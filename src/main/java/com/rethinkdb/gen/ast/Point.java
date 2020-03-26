@@ -16,7 +16,7 @@ public class Point extends ReqlExpr {
     public Point(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Point(Arguments args){
+    public Point(Arguments args) {
         this(args, null);
     }
     public Point(Arguments args, OptArgs optargs) {

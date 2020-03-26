@@ -10,6 +10,8 @@ import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.model.Server;
+import com.rethinkdb.utils.Internals;
+import com.rethinkdb.utils.Types;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -181,11 +183,12 @@ public class Connection implements Closeable {
                                       @Nullable TypeReference<T> typeRef) {
         try {
             return runAsync(term, optArgs, fetchMode, typeRef).join();
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof ReqlError) {
-                throw ((ReqlError) e.getCause());
+        } catch (CompletionException ce) {
+            Throwable t = ce.getCause();
+            if (t instanceof ReqlError) {
+                throw ((ReqlError) t);
             }
-            throw e;
+            throw new ReqlDriverError(t);
         }
     }
 
@@ -197,7 +200,7 @@ public class Connection implements Closeable {
     public @NotNull CompletableFuture<Server> serverAsync() {
         return sendQuery(Query.createServerInfo(nextToken.incrementAndGet())).thenApply(res -> {
             if (res.type.equals(ResponseType.SERVER_INFO)) {
-                return Util.convertToPojo(res.data.get(0), new TypeReference<Server>() {});
+                return Internals.toPojo(res.data.get(0), Types.of(Server.class));
             }
             throw new ReqlDriverError("Did not receive a SERVER_INFO response.");
         });
@@ -211,12 +214,12 @@ public class Connection implements Closeable {
     public @NotNull Server server() {
         try {
             return serverAsync().join();
-        } catch (
-            CompletionException e) {
-            if (e.getCause() instanceof ReqlError) {
-                throw ((ReqlError) e.getCause());
+        } catch (CompletionException ce) {
+            Throwable t = ce.getCause();
+            if (t instanceof ReqlError) {
+                throw ((ReqlError) t);
             }
-            throw e;
+            throw new ReqlDriverError(t);
         }
     }
 
@@ -235,11 +238,12 @@ public class Connection implements Closeable {
     public void noreplyWait() {
         try {
             noreplyWaitAsync().join();
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof ReqlError) {
-                throw ((ReqlError) e.getCause());
+        } catch (CompletionException ce) {
+            Throwable t = ce.getCause();
+            if (t instanceof ReqlError) {
+                throw ((ReqlError) t);
             }
-            throw e;
+            throw new ReqlDriverError(t);
         }
     }
 
@@ -396,7 +400,6 @@ public class Connection implements Closeable {
 
     // builder
 
-
     /**
      * Builder should be used to build a Connection instance.
      */
@@ -539,9 +542,8 @@ public class Connection implements Closeable {
             return this;
         }
 
-        public @NotNull Builder certFile(@Nullable InputStream val) {
-            sslContext = Crypto.readCertFile(val);
-            return this;
+        public @NotNull Builder certFile(@NotNull InputStream val) {
+            return sslContext(Internals.readCertFile(val));
         }
 
         public @NotNull Builder sslContext(@Nullable SSLContext val) {

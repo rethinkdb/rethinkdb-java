@@ -16,7 +16,7 @@ public class TableList extends ReqlExpr {
     public TableList(Object arg) {
         this(new Arguments(arg), null);
     }
-    public TableList(Arguments args){
+    public TableList(Arguments args) {
         this(args, null);
     }
     public TableList(Arguments args, OptArgs optargs) {

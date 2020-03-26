@@ -16,7 +16,7 @@ public class BitNot extends ReqlExpr {
     public BitNot(Object arg) {
         this(new Arguments(arg), null);
     }
-    public BitNot(Arguments args){
+    public BitNot(Arguments args) {
         this(args, null);
     }
     public BitNot(Arguments args, OptArgs optargs) {

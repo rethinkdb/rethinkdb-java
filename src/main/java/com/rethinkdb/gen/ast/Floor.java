@@ -16,7 +16,7 @@ public class Floor extends ReqlExpr {
     public Floor(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Floor(Arguments args){
+    public Floor(Arguments args) {
         this(args, null);
     }
     public Floor(Arguments args, OptArgs optargs) {

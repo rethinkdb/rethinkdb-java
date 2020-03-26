@@ -16,7 +16,7 @@ public class Time extends ReqlExpr {
     public Time(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Time(Arguments args){
+    public Time(Arguments args) {
         this(args, null);
     }
     public Time(Arguments args, OptArgs optargs) {

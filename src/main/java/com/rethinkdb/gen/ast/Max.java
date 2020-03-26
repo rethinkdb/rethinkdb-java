@@ -16,7 +16,7 @@ public class Max extends ReqlExpr {
     public Max(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Max(Arguments args){
+    public Max(Arguments args) {
         this(args, null);
     }
     public Max(Arguments args, OptArgs optargs) {

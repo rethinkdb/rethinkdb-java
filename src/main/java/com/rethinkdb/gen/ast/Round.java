@@ -16,7 +16,7 @@ public class Round extends ReqlExpr {
     public Round(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Round(Arguments args){
+    public Round(Arguments args) {
         this(args, null);
     }
     public Round(Arguments args, OptArgs optargs) {

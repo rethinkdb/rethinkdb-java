@@ -198,7 +198,7 @@ public enum TermType {
 
     public final int value;
 
-    private TermType(int value){
+    private TermType(int value) {
         this.value = value;
     }
 
@@ -391,8 +391,7 @@ public enum TermType {
             case 195: return TermType.BIT_SAL;
             case 196: return TermType.BIT_SAR;
             default:
-                throw new IllegalArgumentException(String.format(
-                "%s is not a legal value for TermType", value));
+                throw new IllegalArgumentException(String.format("%s is not a legal value for TermType", value));
         }
     }
 

@@ -16,7 +16,7 @@ public class GetIntersecting extends ReqlExpr {
     public GetIntersecting(Object arg) {
         this(new Arguments(arg), null);
     }
-    public GetIntersecting(Arguments args){
+    public GetIntersecting(Arguments args) {
         this(args, null);
     }
     public GetIntersecting(Arguments args, OptArgs optargs) {

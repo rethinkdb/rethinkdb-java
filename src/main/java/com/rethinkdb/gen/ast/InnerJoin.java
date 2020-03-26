@@ -16,7 +16,7 @@ public class InnerJoin extends ReqlExpr {
     public InnerJoin(Object arg) {
         this(new Arguments(arg), null);
     }
-    public InnerJoin(Arguments args){
+    public InnerJoin(Arguments args) {
         this(args, null);
     }
     public InnerJoin(Arguments args, OptArgs optargs) {

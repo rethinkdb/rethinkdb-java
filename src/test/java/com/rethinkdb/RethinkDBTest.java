@@ -7,6 +7,7 @@ import com.rethinkdb.model.MapObject;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.net.Result;
+import com.rethinkdb.utils.Types;
 import net.jodah.concurrentunit.Waiter;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -24,6 +25,8 @@ import static java.util.Collections.singletonList;
 import static org.junit.Assert.*;
 
 public class RethinkDBTest {
+    private static final TypeReference<List<String>> stringList = Types.listOf(String.class);
+    private static final TypeReference<Map<String, Object>> stringObjectMap = Types.mapOf(String.class, Object.class);
 
     public static final RethinkDB r = RethinkDB.r;
     Connection conn;
@@ -156,67 +159,62 @@ public class RethinkDBTest {
 
     @Test
     public void testSplitEdgeCases() {
-        TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {};
-        List<String> emptySplitNothing = r.expr("").split().run(conn, typeRef).single();
+        List<String> emptySplitNothing = r.expr("").split().run(conn, stringList).single();
         assertEquals(emptyList(), emptySplitNothing);
 
-        List<String> nullSplit = r.expr("").split(null).run(conn, typeRef).single();
+        List<String> nullSplit = r.expr("").split(null).run(conn, stringList).single();
         assertEquals(emptyList(), nullSplit);
 
-        List<String> emptySplitSpace = r.expr("").split(" ").run(conn, typeRef).single();
+        List<String> emptySplitSpace = r.expr("").split(" ").run(conn, stringList).single();
         assertEquals(singletonList(""), emptySplitSpace);
 
-        List<String> emptySplitEmpty = r.expr("").split("").run(conn, typeRef).single();
+        List<String> emptySplitEmpty = r.expr("").split("").run(conn, stringList).single();
         assertEquals(emptyList(), emptySplitEmpty);
 
-        List<String> emptySplitNull5 = r.expr("").split(null, 5).run(conn, typeRef).single();
+        List<String> emptySplitNull5 = r.expr("").split(null, 5).run(conn, stringList).single();
         assertEquals(emptyList(), emptySplitNull5);
 
-        List<String> emptySplitSpace5 = r.expr("").split(" ", 5).run(conn, typeRef).single();
+        List<String> emptySplitSpace5 = r.expr("").split(" ", 5).run(conn, stringList).single();
         assertEquals(singletonList(""), emptySplitSpace5);
 
-        List<String> emptySplitEmpty5 = r.expr("").split("", 5).run(conn, typeRef).single();
+        List<String> emptySplitEmpty5 = r.expr("").split("", 5).run(conn, stringList).single();
         assertEquals(emptyList(), emptySplitEmpty5);
     }
 
     @Test
     public void testSplitWithNullOrWhitespace() {
-        TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {};
-        List<String> extraWhitespace = r.expr("aaaa bbbb  cccc ").split().run(conn, typeRef).single();
+        List<String> extraWhitespace = r.expr("aaaa bbbb  cccc ").split().run(conn, stringList).single();
         assertEquals(Arrays.asList("aaaa", "bbbb", "cccc"), extraWhitespace);
 
-        List<String> extraWhitespaceNull = r.expr("aaaa bbbb  cccc ").split(null).run(conn, typeRef).single();
+        List<String> extraWhitespaceNull = r.expr("aaaa bbbb  cccc ").split(null).run(conn, stringList).single();
         assertEquals(Arrays.asList("aaaa", "bbbb", "cccc"), extraWhitespaceNull);
 
-        List<String> extraWhitespaceSpace = r.expr("aaaa bbbb  cccc ").split(" ").run(conn, typeRef).single();
+        List<String> extraWhitespaceSpace = r.expr("aaaa bbbb  cccc ").split(" ").run(conn, stringList).single();
         assertEquals(Arrays.asList("aaaa", "bbbb", "", "cccc", ""), extraWhitespaceSpace);
 
-        List<String> extraWhitespaceEmpty = r.expr("aaaa bbbb  cccc ").split("").run(conn, typeRef).single();
+        List<String> extraWhitespaceEmpty = r.expr("aaaa bbbb  cccc ").split("").run(conn, stringList).single();
         assertEquals(Arrays.asList("a", "a", "a", "a", " ",
             "b", "b", "b", "b", " ", " ", "c", "c", "c", "c", " "), extraWhitespaceEmpty);
     }
 
     @Test
     public void testSplitWithString() {
-        TypeReference<List<String>> typeRef = new TypeReference<List<String>>() {};
-        List<String> b = r.expr("aaaa bbbb  cccc ").split("b").run(conn, typeRef).single();
+        List<String> b = r.expr("aaaa bbbb  cccc ").split("b").run(conn, stringList).single();
         assertEquals(Arrays.asList("aaaa ", "", "", "", "  cccc "), b);
     }
 
     @Test
     public void testTableInsert() {
-        TypeReference<MapObject<String, Object>> typeRef = new TypeReference<MapObject<String, Object>>() {};
         MapObject<Object, Object> foo = r.hashMap("hi", "There")
             .with("yes", 7)
             .with("no", null);
-        Map<String, Object> result = r.db(dbName).table(tableName).insert(foo).run(conn, typeRef).single();
+        Map<String, Object> result = r.db(dbName).table(tableName).insert(foo).run(conn, stringObjectMap).single();
         assertNotNull(result);
         assertEquals(1L, result.get("inserted"));
     }
 
     @Test
     public void testDbGlobalArgInserted() {
-        TypeReference<MapObject<String, Object>> typeRef = new TypeReference<MapObject<String, Object>>() {};
         final String tblName = "test_global_optargs";
 
         try {
@@ -234,25 +232,25 @@ public class RethinkDBTest {
         try {
             // no optarg set, no default db
             conn.use(null);
-            Map<String, Object> x1 = r.table(tblName).get(1).run(conn, typeRef).single();
+            Map<String, Object> x1 = r.table(tblName).get(1).run(conn, stringObjectMap).single();
             assertNotNull(x1);
             assertEquals("test", x1.get("dbName"));
 
             // no optarg set, default db set
             conn.use("conn_default");
-            Map<String, Object> x2 = r.table(tblName).get(1).run(conn, typeRef).single();
+            Map<String, Object> x2 = r.table(tblName).get(1).run(conn, stringObjectMap).single();
             assertNotNull(x2);
             assertEquals("conn_default", x2.get("dbName"));
 
             // optarg set, no default db
             conn.use(null);
-            Map<String, Object> x3 = r.table(tblName).get(1).run(conn, OptArgs.of("db", "optargs"), typeRef).single();
+            Map<String, Object> x3 = r.table(tblName).get(1).run(conn, OptArgs.of("db", "optargs"), stringObjectMap).single();
             assertNotNull(x3);
             assertEquals("optargs", x3.get("dbName"));
 
             // optarg set, default db
             conn.use("conn_default");
-            Map<String, Object> x4 = r.table(tblName).get(1).run(conn, OptArgs.of("db", "optargs"), typeRef).single();
+            Map<String, Object> x4 = r.table(tblName).get(1).run(conn, OptArgs.of("db", "optargs"), stringObjectMap).single();
             assertNotNull(x4);
             assertEquals("optargs", x4.get("dbName"));
 
@@ -289,10 +287,8 @@ public class RethinkDBTest {
 
     @Test
     public void testTableSelectOfPojo() {
-        TypeReference<MapObject<String, Object>> typeRef = new TypeReference<MapObject<String, Object>>() {};
-
         TestPojo pojo = new TestPojo("foo", new TestPojoInner(42L, true));
-        Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn, typeRef).single();
+        Map<String, Object> pojoResult = r.db(dbName).table(tableName).insert(pojo).run(conn, stringObjectMap).single();
         assertNotNull(pojoResult);
         assertEquals(1L, pojoResult.get("inserted"));
 
@@ -307,12 +303,10 @@ public class RethinkDBTest {
 
     @Test
     public void testTableSelectOfPojoSequence() {
-        TypeReference<MapObject<String, Object>> typeRef = new TypeReference<MapObject<String, Object>>() {};
-
         TestPojo pojoOne = new TestPojo("foo", new TestPojoInner(42L, true));
         TestPojo pojoTwo = new TestPojo("bar", new TestPojoInner(53L, false));
-        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn, typeRef).single();
-        Map<String, Object> pojoTwoResult = r.db(dbName).table(tableName).insert(pojoTwo).run(conn, typeRef).single();
+        Map<String, Object> pojoOneResult = r.db(dbName).table(tableName).insert(pojoOne).run(conn, stringObjectMap).single();
+        Map<String, Object> pojoTwoResult = r.db(dbName).table(tableName).insert(pojoTwo).run(conn, stringObjectMap).single();
         assertNotNull(pojoOneResult);
         assertNotNull(pojoTwoResult);
         assertEquals(1L, pojoOneResult.get("inserted"));
@@ -335,14 +329,13 @@ public class RethinkDBTest {
 
     @Test(timeout = 40000)
     public void testConcurrentWrites() throws TimeoutException, InterruptedException {
-        TypeReference<MapObject<String, Object>> typeRef = new TypeReference<MapObject<String, Object>>() {};
         final int total = 500;
         final AtomicInteger writeCounter = new AtomicInteger(0);
         final Waiter waiter = new Waiter();
         for (int i = 0; i < total; i++)
             new Thread(() -> {
                 final TestPojo pojo = new TestPojo("writezz", new TestPojoInner(10L, true));
-                final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn, typeRef).single();
+                final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn, stringObjectMap).single();
                 waiter.assertNotNull(result);
                 waiter.assertEquals(1L, Objects.requireNonNull(result).get("inserted"));
                 writeCounter.getAndIncrement();
@@ -356,14 +349,13 @@ public class RethinkDBTest {
 
     @Test(timeout = 20000)
     public void testConcurrentReads() throws TimeoutException, InterruptedException {
-        TypeReference<MapObject<String, Object>> typeRef = new TypeReference<MapObject<String, Object>>() {};
         final int total = 500;
         final AtomicInteger readCounter = new AtomicInteger(0);
 
         // write to the database and retrieve the id
         final TestPojo pojo = new TestPojo("readzz", new TestPojoInner(10L, true));
         final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo)
-            .optArg("return_changes", true).run(conn, typeRef).single();
+            .optArg("return_changes", true).run(conn, stringObjectMap).single();
         assertNotNull(result);
         final String id = ((List<?>) result.get("generated_keys")).get(0).toString();
 
@@ -391,13 +383,12 @@ public class RethinkDBTest {
 
     @Test(timeout = 20000)
     public void testConcurrentCursor() throws TimeoutException, InterruptedException {
-        TypeReference<MapObject<String, Object>> typeRef = new TypeReference<MapObject<String, Object>>() {};
         final int total = 500;
         final Waiter waiter = new Waiter();
         for (int i = 0; i < total; i++)
             new Thread(() -> {
                 final TestPojo pojo = new TestPojo("writezz", new TestPojoInner(10L, true));
-                final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn, typeRef).single();
+                final Map<String, Object> result = r.db(dbName).table(tableName).insert(pojo).run(conn, stringObjectMap).single();
                 waiter.assertNotNull(result);
                 waiter.assertEquals(1L, Objects.requireNonNull(result).get("inserted"));
                 waiter.resume();

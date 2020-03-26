@@ -1,7 +1,7 @@
 <%inherit file="../AstSubclass.java"/>
 
 <%block name="add_imports">
-import com.rethinkdb.net.Converter;
+import com.rethinkdb.utils.Internals;
 import org.jetbrains.annotations.Nullable;
 </%block>
 
@@ -31,8 +31,8 @@ import org.jetbrains.annotations.Nullable;
     @Override
     public Object build(){
         if (binaryData != null) {
-            return Converter.toBinary(binaryData);
-        }else{
+            return Internals.asBinaryPseudotype(binaryData);
+        } else {
             return super.build();
         }
     }

@@ -16,7 +16,7 @@ public class Sub extends ReqlExpr {
     public Sub(Object arg) {
         this(new Arguments(arg), null);
     }
-    public Sub(Arguments args){
+    public Sub(Arguments args) {
         this(args, null);
     }
     public Sub(Arguments args, OptArgs optargs) {
