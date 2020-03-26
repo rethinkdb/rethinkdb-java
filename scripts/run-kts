@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+dir="`dirname "$0"`"
+if [[ ! -d $dir/kotlinc/ ]]
+then
+    echo "Script environiment not set up."
+    exit 1
+fi
+if [[ ! -f $dir/kotlinc/bin/kotlinc ]]
+then
+    echo "Missing kotlinc binary."
+    exit 1
+fi
+if [[ ! -f $dir/kotlinc/kotlin-main-kts.jar ]]
+then
+    echo "Missing kotlin-main-kts.jar binary."
+    exit 1
+fi
+chmod +x $dir/kotlinc/bin/kotlinc
+src=$1
+shift 1
+$dir/kotlinc/bin/kotlinc -cp $dir/kotlinc/kotlin-main-kts.jar -script $src -- $@

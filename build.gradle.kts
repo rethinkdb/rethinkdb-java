@@ -1,9 +1,8 @@
-import java.util.Properties
-import java.io.File
 import com.jfrog.bintray.gradle.BintrayExtension
 import com.jfrog.bintray.gradle.tasks.BintrayUploadTask
 import com.jfrog.bintray.gradle.tasks.RecordingCopyTask
-
+import java.io.File
+import java.util.*
 
 plugins {
     java
@@ -32,27 +31,23 @@ dependencies {
     compile("com.fasterxml.jackson.core:jackson-databind:2.10.2")
 }
 
-file("confidential.properties").takeIf(File::exists)?.let {
-    val properties = Properties()
-    it.inputStream().use(properties::load)
-    allprojects { properties.forEach { name, value -> extra.set(name.toString(), value) } }
-}
+file("confidential.properties").takeIf(File::exists)
+    ?.let { Properties().apply { it.inputStream().use(this::load) } }
+    ?.let { allprojects { it.forEach { name, value -> extra.set(name.toString(), value) } } }
+
+fun String.propertyValue() = project.findProperty(this) as String?
+fun File.child(child: String) = File(this, child)
+fun download(src: String, dest: File) = ant.invokeMethod("get", mapOf("src" to src, "dest" to dest))
+fun unzip(src: File, dest: File) = ant.invokeMethod("unzip", mapOf("src" to src, "dest" to dest))
 
 gradle.taskGraph.whenReady {
-    val hasUploadArchives = hasTask(":uploadArchives")
-    val hasBintrayUpload = hasTask(":bintrayUpload")
-    val hasDoSigning = hasTask(":doSigning")
-    signing.isRequired = hasBintrayUpload || hasUploadArchives || hasDoSigning
+    signing.isRequired = listOf(":bintrayUpload", ":uploadArchives", ":doSigning").any(this::hasTask)
 }
 
-fun findProperty(s: String) = project.findProperty(s) as String?
 tasks {
-    val doSigning by creating {
-        dependsOn("signArchives")
-    }
-    withType<JavaCompile> {
-        options.encoding = "UTF-8"
-    }
+    create("doSigning") { dependsOn("signArchives") }
+    withType<JavaCompile> { options.encoding = "UTF-8" }
+
     val sourcesJar by creating(Jar::class) {
         group = "build"
         description = "Generates a jar with the sources"
@@ -74,49 +69,49 @@ tasks {
         add("archives", javadocJar)
     }
 
-    val downloadProtoAndTests by creating {
-        group = "build setup"
-        description = "Downloads contents from rethinkdb main repository."
+    create("setupKotlinScriptsEnv") {
+        val ktVersion = "build.scripts.kotlin_version".propertyValue() ?: "1.3.71"
 
-        //properties
-        val rethinkdb_repo = findProperty("build.rethinkdb_repo")!!
-        val rethinkdb_branch = findProperty("build.rethinkdb_branch")!!
-        val checkout_dir = findProperty("build.rethinkdb_checkout_dir")!!
-        val proto_location = findProperty("build.proto.src_location")!!
-        val proto_target = findProperty("build.proto.target_folder")!!
-        val tests_location = findProperty("build.tests.src_location")!!
-        val tests_target = findProperty("build.tests.target_folder")!!
-
-        val proto_folder = File(buildDir, "rethinkdb_gen/$proto_target")
-        val tests_folder = File(buildDir, "rethinkdb_gen/$tests_target")
+        val downloaded = buildDir.child("downloaded")
+        val kotlinc = downloaded.child("kotlinc.zip")
+        val mainKts = downloaded.child("kotlin-main-kts.jar")
+        val kotlincDir = projectDir.child("scripts").child("kotlinc")
 
         doLast {
-            File(buildDir, "rethinkdb_gen").mkdirs()
-            delete(checkout_dir, proto_folder, tests_folder)
-            exec {
-                commandLine("git", "clone", "--progress", "-b", rethinkdb_branch, "--single-branch", rethinkdb_repo, checkout_dir)
-            }
-            exec {
-                commandLine("cp", "-a", "-R", "$checkout_dir/$proto_location/.", proto_folder.absolutePath)
-            }
-            exec {
-                commandLine("cp", "-a", "-R", "$checkout_dir/$tests_location/.", tests_folder.absolutePath)
-            }
+            downloaded.deleteRecursively()
+            downloaded.mkdirs()
+            logger.lifecycle("Downloading Kotlin compiler and kotlin-main-kts, may take a while...")
+            download("https://github.com/JetBrains/kotlin/releases/download/v$ktVersion/kotlin-compiler-$ktVersion.zip", kotlinc)
+            download("https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-main-kts/$ktVersion/kotlin-main-kts-$ktVersion.jar", mainKts)
+            logger.lifecycle("Finished downloading, setting up environiment...")
+            kotlincDir.deleteRecursively()
+            unzip(kotlinc, projectDir.child("scripts"))
+            mainKts.renameTo(kotlincDir.child(mainKts.name))
         }
     }
+
+    projectDir.child("scripts").listFiles()!!
+        .filter { it.name.startsWith("task-") && it.name.endsWith(".main.kts") }
+        .forEach {
+            create(it.name.removeSurrounding("task-", ".main.kts")) {
+                group = "kotlin scripts"
+                description = "Runs ${it.name}"
+                doLast { exec { commandLine("./scripts/run-kts", it.path) } }
+            }
+        }
 
     val generateJsonFiles by creating {
         group = "code generation"
         description = "Generates json files for the java file generation."
 
-        val convert_proto = findProperty("build.gen.py.convert_proto")!!
-        val metajava = findProperty("build.gen.py.metajava")!!
-        val json_target = findProperty("build.gen.json.target_folder")!!
-        val proto_folder = findProperty("build.proto.target_folder")!!
-        val proto_name = findProperty("build.proto.file_name")!!
-        val proto_basic_name = findProperty("build.gen.json.proto_basic")!!
-        val term_info_name = findProperty("build.gen.json.term_info")!!
-        val java_term_info_name = findProperty("build.gen.json.java_term_info")!!
+        val convert_proto = "build.gen.py.convert_proto".propertyValue()!!
+        val metajava = "build.gen.py.metajava".propertyValue()!!
+        val json_target = "build.gen.json.target_folder".propertyValue()!!
+        val proto_folder = "build.proto.target_folder".propertyValue()!!
+        val proto_name = "build.proto.file_name".propertyValue()!!
+        val proto_basic_name = "build.gen.json.proto_basic".propertyValue()!!
+        val term_info_name = "build.gen.json.term_info".propertyValue()!!
+        val java_term_info_name = "build.gen.json.java_term_info".propertyValue()!!
 
         val json_folder = File(buildDir, "rethinkdb_gen/$json_target")
         val proto_file = File(buildDir, "rethinkdb_gen/$proto_folder/$proto_name")
@@ -156,18 +151,18 @@ tasks {
         group = "code generation"
         description = "Generates java files for the driver."
 
-        val localFiles = findProperty("build.gen.use_local_files")!!.toBoolean()
+        val localFiles = "build.gen.use_local_files".propertyValue()!!.toBoolean()
 
         enabled = localFiles // TODO enable this once we fix update-terminfo
 
-        val metajava = findProperty("build.gen.py.metajava")!!
-        val json_target = if (localFiles) "../../scripts" else findProperty("build.gen.json.target_folder")!!
-        val proto_basic_name = findProperty("build.gen.json.proto_basic")!!
-        val global_info = findProperty("build.json.global_info")!!
-        val java_term_info_name = findProperty("build.gen.json.java_term_info")!!
-        val src_main = findProperty("build.gen.src.main")!!
-        val templates = findProperty("build.gen.src.templates")!!
-        val folders = findProperty("build.gen.src.main.packages")!!.split(',')
+        val metajava = "build.gen.py.metajava".propertyValue()!!
+        val json_target = if (localFiles) "../../scripts" else "build.gen.json.target_folder".propertyValue()!!
+        val proto_basic_name = "build.gen.json.proto_basic".propertyValue()!!
+        val global_info = "build.json.global_info".propertyValue()!!
+        val java_term_info_name = "build.gen.json.java_term_info".propertyValue()!!
+        val src_main = "build.gen.src.main".propertyValue()!!
+        val templates = "build.gen.src.templates".propertyValue()!!
+        val folders = "build.gen.src.main.packages".propertyValue()!!.split(',')
 
         val proto_basic = File(buildDir, "rethinkdb_gen/$json_target/$proto_basic_name")
         val java_term_info = File(buildDir, "rethinkdb_gen/$json_target/$java_term_info_name")
@@ -195,10 +190,10 @@ tasks {
         description = "Generates test files for the driver."
 
         //properties
-        val convert_tests = findProperty("build.gen.py.convert_tests")!!
-        val tests_target = findProperty("build.tests.target_folder")!!
-        val src_test = findProperty("build.gen.src.test")!!
-        val templates = findProperty("build.gen.src.templates")!!
+        val convert_tests = "build.gen.py.convert_tests".propertyValue()!!
+        val tests_target = "build.tests.target_folder".propertyValue()!!
+        val src_test = "build.gen.src.test".propertyValue()!!
+        val templates = "build.gen.src.templates".propertyValue()!!
 
         val tests_folder = File(buildDir, "rethinkdb_gen/$tests_target")
         val src_test_gen = File("$src_test/gen")
@@ -217,7 +212,6 @@ tasks {
         }
     }
 
-
     getByName<Upload>("uploadArchives") {
         repositories {
             withConvention(MavenRepositoryHandlerConvention::class) {
@@ -227,14 +221,14 @@ tasks {
                     withGroovyBuilder {
                         "repository"("url" to uri("https://oss.sonatype.org/service/local/staging/deploy/maven2/")) {
                             "authentication"(
-                                "userName" to findProperty("ossrhUsername"),
-                                "password" to findProperty("ossrhPassword")
+                                "userName" to "ossrhUsername".propertyValue(),
+                                "password" to "ossrhPassword".propertyValue()
                             )
                         }
                         "snapshotRepository"("url" to uri("https://oss.sonatype.org/content/repositories/snapshots/")) {
                             "authentication"(
-                                "userName" to findProperty("ossrhUsername"),
-                                "password" to findProperty("ossrhPassword")
+                                "userName" to "ossrhUsername".propertyValue(),
+                                "password" to "ossrhPassword".propertyValue()
                             )
                         }
                     }
@@ -296,32 +290,30 @@ tasks {
                 root.appendNode("url", "http://rethinkdb.com")
 
                 val scm = root.appendNode("scm")
-                scm.appendNode("connection","scm:git:https://github.com/rethinkdb/rethinkdb-java")
-                scm.appendNode("developerConnection","scm:git:https://github.com/rethinkdb/rethinkdb-java")
+                scm.appendNode("connection", "scm:git:https://github.com/rethinkdb/rethinkdb-java")
+                scm.appendNode("developerConnection", "scm:git:https://github.com/rethinkdb/rethinkdb-java")
                 scm.appendNode("url", "https://github.com/rethinkdb/rethinkdb-java")
 
                 val license = root.appendNode("licenses").appendNode("license")
-                license.appendNode("name","The Apache License, Version 2.0")
-                license.appendNode("url","http://www.apache.org/licenses/LICENSE-2.0.txt")
+                license.appendNode("name", "The Apache License, Version 2.0")
+                license.appendNode("url", "http://www.apache.org/licenses/LICENSE-2.0.txt")
 
                 val developers = root.appendNode("developers")
 
                 val dev1 = developers.appendNode("developer")
-                dev1.appendNode("id","adriantodt")
-                dev1.appendNode("name","Adrian Todt")
-                dev1.appendNode("email","adriantodt.ms@gmail.com")
+                dev1.appendNode("id", "adriantodt")
+                dev1.appendNode("name", "Adrian Todt")
+                dev1.appendNode("email", "adriantodt.ms@gmail.com")
 
                 val dev2 = developers.appendNode("developer")
-                dev2.appendNode("id","gabor-boros")
-                dev2.appendNode("name","Gábor Boros")
-                dev2.appendNode("email","gabor@rethinkdb.com")
+                dev2.appendNode("id", "gabor-boros")
+                dev2.appendNode("name", "Gábor Boros")
+                dev2.appendNode("email", "gabor@rethinkdb.com")
             }
         }
     }
 
-    withType<BintrayUploadTask> {
-        dependsOn("assemble", "publishToMavenLocal")
-    }
+    withType<BintrayUploadTask> { dependsOn("assemble", "publishToMavenLocal") }
 }
 
 signing {
@@ -331,8 +323,8 @@ signing {
 }
 
 bintray {
-    user = findProperty("bintray.user")
-    key = findProperty("bintray.key")
+    user = "bintray.user".propertyValue()
+    key = "bintray.key".propertyValue()
     publish = true
     setPublications("mavenJava")
 
@@ -357,8 +349,8 @@ bintray {
         vcsUrl = "https://github.com/rethinkdb/rethinkdb-java.git"
         version(delegateClosureOf<BintrayExtension.VersionConfig> {
             mavenCentralSync(delegateClosureOf<BintrayExtension.MavenCentralSyncConfig> {
-                user = findProperty("ossrhUsername")
-                password = findProperty("ossrhPassword")
+                user = "ossrhUsername".propertyValue()
+                password = "ossrhPassword".propertyValue()
                 sync = !user.isNullOrBlank() && !password.isNullOrBlank()
             })
         })
