@@ -321,6 +321,7 @@ tasks {
 
     withType<BintrayUploadTask> {
         dependsOn("assemble", "publishToMavenLocal")
+        mustRunAfter("doSigning", "signArchives")
     }
 }
 
