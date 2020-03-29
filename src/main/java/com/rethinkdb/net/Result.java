@@ -77,7 +77,16 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         /**
          * Fetches the next part of the sequence once the buffer becomes empty.
          */
-        LAZY
+        LAZY;
+
+        @Nullable
+        public static FetchMode fromString(String s) {
+            try {
+                return valueOf(s.toUpperCase());
+            } catch (RuntimeException ignored) {
+                return null;
+            }
+        }
     }
 
     protected final Connection connection;
