@@ -24,12 +24,12 @@ system(
 )
 
 // Move protofile
-File(checkoutDir, properties["sources.protofile.sourceFile"]!!).let {
-    it.renameTo(File(properties["sources.protofile.targetFolder"]!!, it.name).apply { parentFile.mkdirs() })
-}
+File(checkoutDir, properties["sources.protofile.sourceFile"]!!).copyTo(
+    File(properties["sources.protofile.targetFile"]!!).apply { parentFile.mkdirs() }
+)
 
 // Move test source folder
-File(checkoutDir, properties["sources.tests.sourceFolder"]!!).renameTo(
+File(checkoutDir, properties["sources.tests.sourceFolder"]!!).copyRecursively(
     File(properties["sources.tests.targetFolder"]!!).apply { parentFile.mkdirs() }
 )
 
