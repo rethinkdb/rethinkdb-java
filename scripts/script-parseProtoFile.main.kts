@@ -1,7 +1,7 @@
 @file:Repository(url = "https://jcenter.bintray.com")
 @file:Repository(url = "https://dl.bintray.com/adriantodt/maven")
 @file:DependsOn("pw.aru.libs:properties:1.2")
-@file:DependsOn("com.github.adriantodt:tartar:1.1.1")
+@file:DependsOn("com.github.adriantodt:tartar:1.1.2")
 @file:DependsOn("com.fasterxml.jackson.core:jackson-databind:2.10.2")
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -16,26 +16,9 @@ import pw.aru.libs.properties.Properties
 import java.io.File
 
 enum class TokenType {
-    ASSIGN,
-    SEMICOLON,
-    LBRACKET,
-    RBRACKET,
-    LBRACE,
-    RBRACE,
-
-    STRING,
-    INTEGER,
-    DECIMAL,
-    BOOLEAN,
-
-    IDENTIFIER,
-    MESSAGE,
-    ENUM,
-    SYNTAX,
-    OPTIONAL,
-    REPEATED,
-
-    INVALID
+    LBRACKET, RBRACKET, LBRACE, RBRACE, ASSIGN, SEMICOLON,
+    STRING, INTEGER, DECIMAL, BOOLEAN,
+    IDENTIFIER, MESSAGE, ENUM, SYNTAX, OPTIONAL, REPEATED
 }
 
 sealed class ProtoExpr {
@@ -44,17 +27,11 @@ sealed class ProtoExpr {
     data class EnumNode(val enumName: String, val child: List<ProtoExpr>) : ProtoExpr()
     data class EnumValueExpr(val name: String, val value: Int) : ProtoExpr()
     data class ModuleValueExpr(
-        val type: String, val name: String, val value: Int,
-        val modifier: Modifier? = null, val options: Map<String, Any>? = null
+        val type: String, val name: String, val value: Int, val options: Map<String, Any>?, val modifier: Modifier?
     ) : ProtoExpr() {
-        enum class Modifier {
-            OPTIONAL, REPEATED
-        }
+        enum class Modifier { OPTIONAL, REPEATED }
     }
 }
-
-val properties = Properties.fromFile("scripts.properties")
-val source = Source(File(properties["sources.protofile.targetFile"]!!))
 
 val lexer = createLexer<Token<TokenType>> {
     ' '()
@@ -70,7 +47,7 @@ val lexer = createLexer<Token<TokenType>> {
     '"' { process(makeToken(TokenType.STRING, readString(it))) }
     matching { it.isDigit() }.configure {
         process(when (val n = readNumber(it)) {
-            is LexicalNumber.Invalid -> makeToken(TokenType.INVALID, n.string)
+            is LexicalNumber.Invalid -> throw SyntaxException("Invalid number '${n.string}'", section(n.string.length))
             is LexicalNumber.Decimal -> makeToken(TokenType.DECIMAL, n.value.toString())
             is LexicalNumber.Integer -> makeToken(TokenType.INTEGER, n.value.toString())
         })
@@ -90,26 +67,22 @@ val lexer = createLexer<Token<TokenType>> {
 
 val grammar = createGrammar<TokenType, ProtoExpr> {
     prefix(TokenType.SYNTAX) {
-        eat(TokenType.ASSIGN)
-        eat(TokenType.STRING)
-        eat(TokenType.SEMICOLON)
+        eatMulti(TokenType.ASSIGN, TokenType.STRING, TokenType.SEMICOLON)
         ProtoExpr.Ignore
     }
     prefix(TokenType.MESSAGE) {
-        val name = eat(TokenType.IDENTIFIER).value
-        eat(TokenType.LBRACKET)
+        val (name) = eatMulti(TokenType.IDENTIFIER, TokenType.LBRACKET)
         val stmt = ArrayList<ProtoExpr>()
         while (!match(TokenType.RBRACKET)) stmt += parseExpression()
         stmt.removeIf(ProtoExpr.Ignore::equals)
-        ProtoExpr.ModuleNode(name, stmt)
+        ProtoExpr.ModuleNode(name.value, stmt)
     }
     prefix(TokenType.ENUM) {
-        val name = eat(TokenType.IDENTIFIER).value
-        eat(TokenType.LBRACKET)
+        val (name) = eatMulti(TokenType.IDENTIFIER, TokenType.LBRACKET)
         val stmt = ArrayList<ProtoExpr>()
         while (!match(TokenType.RBRACKET)) stmt += parseExpression()
         stmt.removeIf(ProtoExpr.Ignore::equals)
-        ProtoExpr.ModuleNode(name, stmt)
+        ProtoExpr.EnumNode(name.value, stmt)
     }
     prefix(TokenType.OPTIONAL) {
         val m = parseExpression() as? ProtoExpr.ModuleValueExpr
@@ -123,32 +96,25 @@ val grammar = createGrammar<TokenType, ProtoExpr> {
     }
     prefix(TokenType.IDENTIFIER) {
         if (nextIs(TokenType.IDENTIFIER)) {
-            val type = it.value
-            val name = eat().value
-            eat(TokenType.ASSIGN)
-            val value = eat(TokenType.INTEGER).value.toInt()
+            val (name, _, value) = eatMulti(TokenType.IDENTIFIER, TokenType.ASSIGN, TokenType.INTEGER)
             val options = if (match(TokenType.LBRACE)) {
-                val optionName = eat().value
-                eat(TokenType.ASSIGN)
+                val (optionKey) = eatMulti(TokenType.IDENTIFIER, TokenType.ASSIGN)
                 val optionValue: Any = eat().let { optVal ->
                     when (optVal.type) {
-                        TokenType.STRING -> optVal.value.removeSurrounding("\"")
+                        TokenType.STRING -> optVal.value
                         TokenType.INTEGER -> optVal.value.toInt()
                         TokenType.BOOLEAN -> optVal.value.toBoolean()
                         else -> throw SyntaxException("Unexpected $optVal", optVal.section)
                     }
                 }
                 eat(TokenType.RBRACE)
-                mapOf(optionName to optionValue)
+                mapOf(optionKey.value to optionValue)
             } else null
             eat(TokenType.SEMICOLON)
-            ProtoExpr.ModuleValueExpr(type, name, value, options = options)
+            ProtoExpr.ModuleValueExpr(it.value, name.value, value.value.toInt(), options, null)
         } else {
-            val name = it.value
-            eat(TokenType.ASSIGN)
-            val value = eat(TokenType.INTEGER).value.toInt()
-            eat(TokenType.SEMICOLON)
-            ProtoExpr.EnumValueExpr(name, value)
+            val (_, value) = eatMulti(TokenType.ASSIGN, TokenType.INTEGER, TokenType.SEMICOLON)
+            ProtoExpr.EnumValueExpr(it.value, value.value.toInt())
         }
     }
 }
@@ -160,4 +126,10 @@ val parser = createParser(grammar) {
     stmt
 }
 
-ObjectMapper().writeValueAsString(parser.parse(source, lexer))
+val properties = Properties.fromFile("scripts.properties")
+val source = Source(File(properties["sources.protofile.targetFile"]!!))
+val target = File(properties["convert.protofile.targetFile"]!!)
+target.parentFile.mkdirs()
+target.delete()
+
+ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(target, parser.parse(source, lexer))
