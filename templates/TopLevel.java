@@ -1,7 +1,6 @@
 <%page args="all_terms" />
 package com.rethinkdb.gen.model;
 
-import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.gen.ast.Error;
@@ -9,7 +8,6 @@ import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.utils.Internals;
 
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +23,7 @@ public class TopLevel {
                                   " Use lambda syntax instead");
     }
 
-    public static Object pathspec(Object... path) {
+    public Object pathspec(Object... path) {
         if (path.length < 2) {
             throw new ReqlDriverError("r.pathspec(...) requires at least two parameters.");
         }

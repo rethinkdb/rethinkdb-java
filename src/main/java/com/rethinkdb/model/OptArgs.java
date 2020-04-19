@@ -23,9 +23,12 @@ public class OptArgs extends LinkedHashMap<String, ReqlAst> {
     }
 
     public static OptArgs fromMap(Map<String, ReqlAst> map) {
-        OptArgs oa = new OptArgs();
-        oa.putAll(map);
-        return oa;
+        if (map == null) {
+            return new OptArgs();
+        }
+        OptArgs args = new OptArgs();
+        args.putAll(map);
+        return args;
     }
 
     public static OptArgs of(String key, Object val) {
