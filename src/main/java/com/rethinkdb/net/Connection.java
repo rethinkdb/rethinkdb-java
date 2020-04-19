@@ -6,10 +6,12 @@ import com.rethinkdb.ast.ReqlAst;
 import com.rethinkdb.gen.ast.Db;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import com.rethinkdb.gen.exc.ReqlError;
+import com.rethinkdb.gen.model.TopLevel;
 import com.rethinkdb.gen.proto.ResponseType;
 import com.rethinkdb.model.Arguments;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.model.Server;
+import com.rethinkdb.net.Result.FetchMode;
 import com.rethinkdb.utils.Internals;
 import com.rethinkdb.utils.Types;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import java.io.*;
 import java.net.URI;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -28,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 /**
  * A single connection to RethinkDB.
@@ -45,7 +49,8 @@ public class Connection implements Closeable {
     protected final @Nullable Long timeout;
     protected final @Nullable String user;
     protected final @Nullable String password;
-    protected final Result.FetchMode defaultFetchMode;
+    protected final FetchMode defaultFetchMode;
+    protected final boolean persistentThreads;
 
     protected final AtomicLong nextToken = new AtomicLong();
     protected final Set<Result<?>> tracked = ConcurrentHashMap.newKeySet();
@@ -75,7 +80,8 @@ public class Connection implements Closeable {
         this.user = b.user != null ? b.user : "admin";
         this.password = b.password != null ? b.password : b.authKey != null ? b.authKey : "";
         this.unwrapLists = b.unwrapLists;
-        this.defaultFetchMode = b.defaultFetchMode != null ? b.defaultFetchMode : Result.FetchMode.LAZY;
+        this.persistentThreads = b.persistentThreads;
+        this.defaultFetchMode = b.defaultFetchMode != null ? b.defaultFetchMode : FetchMode.LAZY;
     }
 
     /**
@@ -100,6 +106,15 @@ public class Connection implements Closeable {
         return this;
     }
 
+    /**
+     * Enables or disables list unwrapping.
+     *
+     * @param val {@code true} to enable list unwrapping, {@code false} to disable.
+     * @return itself.
+     * @deprecated Use {@link ReqlAst#runUnwrapping(Connection)} and {@link ReqlAst#runAtom(Connection)} if you want to
+     * always the same consistency. <b><i>(Will be removed on v2.5.0)</i></b>
+     */
+    @Deprecated
     public @NotNull Connection unwrapLists(boolean val) {
         unwrapLists = val;
         return this;
@@ -115,19 +130,56 @@ public class Connection implements Closeable {
     }
 
     /**
+     * Begins the socket connection to the server asynchronously.
+     *
+     * @return a {@link CompletableFuture} which completes with itself, once connected.
+     */
+    public @NotNull CompletableFuture<Connection> connectAsync() {
+        if (socket != null) {
+            throw new ReqlDriverError("Client already connected!");
+        }
+        return socketFactory.newSocketAsync(hostname, port, sslContext, timeout).thenApply(socket -> {
+            this.socket = socket;
+            HandshakeProtocol.doHandshake(socket, user, password, timeout);
+            this.pump = pumpFactory.newPump(socket, !persistentThreads);
+            return this;
+        });
+    }
+
+    /**
      * Begins the socket connection to the server.
      *
      * @return itself, once connected.
      */
     public @NotNull Connection connect() {
-        if (socket != null) {
-            throw new ReqlDriverError("Client already connected!");
+        try {
+            return connectAsync().join();
+        } catch (CompletionException ce) {
+            Throwable t = ce.getCause();
+            if (t instanceof ReqlError) {
+                throw ((ReqlError) t);
+            }
+            throw new ReqlDriverError(t);
         }
-        ConnectionSocket socket = socketFactory.newSocket(hostname, port, sslContext, timeout);
-        this.socket = socket;
-        HandshakeProtocol.doHandshake(socket, user, password, timeout);
-        pump = pumpFactory.newPump(socket);
-        return this;
+    }
+
+    /**
+     * Closes and reconnects to the server.
+     *
+     * @return a {@link CompletableFuture} which completes with itself, once reconnected.
+     */
+    public @NotNull CompletableFuture<Connection> reconnectAsync() {
+        return reconnectAsync(true);
+    }
+
+    /**
+     * Closes and reconnects to the server asynchronously.
+     *
+     * @param noreplyWait if closing should send a {@link Connection#noreplyWait()} before closing.
+     * @return a {@link CompletableFuture} which completes with itself, once reconnected.
+     */
+    public @NotNull CompletableFuture<Connection> reconnectAsync(boolean noreplyWait) {
+        return closeAsync(noreplyWait).thenCompose(v -> connectAsync());
     }
 
     /**
@@ -146,9 +198,15 @@ public class Connection implements Closeable {
      * @return itself, once reconnected.
      */
     public @NotNull Connection reconnect(boolean noreplyWait) {
-        close(noreplyWait);
-        connect();
-        return this;
+        try {
+            return reconnectAsync(noreplyWait).join();
+        } catch (CompletionException ce) {
+            Throwable t = ce.getCause();
+            if (t instanceof ReqlError) {
+                throw ((ReqlError) t);
+            }
+            throw new ReqlDriverError(t);
+        }
     }
 
     /**
@@ -165,7 +223,7 @@ public class Connection implements Closeable {
      */
     public @NotNull <T> CompletableFuture<Result<T>> runAsync(@NotNull ReqlAst term,
                                                               @NotNull OptArgs optArgs,
-                                                              @Nullable Result.FetchMode fetchMode,
+                                                              @Nullable FetchMode fetchMode,
                                                               @Nullable Boolean unwrap,
                                                               @Nullable TypeReference<T> typeRef) {
         handleOptArgs(optArgs);
@@ -184,13 +242,13 @@ public class Connection implements Closeable {
      * @param term      The ReQL term
      * @param optArgs   The options to run this query with
      * @param fetchMode The fetch mode to use in partial sequences
-     * @param unwrap
+     * @param unwrap    Override for the connection's unwrapLists setting
      * @param typeRef   The type to convert to
      * @return The result of this query
      */
     public @NotNull <T> Result<T> run(@NotNull ReqlAst term,
                                       @NotNull OptArgs optArgs,
-                                      @Nullable Result.FetchMode fetchMode,
+                                      @Nullable FetchMode fetchMode,
                                       @Nullable Boolean unwrap,
                                       @Nullable TypeReference<T> typeRef) {
         try {
@@ -269,6 +327,25 @@ public class Connection implements Closeable {
         handleOptArgs(optArgs);
         optArgs.with("noreply", true);
         runQueryNoreply(Query.createStart(nextToken.incrementAndGet(), term, optArgs));
+    }
+
+    /**
+     * Closes this connection asynchronously, closing all {@link Result}s, the {@link ResponsePump} and the {@link ConnectionSocket}.
+     *
+     * @return a {@link CompletableFuture} which completes when everything is closed.
+     */
+    public CompletableFuture<Void> closeAsync() {
+        return closeAsync(true);
+    }
+
+    /**
+     * Closes this connection asynchronously, closing all {@link Result}s, the {@link ResponsePump} and the {@link ConnectionSocket}.
+     *
+     * @param shouldNoreplyWait If the connection should noreply_wait before closing
+     * @return a {@link CompletableFuture} which completes when everything is closed.
+     */
+    public CompletableFuture<Void> closeAsync(boolean shouldNoreplyWait) {
+        return CompletableFuture.runAsync(() -> this.close(shouldNoreplyWait));
     }
 
     /**
@@ -391,7 +468,7 @@ public class Connection implements Closeable {
     }
 
     protected @NotNull <T> CompletableFuture<Result<T>> runQuery(@NotNull Query query,
-                                                                 @Nullable Result.FetchMode fetchMode,
+                                                                 @Nullable FetchMode fetchMode,
                                                                  @Nullable Boolean unwrap,
                                                                  @Nullable TypeReference<T> typeRef) {
         return sendQuery(query).thenApply(res -> new Result<>(
@@ -429,12 +506,21 @@ public class Connection implements Closeable {
         private @Nullable String authKey;
         private @Nullable String user;
         private @Nullable String password;
-        private @Nullable Result.FetchMode defaultFetchMode;
+        private @Nullable FetchMode defaultFetchMode;
         private boolean unwrapLists = false;
+        private boolean persistentThreads = false;
 
+        /**
+         * Creates an empty builder.
+         */
         public Builder() {
         }
 
+        /**
+         * Parses a db-ul as a builder.
+         *
+         * @param uri the db-url to parse.
+         */
         public Builder(@NotNull URI uri) {
             Objects.requireNonNull(uri, "URI can't be null. Use the default constructor instead.");
             if (!"rethinkdb".equals(uri.getScheme())) {
@@ -465,7 +551,7 @@ public class Connection implements Closeable {
             if (port != -1) {
                 this.port = port;
             }
-            if (path != null) {
+            if (path != null && !path.isEmpty()) {
                 if (path.charAt(0) == '/') {
                     path = path.substring(1);
                 }
@@ -479,6 +565,7 @@ public class Connection implements Closeable {
                     int i = kv.indexOf('=');
                     String k = i != -1 ? kv.substring(0, i) : kv;
                     String v = i != -1 ? kv.substring(i + 1) : "";
+                    boolean booleanValue = v.isEmpty() || "true".equals(v) || "enabled".equals(v);
                     switch (k) {
                         case "auth_key":
                         case "authKey": {
@@ -499,12 +586,17 @@ public class Connection implements Closeable {
                         }
                         case "java.default_fetch_mode":
                         case "java.defaultFetchMode": {
-                            this.defaultFetchMode = Result.FetchMode.fromString(v);
+                            this.defaultFetchMode = FetchMode.fromString(v);
                             break;
                         }
                         case "java.unwrap_lists":
                         case "java.unwrapLists": {
-                            this.unwrapLists = v.isEmpty() || "true".equals(v) || "enabled".equals(v);
+                            this.unwrapLists = booleanValue;
+                            break;
+                        }
+                        case "java.persistent_threads":
+                        case "java.persistentThreads": {
+                            this.persistentThreads = booleanValue;
                             break;
                         }
                         default: {
@@ -515,31 +607,37 @@ public class Connection implements Closeable {
             }
         }
 
+        /**
+         * Copies a connection builder.
+         *
+         * @param b the original builder.
+         */
+        public Builder(Builder b) {
+            socketFactory = b.socketFactory;
+            pumpFactory = b.pumpFactory;
+            hostname = b.hostname;
+            port = b.port;
+            dbname = b.dbname;
+            sslContext = b.sslContext;
+            timeout = b.timeout;
+            authKey = b.authKey;
+            user = b.user;
+            password = b.password;
+            unwrapLists = b.unwrapLists;
+            defaultFetchMode = b.defaultFetchMode;
+            persistentThreads = b.persistentThreads;
+        }
+
+        /**
+         * Creates a copy of this builder.
+         *
+         * @return a copy of this builder.
+         * @deprecated Use {@link com.rethinkdb.RethinkDB#connection(Builder) r.connection(Builder)} instead.
+         * <b><i>(Will be removed on v2.5.0)</i></b>
+         */
+        @Deprecated
         public @NotNull Builder copyOf() {
-            Builder c = new Builder();
-            c.socketFactory = socketFactory;
-            c.pumpFactory = pumpFactory;
-            c.hostname = hostname;
-            c.port = port;
-            c.dbname = dbname;
-            c.sslContext = sslContext;
-            c.timeout = timeout;
-            c.authKey = authKey;
-            c.user = user;
-            c.password = password;
-            c.unwrapLists = unwrapLists;
-            c.defaultFetchMode = defaultFetchMode;
-            return c;
-        }
-
-        public @NotNull Builder socketFactory(@Nullable ConnectionSocket.Factory factory) {
-            socketFactory = factory;
-            return this;
-        }
-
-        public @NotNull Builder pumpFactory(@Nullable ResponsePump.Factory factory) {
-            pumpFactory = factory;
-            return this;
+            return new Builder(this);
         }
 
         public @NotNull Builder hostname(@Nullable String val) {
@@ -568,6 +666,11 @@ public class Connection implements Closeable {
             return this;
         }
 
+        public @NotNull Builder timeout(@Nullable Long val) {
+            timeout = val;
+            return this;
+        }
+
         public @NotNull Builder certFile(@NotNull File val) {
             try (InputStream stream = new FileInputStream(val)) {
                 return sslContext(Internals.readCertFile(stream));
@@ -589,19 +692,113 @@ public class Connection implements Closeable {
             return this;
         }
 
+        /**
+         * Sets a custom {@link ConnectionSocket} factory for the connection.
+         * <p><i><b>(Java Driver-specific, No db-url support)</b></i></p>
+         *
+         * @param factory the connection socket factory, or {@code null}.
+         * @return itself.
+         */
+        public @NotNull Builder socketFactory(@Nullable ConnectionSocket.Factory factory) {
+            socketFactory = factory;
+            return this;
+        }
+
+        /**
+         * Sets a custom {@link ResponsePump} factory for the connection.
+         * <p><i><b>(Java Driver-specific, No db-url support)</b></i></p>
+         *
+         * @param factory the response pump factory, or {@code null}.
+         * @return itself.
+         */
+        public @NotNull Builder pumpFactory(@Nullable ResponsePump.Factory factory) {
+            pumpFactory = factory;
+            return this;
+        }
+
+        /**
+         * Sets list unwrapping behaviour for lists.
+         *
+         * <blockquote>
+         * <b>List unwrapping is a Java-driver specific behaviour that unwraps an atom response from the server,
+         * which is a list, as if it were a sequence of objects.</b>
+         * <p>
+         * Consider the following:
+         * <code>{@link TopLevel#expr(Object) r.expr}({@link TopLevel#array(Object, Object...) r.array("a", "b", "c")}).{@link com.rethinkdb.gen.ast.ReqlExpr#run(Connection) run(conn)};</code>
+         * <p>
+         * By default, it returns a {@link Result} with a single {@link List}["a","b","c"] inside.
+         * <p>
+         * With <b>list unwrapping</b>, it returns a {@link Result} with "a", "b", "c" inside.
+         * <p>
+         * The feature makes the code a bit less verbose. For example, iterating goes from:
+         * <p>
+         * <code>(({@code List<String>}) {@link Result result}{@link Result#single() .single()}){@link List#forEach(Consumer) .forEach(s -> ...)}</code>
+         * <p>
+         * To:
+         * <p>
+         * <code>{@link Result result}{@link Result#forEach(Consumer) .forEach(s -> ...)}</code>
+         * </blockquote>
+         *
+         * <p><i><b>(Java Driver-specific, Db-url key: </b></i><code>"java.unwrap_lists"</code><i><b>)</b></i></p>
+         *
+         * @param val {@code true} to enable list unwrapping, {@code false} to disable.
+         * @return itself.
+         */
         public @NotNull Builder unwrapLists(boolean val) {
             unwrapLists = val;
             return this;
         }
 
-        public @NotNull Builder defaultFetchMode(@Nullable Result.FetchMode val) {
+        /**
+         * Sets the default fetch mode for sequences.
+         *
+         * <blockquote>
+         * <b>Fetch mode is a Java-driver specific behaviour that allows for fine-tuning on partial sequence fetching.</b>
+         * <p>
+         * Can be used to balance between high availability and network optimization. The
+         * {@linkplain FetchMode#AGGRESSIVE aggressive} fetch mode will make best effort to consume the entire sequence, as
+         * fast as possible, to ensure high availability to the consumer, while the {@linkplain FetchMode#LAZY lazy}
+         * fetch mode will make no effort and await until all objects were consumed before fetching the next one.<br>
+         * In addiction, there are many preemptive fetch modes, which will consume the next sequence once the buffer
+         * reaches {@linkplain FetchMode#PREEMPTIVE_HALF half}, a {@linkplain FetchMode#PREEMPTIVE_THIRD third},
+         * a {@linkplain FetchMode#PREEMPTIVE_FOURTH fourth}, a {@linkplain FetchMode#PREEMPTIVE_FIFTH fitfh},
+         * a {@linkplain FetchMode#PREEMPTIVE_SIXTH sixth}, a {@linkplain FetchMode#PREEMPTIVE_SEVENTH seventh} or
+         * an {@linkplain FetchMode#PREEMPTIVE_EIGHTH eighth} of it's capacity.
+         * </blockquote>
+         *
+         * <p><i><b>(Java Driver-specific, Db-url key: </b></i><code>"java.default_fetch_mode"</code><i><b>)</b></i></p>
+         *
+         * @param val a default fetch mode, or {@code null}.
+         * @return itself.
+         */
+        public @NotNull Builder defaultFetchMode(@Nullable FetchMode val) {
             defaultFetchMode = val;
             return this;
         }
 
-        public @NotNull Builder timeout(@Nullable Long val) {
-            timeout = val;
+        /**
+         * Sets if the response pump should use {@linkplain Thread#setDaemon(boolean) daemon threads} or not.<br>
+         * <blockquote>
+         * Using persistent threads guarantees that the JVM will not exit once the main thread finishes, but will keep
+         * the JVM alive if the connection is not closed.<br>
+         * Daemon threads will ensure that the JVM can exit automatically, but may or may not ignore ongoing
+         * asynchronous queries. <i>Your milage may vary.</i> (HTTP or other application frameworks may open persistent
+         * threads by themselves and may keep the JVM alive until the main window or application shuts down.)
+         * </blockquote>
+         *
+         * <p><i><b>(Java Driver-specific, Db-url key: </b></i><code>"java.default_fetch_mode"</code><i><b>)</b></i></p>
+         *
+         * @param val {@code true} to use persistent threads in the response pump, {@code false} to use daemon threads.
+         * @return itself.
+         * @see Thread#setDaemon(boolean)
+         */
+        public @NotNull Builder persistentThreads(boolean val) {
+            persistentThreads = val;
             return this;
+        }
+
+        public @NotNull CompletableFuture<Connection> connectAsync() {
+            return new Connection(this).connectAsync();
         }
 
         public @NotNull Connection connect() {
@@ -655,7 +852,14 @@ public class Connection implements Closeable {
             if (unwrapLists) {
                 b.append(first ? '?' : "&");
                 first = false;
+
                 b.append("java.unwrap_lists=true");
+            }
+            if (persistentThreads) {
+                b.append(first ? '?' : "&");
+
+                first = false;
+                b.append("java.persistent_threads=true");
             }
 
             return b.toString();
@@ -677,13 +881,19 @@ public class Connection implements Closeable {
                 Objects.equals(authKey, builder.authKey) &&
                 Objects.equals(user, builder.user) &&
                 Objects.equals(password, builder.password) &&
-                defaultFetchMode == builder.defaultFetchMode;
+                defaultFetchMode == builder.defaultFetchMode &&
+                persistentThreads == builder.persistentThreads;
         }
 
         @Override
         public int hashCode() {
             return Objects.hash(socketFactory, pumpFactory, hostname, port, dbname,
-                sslContext, timeout, authKey, user, password, defaultFetchMode, unwrapLists);
+                sslContext, timeout, authKey, user, password, defaultFetchMode, unwrapLists, persistentThreads);
+        }
+
+        @Override
+        public String toString() {
+            return "Builder{" + dbUrlString() + '}';
         }
     }
 }
