@@ -119,7 +119,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         this.firstRes = firstRes;
         this.fetchMode = fetchMode;
         this.typeRef = typeRef;
-        fmt = new Internals.FormatOptions(query.globalOptions);
+        this.fmt = Internals.parseFormatOptions(query.globalOptions);
         this.unwrapLists = unwrapLists;
         currentResponse.set(firstRes);
         handleFirstResponse();

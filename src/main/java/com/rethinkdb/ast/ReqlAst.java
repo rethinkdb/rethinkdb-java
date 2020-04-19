@@ -12,6 +12,8 @@ import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.net.Result;
 import com.rethinkdb.utils.Types;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -22,33 +24,27 @@ import java.util.stream.Collectors;
  * Base class for all ReQL queries.
  */
 public class ReqlAst {
-    protected final TermType termType;
-    protected final Arguments args;
-    protected final OptArgs optargs;
+    protected final @NotNull TermType termType;
+    protected final @Nullable Arguments args;
+    protected final @Nullable OptArgs optargs;
 
-    protected ReqlAst(TermType termType, Arguments args, OptArgs optargs) {
-        if (termType == null) {
-            throw new ReqlDriverError("termType can't be null!");
-        }
+    protected ReqlAst(@NotNull TermType termType, @Nullable Arguments args, @Nullable OptArgs optargs) {
+        //if (termType == null) {
+        //    throw new ReqlDriverError("termType can't be null!");
+        //}
         this.termType = termType;
-        this.args = args != null ? args : new Arguments();
-        this.optargs = optargs != null ? optargs : new OptArgs();
-    }
-
-    public static Map<String, Object> buildOptarg(OptArgs opts) {
-        Map<String, Object> result = new LinkedHashMap<>(opts.size());
-        opts.forEach((name, arg) -> result.put(name, arg.build()));
-        return result;
+        this.args = args;
+        this.optargs = optargs;
     }
 
     protected Object build() {
-        // Create a JSON object from the Ast
+        // Create a JSON object from the AST
         // set initial capacity to max size possible, avoids resizing
         List<Object> list = new ArrayList<>(3);
         list.add(termType.value);
-        list.add(args.isEmpty() ? Collections.emptyList() : args.stream().map(ReqlAst::build).collect(Collectors.toList()));
-        if (optargs.size() > 0) {
-            list.add(buildOptarg(optargs));
+        list.add(args == null || args.isEmpty() ? Collections.emptyList() : args.stream().map(ReqlAst::build).collect(Collectors.toList()));
+        if (optargs != null && !optargs.isEmpty()) {
+            list.add(buildToMap(optargs));
         }
         return list;
     }
@@ -1726,15 +1722,17 @@ public class ReqlAst {
             builder.append('(').append(length).append(length != 1 ? " bytes" : " byte").append(")");
         }
         builder.append('\n');
-        Iterator<ReqlAst> argsIterator = args.iterator();
-        while (argsIterator.hasNext()) {
-            ReqlAst arg = argsIterator.next();
-            arg.astToString(builder, null,
-                indent + (tail ? "    " : "│   "),
-                !argsIterator.hasNext() && optargs.isEmpty());
+        if (args != null) {
+            Iterator<ReqlAst> argsIterator = args.iterator();
+            while (argsIterator.hasNext()) {
+                ReqlAst arg = argsIterator.next();
+                arg.astToString(builder, null,
+                    indent + (tail ? "    " : "│   "),
+                    !argsIterator.hasNext() && (optargs == null || optargs.isEmpty()));
+            }
         }
 
-        if (!optargs.isEmpty()) {
+        if (optargs != null && !optargs.isEmpty()) {
             builder.append(indent).append(tail ? "    " : "│   ").append("└── ").append("<optArgs>: \n");
             Iterator<Entry<String, ReqlAst>> optIterator = optargs.entrySet().iterator();
             while (optIterator.hasNext()) {
@@ -1744,6 +1742,12 @@ public class ReqlAst {
                     !optIterator.hasNext());
             }
         }
+    }
+
+    static Map<String, Object> buildToMap(OptArgs opts) {
+        Map<String, Object> result = new LinkedHashMap<>(opts.size());
+        opts.forEach((name, arg) -> result.put(name, arg.build()));
+        return result;
     }
 
     private static <T> T handleAtom(Result<T> result) {
