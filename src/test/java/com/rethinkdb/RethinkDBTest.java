@@ -401,7 +401,7 @@ public class RethinkDBTest {
     }
 
     @Test
-    public void testNoreply() throws Exception {
+    public void testNoreply() {
         r.expr(null).runNoReply(conn);
     }
 }

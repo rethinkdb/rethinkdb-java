@@ -37,7 +37,12 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
 
     @Override
     public @NotNull ResponsePump newPump(@NotNull ConnectionSocket socket) {
-        return new ThreadResponsePump(socket);
+        return newPump(socket, false);
+    }
+
+    @Override
+    public @NotNull ResponsePump newPump(@NotNull ConnectionSocket socket, boolean daemonThreads) {
+        return new ThreadResponsePump(socket, daemonThreads);
     }
 
     private static class SocketWrapper implements ConnectionSocket {
@@ -178,7 +183,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         private final Thread thread;
         private Map<Long, CompletableFuture<Response>> awaiting = new ConcurrentHashMap<>();
 
-        public ThreadResponsePump(ConnectionSocket socket) {
+        public ThreadResponsePump(ConnectionSocket socket, boolean daemon) {
             this.thread = new Thread(() -> {
                 // pump responses until interrupted
                 while (true) {
@@ -205,6 +210,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
                     }
                 }
             }, "RethinkDB-" + socket + "-ResponsePump");
+            thread.setDaemon(daemon);
             thread.start();
         }
 

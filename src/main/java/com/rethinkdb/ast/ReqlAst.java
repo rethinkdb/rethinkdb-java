@@ -377,7 +377,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public Object runAtom(Connection conn) {
-        return handleAtom(conn.run(this, new OptArgs(), null, null, null));
+        return handleAtom(conn.run(this, new OptArgs(), null, false, null));
     }
 
     /**
@@ -388,7 +388,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public Object runAtom(Connection conn, OptArgs runOpts) {
-        return handleAtom(conn.run(this, runOpts, null, null, null));
+        return handleAtom(conn.run(this, runOpts, null, false, null));
     }
 
     /**
@@ -400,7 +400,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public Object runAtom(Connection conn, Result.FetchMode fetchMode) {
-        return handleAtom(conn.run(this, new OptArgs(), fetchMode, null, null));
+        return handleAtom(conn.run(this, new OptArgs(), fetchMode, false, null));
     }
 
     /**
@@ -413,7 +413,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> T runAtom(Connection conn, Class<T> typeRef) {
-        return handleAtom(conn.run(this, new OptArgs(), null, null, Types.of(typeRef)));
+        return handleAtom(conn.run(this, new OptArgs(), null, false, Types.of(typeRef)));
     }
 
     /**
@@ -426,7 +426,7 @@ public class ReqlAst {
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
     public <T> T runAtom(Connection conn, TypeReference<T> typeRef) {
-        return handleAtom(conn.run(this, new OptArgs(), null, null, typeRef));
+        return handleAtom(conn.run(this, new OptArgs(), null, false, typeRef));
     }
 
     /**
@@ -439,7 +439,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public Object runAtom(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode) {
-        return handleAtom(conn.run(this, runOpts, fetchMode, null, null));
+        return handleAtom(conn.run(this, runOpts, fetchMode, false, null));
     }
 
     /**
@@ -453,7 +453,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> T runAtom(Connection conn, OptArgs runOpts, Class<T> typeRef) {
-        return handleAtom(conn.run(this, runOpts, null, null, Types.of(typeRef)));
+        return handleAtom(conn.run(this, runOpts, null, false, Types.of(typeRef)));
     }
 
     /**
@@ -467,7 +467,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> T runAtom(Connection conn, OptArgs runOpts, TypeReference<T> typeRef) {
-        return handleAtom(conn.run(this, runOpts, null, null, typeRef));
+        return handleAtom(conn.run(this, runOpts, null, false, typeRef));
     }
 
     /**
@@ -481,7 +481,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> T runAtom(Connection conn, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return handleAtom(conn.run(this, new OptArgs(), fetchMode, null, Types.of(typeRef)));
+        return handleAtom(conn.run(this, new OptArgs(), fetchMode, false, Types.of(typeRef)));
     }
 
     /**
@@ -495,7 +495,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> T runAtom(Connection conn, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
-        return handleAtom(conn.run(this, new OptArgs(), fetchMode, null, typeRef));
+        return handleAtom(conn.run(this, new OptArgs(), fetchMode, false, typeRef));
     }
 
     /**
@@ -510,7 +510,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> T runAtom(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return handleAtom(conn.run(this, runOpts, fetchMode, null, Types.of(typeRef)));
+        return handleAtom(conn.run(this, runOpts, fetchMode, false, Types.of(typeRef)));
     }
 
     /**
@@ -525,7 +525,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> T runAtom(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
-        return handleAtom(conn.run(this, runOpts, fetchMode, null, typeRef));
+        return handleAtom(conn.run(this, runOpts, fetchMode, false, typeRef));
     }
 
     /**
@@ -535,7 +535,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn) {
-        return conn.runAsync(this, new OptArgs(), null, null, null).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), null, false, null).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -547,7 +547,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn, OptArgs runOpts) {
-        return conn.runAsync(this, runOpts, null, null, null).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, null, false, null).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -559,7 +559,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn, Result.FetchMode fetchMode) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, null, null).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), fetchMode, false, null).thenApplyAsync(ReqlAst::handleAtom);
     }
 
 
@@ -573,7 +573,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, Class<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), null, null, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), null, false, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -586,7 +586,7 @@ public class ReqlAst {
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, TypeReference<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), null, null, typeRef).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), null, false, typeRef).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -599,7 +599,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode) {
-        return conn.runAsync(this, runOpts, fetchMode, null, null).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, fetchMode, false, null).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -613,7 +613,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, Class<T> typeRef) {
-        return conn.runAsync(this, runOpts, null, null, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, null, false, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -627,7 +627,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, TypeReference<T> typeRef) {
-        return conn.runAsync(this, runOpts, null, null, typeRef).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, null, false, typeRef).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -641,7 +641,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, null, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), fetchMode, false, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -655,7 +655,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, null, typeRef).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), fetchMode, false, typeRef).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -670,7 +670,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return conn.runAsync(this, runOpts, fetchMode, null, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, fetchMode, false, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
@@ -685,7 +685,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
-        return conn.runAsync(this, runOpts, fetchMode, null, typeRef).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, fetchMode, false, typeRef).thenApplyAsync(ReqlAst::handleAtom);
     }
 
     /**
