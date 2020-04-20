@@ -42,24 +42,24 @@ import java.util.function.Consumer;
  * This object is thread-safe.
  */
 public class Connection implements Closeable {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Connection.class);
+    private static final @NotNull Logger LOGGER = LoggerFactory.getLogger(Connection.class);
 
-    protected final String hostname;
+    protected final @NotNull String hostname;
     protected final int port;
     protected final @Nullable String user;
     protected final @Nullable String password;
     protected final @Nullable Long timeout;
     protected final @Nullable SSLContext sslContext;
     //java-only
-    protected final ConnectionSocket.Factory socketFactory;
-    protected final ResponsePump.Factory pumpFactory;
-    protected final FetchMode defaultFetchMode;
+    protected final @NotNull ConnectionSocket.Factory socketFactory;
+    protected final @NotNull ResponsePump.Factory pumpFactory;
+    protected final @NotNull FetchMode defaultFetchMode;
     protected final boolean unwrapLists;
     protected final boolean persistentThreads;
 
-    protected final AtomicLong nextToken = new AtomicLong();
-    protected final Set<Result<?>> tracked = ConcurrentHashMap.newKeySet();
-    protected final Lock writeLock = new ReentrantLock();
+    protected final @NotNull AtomicLong nextToken = new AtomicLong();
+    protected final @NotNull Set<Result<?>> tracked = ConcurrentHashMap.newKeySet();
+    protected final @NotNull Lock writeLock = new ReentrantLock();
 
     protected @Nullable String dbname;
     protected @Nullable ConnectionSocket socket;
@@ -126,7 +126,7 @@ public class Connection implements Closeable {
         if (socket != null) {
             throw new ReqlDriverError("Client already connected!");
         }
-        return socketFactory.newSocketAsync(hostname, port, sslContext, timeout).thenApply(socket -> {
+        return createSocketAsync().thenApply(socket -> {
             this.socket = socket;
             HandshakeProtocol.doHandshake(socket, user, password, timeout);
             this.pump = pumpFactory.newPump(socket, !persistentThreads);
@@ -514,6 +514,18 @@ public class Connection implements Closeable {
             // specified one already and one is specified on the connection
             optArgs.with("db", new Db(dbname));
         }
+    }
+
+    /**
+     * Detects if the connection socket supports async creation or wraps it before returning.
+     *
+     * @return a {@link CompletableFuture} which will complete with a new {@link ConnectionSocket}.
+     */
+    protected @NotNull CompletableFuture<ConnectionSocket> createSocketAsync() {
+        if (socketFactory instanceof ConnectionSocket.AsyncFactory) {
+            return ((ConnectionSocket.AsyncFactory) socketFactory).newSocketAsync(hostname, port, sslContext, timeout);
+        }
+        return CompletableFuture.supplyAsync(() -> socketFactory.newSocket(hostname, port, sslContext, timeout));
     }
 
     // builder

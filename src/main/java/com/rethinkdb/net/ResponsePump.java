@@ -21,7 +21,9 @@ public interface ResponsePump {
          * <b><i>(Will be removed on v2.5.0)</i></b>
          */
         @Deprecated
-        @NotNull ResponsePump newPump(@NotNull ConnectionSocket socket);
+        default @NotNull ResponsePump newPump(@NotNull ConnectionSocket socket) {
+            throw new UnsupportedOperationException();
+        }
 
         /**
          * Creates a new response pump using the provided connection socket.
@@ -31,9 +33,7 @@ public interface ResponsePump {
          * @return a new {@link ResponsePump}.
          */
         @NotNull
-        default ResponsePump newPump(@NotNull ConnectionSocket socket, boolean daemonThreads) {
-            return newPump(socket);
-        }
+        ResponsePump newPump(@NotNull ConnectionSocket socket, boolean daemonThreads);
     }
 
     /**

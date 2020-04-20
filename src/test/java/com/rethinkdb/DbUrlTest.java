@@ -11,11 +11,11 @@ import static org.junit.Assert.assertNotEquals;
 public class DbUrlTest {
     public static final RethinkDB r = RethinkDB.r;
     private static final String DB_URL_STANDARD =
-        "rethinkdb://bogus_man:bogus_pass@myhost:1234/mydb?auth_key=mykey&timeout=30";
+        "rethinkdb://bogus_man:bogus_pass@myhost:1234/mydb?timeout=30";
     private static final String DB_URL_NON_STANDARD =
-        "rethinkdb://bogus_man:bogus_pass@myhost:1234/mydb?auth_key=mykey&timeout=30&java.default_fetch_mode=lazy&java.unwrap_lists=true&java.persistent_threads=true";
+        "rethinkdb://bogus_man:bogus_pass@myhost:1234/mydb?timeout=30&java.default_fetch_mode=lazy&java.unwrap_lists=true&java.persistent_threads=true";
     private static final String DB_URL_NON_STANDARD_ALTERNATE =
-        "rethinkdb://bogus_man:bogus_pass@myhost:1234/mydb?authKey=mykey&timeout=30&java.defaultFetchMode=lazy&java.unwrapLists=enabled&java.persistentThreads=enabled";
+        "rethinkdb://bogus_man:bogus_pass@myhost:1234/mydb?timeout=30&java.defaultFetchMode=lazy&java.unwrapLists=enabled&java.persistentThreads=enabled";
 
     @Test
     public void testStandardDbUrl() {
@@ -28,7 +28,7 @@ public class DbUrlTest {
                 .hostname("myhost")
                 .port(1234)
                 .db("mydb")
-                .authKey("mykey")
+                
                 .timeout(30L)
         );
         assertEquals(
@@ -38,7 +38,7 @@ public class DbUrlTest {
                 .hostname("myhost")
                 .port(1234)
                 .db("mydb")
-                .authKey("mykey")
+                
                 .timeout(30L)
                 .dbUrlString()
         );
@@ -55,7 +55,6 @@ public class DbUrlTest {
                 .hostname("myhost")
                 .port(1234)
                 .db("mydb")
-                .authKey("mykey")
                 .timeout(30L)
                 .defaultFetchMode(Result.FetchMode.LAZY)
                 .unwrapLists(true)
@@ -68,7 +67,6 @@ public class DbUrlTest {
                 .hostname("myhost")
                 .port(1234)
                 .db("mydb")
-                .authKey("mykey")
                 .timeout(30L)
                 .defaultFetchMode(Result.FetchMode.LAZY)
                 .unwrapLists(true)
@@ -86,13 +84,13 @@ public class DbUrlTest {
             r.connection(DB_URL_NON_STANDARD),
             r.connection()
                 .user("bogus_man", "bogus_pass").hostname("myhost").port(1234).db("mydb")
-                .authKey("mykey").timeout(30L).defaultFetchMode(Result.FetchMode.LAZY).unwrapLists(true).persistentThreads(true)
+                .timeout(30L).defaultFetchMode(Result.FetchMode.LAZY).unwrapLists(true).persistentThreads(true)
         );
         assertEquals(
             r.connection(DB_URL_NON_STANDARD_ALTERNATE),
             r.connection()
                 .user("bogus_man", "bogus_pass").hostname("myhost").port(1234).db("mydb")
-                .authKey("mykey").timeout(30L).defaultFetchMode(Result.FetchMode.LAZY).unwrapLists(true).persistentThreads(true)
+                .timeout(30L).defaultFetchMode(Result.FetchMode.LAZY).unwrapLists(true).persistentThreads(true)
         );
         assertEquals(
             DB_URL_NON_STANDARD,
@@ -101,7 +99,6 @@ public class DbUrlTest {
                 .hostname("myhost")
                 .port(1234)
                 .db("mydb")
-                .authKey("mykey")
                 .timeout(30L)
                 .defaultFetchMode(Result.FetchMode.LAZY)
                 .unwrapLists(true)
@@ -117,7 +114,6 @@ public class DbUrlTest {
                 .hostname("myhost")
                 .port(1234)
                 .db("mydb")
-                .authKey("mykey")
                 .timeout(30L)
                 .defaultFetchMode(Result.FetchMode.LAZY)
                 .unwrapLists(true)

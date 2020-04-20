@@ -22,22 +22,18 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * The default {@link ConnectionSocket.Factory} and {@link ResponsePump.Factory} for any default connections.
  */
-public class DefaultConnectionFactory implements ConnectionSocket.Factory, ResponsePump.Factory {
+public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, ResponsePump.Factory {
     public static final DefaultConnectionFactory INSTANCE = new DefaultConnectionFactory();
 
     private DefaultConnectionFactory() {
     }
 
     @Override
-    public @NotNull ConnectionSocket newSocket(@NotNull String hostname, int port, SSLContext sslContext, Long timeoutMs) {
-        SocketWrapper s = new SocketWrapper(hostname, port, sslContext, timeoutMs);
-        s.connect();
-        return s;
-    }
-
-    @Override
-    public @NotNull ResponsePump newPump(@NotNull ConnectionSocket socket) {
-        return newPump(socket, false);
+    public @NotNull CompletableFuture<ConnectionSocket> newSocketAsync(@NotNull String hostname,
+                                                                       int port,
+                                                                       @Nullable SSLContext sslContext,
+                                                                       @Nullable Long timeoutMs) {
+        return CompletableFuture.supplyAsync(() -> new SocketWrapper(hostname, port, sslContext, timeoutMs).connect());
     }
 
     @Override
@@ -67,7 +63,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
             this.timeoutMs = timeoutMs;
         }
 
-        void connect() {
+        SocketWrapper connect() {
             try {
                 // establish connection
                 final InetSocketAddress addr = new InetSocketAddress(hostname, port);
@@ -97,6 +93,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
             } catch (IOException e) {
                 throw new ReqlDriverError("Connection timed out.", e);
             }
+            return this;
         }
 
         @Override

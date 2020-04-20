@@ -29,6 +29,27 @@ public interface ConnectionSocket extends Closeable {
                                             int port,
                                             @Nullable SSLContext sslContext,
                                             @Nullable Long timeoutMs);
+    }
+
+    /**
+     * An asynchronous factory of sockets.
+     */
+    interface AsyncFactory extends Factory {
+        /**
+         * Creates a new connection socket into the server.
+         *
+         * @param hostname   the hostname
+         * @param port       the post
+         * @param sslContext an {@link SSLContext}, if any
+         * @param timeoutMs  a timeout, in milliseconds, if any
+         * @return a new {@link ConnectionSocket}.
+         */
+        default @NotNull ConnectionSocket newSocket(@NotNull String hostname,
+                                           int port,
+                                           @Nullable SSLContext sslContext,
+                                           @Nullable Long timeoutMs) {
+            return newSocketAsync(hostname, port, sslContext, timeoutMs).join();
+        }
 
         /**
          * Creates a new connection socket asynchronously into the server.
@@ -39,12 +60,10 @@ public interface ConnectionSocket extends Closeable {
          * @param timeoutMs  a timeout, in milliseconds, if any
          * @return a {@link CompletableFuture} which will complete with a new {@link ConnectionSocket}.
          */
-        default CompletableFuture<ConnectionSocket> newSocketAsync(@NotNull String hostname,
-                                                                   int port,
-                                                                   @Nullable SSLContext sslContext,
-                                                                   @Nullable Long timeoutMs) {
-            return CompletableFuture.supplyAsync(() -> newSocket(hostname, port, sslContext, timeoutMs));
-        }
+        @NotNull CompletableFuture<ConnectionSocket> newSocketAsync(@NotNull String hostname,
+                                                           int port,
+                                                           @Nullable SSLContext sslContext,
+                                                           @Nullable Long timeoutMs);
     }
 
     /**
