@@ -2,6 +2,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.rethinkdb/rethinkdb-driver)](https://search.maven.org/artifact/com.rethinkdb/rethinkdb-driver)
 [![Bintray](https://img.shields.io/bintray/v/rethinkdb/maven/rethinkdb-driver)](https://bintray.com/rethinkdb/maven/rethinkdb-driver/_latestVersion)
+[![License](https://img.shields.io/github/license/rethinkdb/rethinkdb-java?color=lightgrey)](https://github.com/rethinkdb/rethinkdb-java/tree/master/LICENSE)
 [![Travis-CI.org](https://img.shields.io/travis/rethinkdb/rethinkdb-java)](https://travis-ci.org/rethinkdb/rethinkdb-java)
 [![Twitter](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Frethinkdb%2Frethinkdb-java)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Frethinkdb%2Frethinkdb-java)
 
@@ -23,14 +24,18 @@ Run `./gradlew assemble` to build the jar or `./gradlew install` to install it i
 
 ## Contributing to the driver
 
+If you want to contribute to the driver, make sure to base your branch off of our **develop** branch (or a feature-branch)
+and create your PR into that **same** branch. **We will be rejecting any PRs between branches or into release branches!**
+It is very possible that your change might already be in development or you missed something.
+
 ### Installation
 
 Besides JDK 8, to be able to contribute to the driver, you must also install:
 
 * Python **3.6** or **3.7**
 * PIP3 libraries:
-  * mako
-  * rethinkdb
+  * `mako`
+  * `rethinkdb`
 
 ### Using Gradle
 
@@ -105,6 +110,4 @@ These are also checked into git, so you don't need to run the conversion script 
 
 This section was moved to separate documentation:
 
-> [How to deploy this repository to Bintray](DEPLOYING-BINTRAY.md) 
-
-> [How to deploy this repository to Maven Central (Sonatype)](DEPLOYING-SONATYPE.md)
+> [How to deploy this repository to Bintray with integration with Maven Central (Sonatype)](DEPLOYING.md)
