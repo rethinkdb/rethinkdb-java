@@ -49,6 +49,7 @@ public class Connection implements Closeable {
     protected final @Nullable Long timeout;
     protected final @Nullable String user;
     protected final @Nullable String password;
+    protected final boolean unwrapLists;
     protected final FetchMode defaultFetchMode;
     protected final boolean persistentThreads;
 
@@ -59,7 +60,6 @@ public class Connection implements Closeable {
     protected @Nullable String dbname;
     protected @Nullable ConnectionSocket socket;
     protected @Nullable ResponsePump pump;
-    protected boolean unwrapLists;
 
     /**
      * Creates a new connection based on a {@link Builder}.
@@ -103,20 +103,6 @@ public class Connection implements Closeable {
      */
     public @NotNull Connection use(@Nullable String db) {
         dbname = db;
-        return this;
-    }
-
-    /**
-     * Enables or disables list unwrapping.
-     *
-     * @param val {@code true} to enable list unwrapping, {@code false} to disable.
-     * @return itself.
-     * @deprecated Use {@link ReqlAst#runUnwrapping(Connection)} and {@link ReqlAst#runAtom(Connection)} if you want to
-     * always the same consistency. <b><i>(Will be removed on v2.5.0)</i></b>
-     */
-    @Deprecated
-    public @NotNull Connection unwrapLists(boolean val) {
-        unwrapLists = val;
         return this;
     }
 
