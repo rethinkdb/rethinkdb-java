@@ -199,11 +199,17 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
 
                     // read response and send it to whoever is waiting, if anyone
                     try {
-                        final Response response = Response.readFromSocket(socket);
-                        final CompletableFuture<Response> awaiter = awaiting.remove(response.token);
-                        if (awaiter != null) {
-                            awaiter.complete(response);
-                        }
+                        CompletableFuture.supplyAsync(Response.readFromSocket(socket)).handle((response, t) -> {
+                            if (t != null) {
+                                shutdown(t);
+                            } else {
+                                final CompletableFuture<Response> awaiter = awaiting.remove(response.token);
+                                if (awaiter != null) {
+                                    awaiter.complete(response);
+                                }
+                            }
+                            return null;
+                        });
                     } catch (Exception e) {
                         shutdown(e);
                         return;
@@ -229,12 +235,12 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
             return thread.isAlive();
         }
 
-        private void shutdown(Exception e) {
+        private void shutdown(Throwable t) {
             Map<Long, CompletableFuture<Response>> awaiting = this.awaiting;
             this.awaiting = null;
             thread.interrupt();
             if (awaiting != null) {
-                awaiting.forEach((token, future) -> future.completeExceptionally(e));
+                awaiting.forEach((token, future) -> future.completeExceptionally(t));
             }
         }
 
