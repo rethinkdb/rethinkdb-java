@@ -531,7 +531,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn) {
-        return conn.runAsync(this, new OptArgs(), null, false, null).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), null, false, null).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -543,7 +543,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn, OptArgs runOpts) {
-        return conn.runAsync(this, runOpts, null, false, null).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, null, false, null).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -555,7 +555,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn, Result.FetchMode fetchMode) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, false, null).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), fetchMode, false, null).thenApply(ReqlAst::handleAtom);
     }
 
 
@@ -569,7 +569,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, Class<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), null, false, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), null, false, Types.of(typeRef)).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -582,7 +582,7 @@ public class ReqlAst {
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, TypeReference<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), null, false, typeRef).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), null, false, typeRef).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -595,7 +595,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public CompletableFuture<Object> runAtomAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode) {
-        return conn.runAsync(this, runOpts, fetchMode, false, null).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, fetchMode, false, null).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -609,7 +609,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, Class<T> typeRef) {
-        return conn.runAsync(this, runOpts, null, false, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, null, false, Types.of(typeRef)).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -623,7 +623,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, TypeReference<T> typeRef) {
-        return conn.runAsync(this, runOpts, null, false, typeRef).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, null, false, typeRef).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -637,7 +637,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, false, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), fetchMode, false, Types.of(typeRef)).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -651,7 +651,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, false, typeRef).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, new OptArgs(), fetchMode, false, typeRef).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -666,7 +666,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<T> typeRef) {
-        return conn.runAsync(this, runOpts, fetchMode, false, Types.of(typeRef)).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, fetchMode, false, Types.of(typeRef)).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -681,7 +681,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <T> CompletableFuture<T> runAtomAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<T> typeRef) {
-        return conn.runAsync(this, runOpts, fetchMode, false, typeRef).thenApplyAsync(ReqlAst::handleAtom);
+        return conn.runAsync(this, runOpts, fetchMode, false, typeRef).thenApply(ReqlAst::handleAtom);
     }
 
     /**
@@ -1012,7 +1012,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Class<K> keyRef, Class<V> valueRef) {
-        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1027,7 +1027,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, TypeReference<K> keyRef, Class<V> valueRef) {
-        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1042,7 +1042,7 @@ public class ReqlAst {
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Class<K> keyRef, TypeReference<V> valueRef) {
-        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1057,7 +1057,7 @@ public class ReqlAst {
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, TypeReference<K> keyRef, TypeReference<V> valueRef) {
-        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, new OptArgs(), null, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1071,7 +1071,7 @@ public class ReqlAst {
      * @return The result of this query (either a {@code P or a Cursor<P>}
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, TypeReference<GroupedResult<K, V>> typeRef) {
-        return conn.runAsync(this, new OptArgs(), null, true, typeRef).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, new OptArgs(), null, true, typeRef).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1087,7 +1087,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Class<K> keyRef, Class<V> valueRef) {
-        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1103,7 +1103,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, TypeReference<K> keyRef, Class<V> valueRef) {
-        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1119,7 +1119,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Class<K> keyRef, TypeReference<V> valueRef) {
-        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1135,7 +1135,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, TypeReference<K> keyRef, TypeReference<V> valueRef) {
-        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, runOpts, null, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1150,7 +1150,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, TypeReference<GroupedResult<K, V>> typeRef) {
-        return conn.runAsync(this, runOpts, null, true, typeRef).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, runOpts, null, true, typeRef).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1166,7 +1166,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Result.FetchMode fetchMode, Class<K> keyRef, Class<V> valueRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1182,7 +1182,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<K> keyRef, Class<V> valueRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1198,7 +1198,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Result.FetchMode fetchMode, Class<K> keyRef, TypeReference<V> valueRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1214,7 +1214,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<K> keyRef, TypeReference<V> valueRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, new OptArgs(), fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1229,7 +1229,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, Result.FetchMode fetchMode, TypeReference<GroupedResult<K, V>> typeRef) {
-        return conn.runAsync(this, new OptArgs(), fetchMode, true, typeRef).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, new OptArgs(), fetchMode, true, typeRef).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1246,7 +1246,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<K> keyRef, Class<V> valueRef) {
-        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1263,7 +1263,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<K> keyRef, Class<V> valueRef) {
-        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1280,7 +1280,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, Class<K> keyRef, TypeReference<V> valueRef) {
-        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1297,7 +1297,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<K> keyRef, TypeReference<V> valueRef) {
-        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, runOpts, fetchMode, true, Types.groupOf(keyRef, valueRef)).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
@@ -1313,7 +1313,7 @@ public class ReqlAst {
      * @return The result of this query
      */
     public <K, V> CompletableFuture<Map<K, Set<V>>> runGroupingAsync(Connection conn, OptArgs runOpts, Result.FetchMode fetchMode, TypeReference<GroupedResult<K, V>> typeRef) {
-        return conn.runAsync(this, runOpts, fetchMode, true, typeRef).thenApplyAsync(ReqlAst::handleGrouping);
+        return conn.runAsync(this, runOpts, fetchMode, true, typeRef).thenApply(ReqlAst::handleGrouping);
     }
 
     /**
