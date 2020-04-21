@@ -27,6 +27,7 @@ virtualenv/
 
 # RethinkDB
 scripts/*.proto
+test-dburl-override.txt
 
 # Editors
 .vscode/

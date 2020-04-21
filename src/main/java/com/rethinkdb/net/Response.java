@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class Response {
@@ -83,7 +84,7 @@ public class Response {
     }
 
     @SuppressWarnings("unchecked")
-    public static Response readFromSocket(ConnectionSocket socket) {
+    public static Supplier<Response> readFromSocket(ConnectionSocket socket) {
         final ByteBuffer header = socket.read(12);
         final long token = header.getLong();
         final int responseLength = header.getInt();
@@ -100,20 +101,22 @@ public class Response {
             );
         }
 
-        Map<String, Object> json = Internals.readJson(buffer);
-        return new Response(
-            token,
-            ResponseType.fromValue(((Long) json.get("t")).intValue()),
-            (List<Object>) json.getOrDefault("r", Collections.emptyList()),
-            ((List<Long>) json.getOrDefault("n", Collections.emptyList()))
-                .stream()
-                .map(Long::intValue)
-                .map(ResponseNote::maybeFromValue)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList()),
-            Profile.fromList((List<Object>) json.get("p")),
-            Backtrace.fromList((List<Object>) json.getOrDefault("b", null)),
-            json.containsKey("e") ? ErrorType.maybeFromValue(((Long) json.get("e")).intValue()) : null
-        );
+        return () -> {
+            Map<String, Object> json = Internals.readJson(buffer);
+            return new Response(
+                token,
+                ResponseType.fromValue(((Long) json.get("t")).intValue()),
+                (List<Object>) json.getOrDefault("r", Collections.emptyList()),
+                ((List<Long>) json.getOrDefault("n", Collections.emptyList()))
+                    .stream()
+                    .map(Long::intValue)
+                    .map(ResponseNote::maybeFromValue)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList()),
+                Profile.fromList((List<Object>) json.get("p")),
+                Backtrace.fromList((List<Object>) json.getOrDefault("b", null)),
+                json.containsKey("e") ? ErrorType.maybeFromValue(((Long) json.get("e")).intValue()) : null
+            );
+        };
     }
 }

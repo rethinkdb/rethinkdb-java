@@ -14,14 +14,31 @@ public interface ResponsePump {
     interface Factory {
         /**
          * Creates a new response pump using the provided connection socket.
+         *
          * @param socket the {@link ConnectionSocket} to pump response pumps from
          * @return a new {@link ResponsePump}.
+         * @deprecated Implement the {@link Factory#newPump(ConnectionSocket, boolean)} method.
+         * <b><i>(Will be removed on v2.5.0)</i></b>
          */
-        @NotNull ResponsePump newPump(@NotNull ConnectionSocket socket);
+        @Deprecated
+        default @NotNull ResponsePump newPump(@NotNull ConnectionSocket socket) {
+            throw new UnsupportedOperationException();
+        }
+
+        /**
+         * Creates a new response pump using the provided connection socket.
+         *
+         * @param socket        the {@link ConnectionSocket} to pump response pumps from
+         * @param daemonThreads suggestion for using daemon threads and not blocking the process to exit.
+         * @return a new {@link ResponsePump}.
+         */
+        @NotNull
+        ResponsePump newPump(@NotNull ConnectionSocket socket, boolean daemonThreads);
     }
 
     /**
      * Creates a response awaiter for a query token.
+     *
      * @param token the query token
      * @return a {@link CompletableFuture} that completes with a {@link Response} that matches the token.
      */
@@ -30,6 +47,7 @@ public interface ResponsePump {
 
     /**
      * Checks if the response pump is alive.
+     *
      * @return true if the response pump is alive, false otherwise.
      */
     boolean isAlive();

@@ -14,7 +14,7 @@ import java.net.URI;
  */
 public class RethinkDB extends TopLevel {
     /**
-     * The Singleton to use to begin interacting with RethinkDB Driver
+     * The Singleton to use to begin interacting with RethinkDB Driver.
      */
     public static final RethinkDB r = new RethinkDB();
     /**
@@ -25,7 +25,7 @@ public class RethinkDB extends TopLevel {
     /**
      * Gets (or creates, if null) the {@link ObjectMapper} for handling {@link com.rethinkdb.net.Result}'s values.
      *
-     * @return the {@link com.rethinkdb.net.Result}'s {@link ObjectMapper}
+     * @return the {@link com.rethinkdb.net.Result}'s {@link ObjectMapper}.
      */
     public synchronized static @NotNull ObjectMapper getResultMapper() {
         ObjectMapper mapper = resultMapper;
@@ -40,7 +40,7 @@ public class RethinkDB extends TopLevel {
     /**
      * Sets the {@link ObjectMapper} for handling {@link com.rethinkdb.net.Result}'s values.
      *
-     * @param mapper an {@link ObjectMapper}, or null
+     * @param mapper an {@link ObjectMapper}, or null.
      */
     public synchronized static void setResultMapper(@Nullable ObjectMapper mapper) {
         resultMapper = mapper;
@@ -49,7 +49,7 @@ public class RethinkDB extends TopLevel {
     /**
      * Creates a new connection builder.
      *
-     * @return a newly created {@link Connection.Builder}
+     * @return a newly created {@link Connection.Builder}.
      */
     public @NotNull Connection.Builder connection() {
         return new Connection.Builder();
@@ -59,7 +59,7 @@ public class RethinkDB extends TopLevel {
      * Creates a new connection builder and configures it with a db-url.
      *
      * @param dburl the db-url to configure the builder.
-     * @return a newly created {@link Connection.Builder}
+     * @return a newly created {@link Connection.Builder}.
      */
     public @NotNull Connection.Builder connection(@NotNull String dburl) {
         return connection(URI.create(dburl));
@@ -69,9 +69,20 @@ public class RethinkDB extends TopLevel {
      * Creates a new connection builder and configures it with a db-url.
      *
      * @param uri the db-url to configure the builder.
-     * @return a newly created {@link Connection.Builder}
+     * @return a newly created {@link Connection.Builder}.
      */
     public @NotNull Connection.Builder connection(@NotNull URI uri) {
         return new Connection.Builder(uri);
     }
+
+    /**
+     * Copies a connection builder.
+     *
+     * @param b the original builder.
+     * @return a copy of the {@link Connection.Builder}.
+     */
+    public @NotNull Connection.Builder connection(Connection.Builder b) {
+        return new Connection.Builder(b);
+    }
+
 }
