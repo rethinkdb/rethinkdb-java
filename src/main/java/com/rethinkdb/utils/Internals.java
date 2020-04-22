@@ -166,7 +166,7 @@ public class Internals {
                 }
                 return ((List<?>) value.get("data")).stream()
                     .map(it -> new ArrayList<>((Collection<?>) it))
-                    .map(it -> new GroupedResult<>(it.remove(0), it))
+                    .map(it -> new GroupedResult<>(it.get(0), ((List<?>) it.get(1))))
                     .collect(Collectors.toList());
             }
             case BINARY: {

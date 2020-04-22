@@ -385,6 +385,14 @@ public class Connection implements Closeable {
         }
     }
 
+    /**
+     * Checks if there are any ongoing query.
+     * @return {@code true} if there's an ongoing query that will be closed if this connection is closed.
+     */
+    public boolean hasOngoingQueries() {
+        return !tracked.isEmpty();
+    }
+
     // protected methods
 
     /**
