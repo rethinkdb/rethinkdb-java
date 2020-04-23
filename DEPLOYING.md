@@ -21,7 +21,7 @@ When releasing through Bintray, gpg signing is done by the person who does the r
 
 You must use gpg 2.0 or below, since gpg 2.1 and greater doesn't use the `secring.gpg` file anymore. This is a limitation on Gradle's end and there's an [issue regarding that](https://github.com/gradle/gradle/issues/888).
 
-To upload a new release, run `./gradlew assemble signArchives` **after that** run `./gradlew bintrayUpload`. Unfortunately, there is a race condition when signing pom and uploading artifacts. This should upload the package to the bintray repository. the version looks like `2.2` or `2.2-SNAPSHOT`, so this is important to get right or it won't go to the right place.
+To upload a new release, run `./gradlew assemble signArchives bintrayUpload`. This should upload the package to the bintray repository. the version looks like `2.2` or `2.2-SNAPSHOT`, so this is important to get right or it won't go to the right place.
 
 ## Maven Central Integration
 
