@@ -736,7 +736,7 @@ public class Connection implements Closeable {
         }
 
         /**
-         * Sets a custom timeout for the connection.
+         * Sets a custom timeout for the connection, in milliseconds.
          * <p>(Db-url key: <code>"timeout"</code>)</p>
          *
          * @param timeout the timeout, or {@code null}.
