@@ -166,7 +166,7 @@ public class Internals {
                 }
                 return ((List<?>) value.get("data")).stream()
                     .map(it -> new ArrayList<>((Collection<?>) it))
-                    .map(it -> new GroupedResult<>(it.remove(0), it))
+                    .map(it -> new GroupedResult<>(it.get(0), ((List<?>) it.get(1))))
                     .collect(Collectors.toList());
             }
             case BINARY: {
@@ -272,20 +272,34 @@ public class Internals {
         }
     }
 
+    public static FormatOptions parseFormatOptions(OptArgs args) {
+        if (args == null) return FormatOptions.DEFAULT;
+
+        Datum time_format = (Datum) args.get("time_format");
+        boolean rawTime = time_format != null && "raw".equals(time_format.datum);
+
+        Datum binary_format = (Datum) args.get("binary_format");
+        boolean rawBinary = binary_format != null && "raw".equals(binary_format.datum);
+
+        Datum group_format = (Datum) args.get("group_format");
+        boolean rawGroups = group_format != null && "raw".equals(group_format.datum);
+
+        if (rawTime || rawBinary || rawGroups) {
+            return new FormatOptions(rawTime, rawGroups, rawBinary);
+        }
+        return FormatOptions.DEFAULT;
+    }
+
     public static class FormatOptions {
+        public static final FormatOptions DEFAULT = new FormatOptions(false, false, false);
         public final boolean rawTime;
         public final boolean rawGroups;
         public final boolean rawBinary;
 
-        public FormatOptions(OptArgs args) {
-            Datum time_format = (Datum) args.get("time_format");
-            this.rawTime = time_format != null && "raw".equals(time_format.datum);
-
-            Datum binary_format = (Datum) args.get("binary_format");
-            this.rawBinary = binary_format != null && "raw".equals(binary_format.datum);
-
-            Datum group_format = (Datum) args.get("group_format");
-            this.rawGroups = group_format != null && "raw".equals(group_format.datum);
+        public FormatOptions(boolean rawTime, boolean rawGroups, boolean rawBinary) {
+            this.rawTime = rawTime;
+            this.rawGroups = rawGroups;
+            this.rawBinary = rawBinary;
         }
     }
 }

@@ -1,10 +1,10 @@
 package com.rethinkdb.ast;
 
-import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.ReqlRuntimeError;
 import com.rethinkdb.gen.proto.QueryType;
 import com.rethinkdb.model.OptArgs;
 import com.rethinkdb.utils.Internals;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,21 +22,20 @@ import java.util.List;
 public class Query {
     private static final Logger LOGGER = LoggerFactory.getLogger(Query.class);
 
-    public final QueryType type;
+    public final @NotNull QueryType type;
     public final long token;
-    public final OptArgs globalOptions;
-
     public final @Nullable ReqlAst term;
+    public final @Nullable OptArgs globalOptions;
 
-    public Query(QueryType type, long token, @Nullable ReqlAst term, OptArgs globalOptions) {
+    public Query(@NotNull QueryType type, long token, @Nullable ReqlAst term, @Nullable OptArgs globalOptions) {
         this.type = type;
         this.token = token;
         this.term = term;
         this.globalOptions = globalOptions;
     }
 
-    public Query(QueryType type, long token) {
-        this(type, token, null, new OptArgs());
+    public Query(@NotNull QueryType type, long token) {
+        this(type, token, null, null);
     }
 
     public ByteBuffer serialize() {
@@ -47,8 +46,8 @@ public class Query {
             if (term != null) {
                 list.add(term.build());
             }
-            if (!globalOptions.isEmpty()) {
-                list.add(ReqlAst.buildOptarg(globalOptions));
+            if (globalOptions != null && !globalOptions.isEmpty()) {
+                list.add(ReqlAst.buildToMap(globalOptions));
             }
             String json = Internals.getInternalMapper().writeValueAsString(list);
             byte[] bytes = json.getBytes(StandardCharsets.UTF_8);

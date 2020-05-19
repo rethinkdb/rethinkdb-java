@@ -1,10 +1,24 @@
-build/
-out/
-.gradle/
+# ## RethinkDB .gitignore
+
+# General
 .#*
+
+# IDE-related
 *.iml
 .idea/
+.vscode/
+out/
+
+# Java-related
+*.class
+
+# Gradle-related
+build/
+.gradle/
 confidential.properties
+
+# Kotlin scripts
+scripts/kotlinc/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -27,7 +41,4 @@ virtualenv/
 
 # RethinkDB
 scripts/*.proto
-
-# Editors
-.vscode/
-.idea/
+test-dburl-override.txt

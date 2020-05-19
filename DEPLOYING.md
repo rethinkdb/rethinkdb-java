@@ -32,3 +32,7 @@ To upload a new release directly to Sonatype, run the Gradle task `uploadArchive
 After release, you may need to go to https://oss.sonatype.org/#stagingRepositories and search for "rethinkdb" in the search box, find the release that is in status `open`. Select it and then click the `Close` button. This will check it and make it ready for release. If that stage passes you can click the `Release` button.
 
 For full instructions see: http://central.sonatype.org/pages/releasing-the-deployment.html
+
+## After deploying: Documentations
+
+After deploying, the following file must be updated to reflect the new version: https://github.com/rethinkdb/docs/blob/master/0-getting-started/drivers/java.md

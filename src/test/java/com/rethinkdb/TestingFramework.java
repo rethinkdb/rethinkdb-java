@@ -1,78 +1,45 @@
 package com.rethinkdb;
 
 import com.rethinkdb.net.Connection;
+import com.rethinkdb.net.Result;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Objects;
-import java.util.Properties;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+
+import static com.rethinkdb.RethinkDB.*;
+import static java.nio.charset.StandardCharsets.*;
 
 /**
  * Very basic testing framework lying miserably in the java's default package.
  */
 public class TestingFramework {
+    private static final String OVERRIDE_FILE_NAME = "test-dburl-override.txt";
 
-    private static final String DEFAULT_CONFIG_RESOURCE = "default-config.properties";
-    private static final String OVERRIDE_FILE_NAME = "test-config-override.properties";
-
-    // properties used to populate configuration
-    private static final String PROP_HOSTNAME = "hostName";
-    private static final String PROP_PORT = "port";
-    private static final String PROP_AUTHKEY = "authKey";
-
-    private static Connection.Builder defaultConnectionBuilder;
+    private static Connection.Builder builder;
 
     /**
      * Provision a connection builder based on the test configuration.
      * <p>
-     * Put a propertiy file called "test-config-override.properties" in the working
-     * directory of the tests to override default values.
-     * <p>
-     * Example:
-     * <pre>
-     *     hostName=myHost
-     *     port=12345
-     * </pre>
-     * </P>
+     * Put a propertiy file called "test-dburl-override.txt" in the working directory of the tests to override default values.
+     * The file contents must be a RethinkDB db-url.
      *
      * @return Default connection builder.
      */
     public static Connection.Builder defaultConnectionBuilder() {
-        if (defaultConnectionBuilder == null) {
-            Properties config = new Properties();
-
-            try (InputStream is = TestingFramework.class.getClassLoader().getResourceAsStream(DEFAULT_CONFIG_RESOURCE)) {
-                config.load(Objects.requireNonNull(is));
-            } catch (NullPointerException | IOException e) {
-                throw new IllegalStateException(e);
-            }
-
-            // Check the local override file.
-            String workdir = System.getProperty("user.dir");
-            File defaultFile = new File(workdir, OVERRIDE_FILE_NAME);
+        if (builder == null) {
+            File defaultFile = new File(OVERRIDE_FILE_NAME);
             if (defaultFile.exists()) {
-                try (InputStream is = new FileInputStream(defaultFile)) {
-                    config.load(is);
+                try {
+                    builder = r.connection(new String(Files.readAllBytes(defaultFile.toPath()), UTF_8));
                 } catch (IOException e) {
                     throw new IllegalStateException(e);
                 }
-            }
-
-            // provision connection builder based on configuration
-            defaultConnectionBuilder = RethinkDB.r.connection();
-            // mandatory fields
-            defaultConnectionBuilder = defaultConnectionBuilder.hostname(config.getProperty(PROP_HOSTNAME).trim());
-            defaultConnectionBuilder = defaultConnectionBuilder.port(Integer.parseInt(config.getProperty(PROP_PORT).trim()));
-            // optional fields
-            final String authKey = config.getProperty(PROP_AUTHKEY);
-            if (authKey != null) {
-                defaultConnectionBuilder.authKey(config.getProperty(PROP_AUTHKEY).trim());
+            } else {
+                builder = r.connection();
             }
         }
-
-        return defaultConnectionBuilder;
+        return builder;
     }
 
     /**

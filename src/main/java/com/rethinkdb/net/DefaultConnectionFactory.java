@@ -22,22 +22,23 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * The default {@link ConnectionSocket.Factory} and {@link ResponsePump.Factory} for any default connections.
  */
-public class DefaultConnectionFactory implements ConnectionSocket.Factory, ResponsePump.Factory {
+public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, ResponsePump.Factory {
     public static final DefaultConnectionFactory INSTANCE = new DefaultConnectionFactory();
 
     private DefaultConnectionFactory() {
     }
 
     @Override
-    public @NotNull ConnectionSocket newSocket(@NotNull String hostname, int port, SSLContext sslContext, Long timeoutMs) {
-        SocketWrapper s = new SocketWrapper(hostname, port, sslContext, timeoutMs);
-        s.connect();
-        return s;
+    public @NotNull CompletableFuture<ConnectionSocket> newSocketAsync(@NotNull String hostname,
+                                                                       int port,
+                                                                       @Nullable SSLContext sslContext,
+                                                                       @Nullable Long timeoutMs) {
+        return CompletableFuture.supplyAsync(() -> new SocketWrapper(hostname, port, sslContext, timeoutMs).connect());
     }
 
     @Override
-    public @NotNull ResponsePump newPump(@NotNull ConnectionSocket socket) {
-        return new ThreadResponsePump(socket);
+    public @NotNull ResponsePump newPump(@NotNull ConnectionSocket socket, boolean daemonThreads) {
+        return new ThreadResponsePump(socket, daemonThreads);
     }
 
     private static class SocketWrapper implements ConnectionSocket {
@@ -62,7 +63,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
             this.timeoutMs = timeoutMs;
         }
 
-        void connect() {
+        SocketWrapper connect() {
             try {
                 // establish connection
                 final InetSocketAddress addr = new InetSocketAddress(hostname, port);
@@ -92,6 +93,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
             } catch (IOException e) {
                 throw new ReqlDriverError("Connection timed out.", e);
             }
+            return this;
         }
 
         @Override
@@ -178,7 +180,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
         private final Thread thread;
         private Map<Long, CompletableFuture<Response>> awaiting = new ConcurrentHashMap<>();
 
-        public ThreadResponsePump(ConnectionSocket socket) {
+        public ThreadResponsePump(ConnectionSocket socket, boolean daemon) {
             this.thread = new Thread(() -> {
                 // pump responses until interrupted
                 while (true) {
@@ -194,17 +196,24 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
 
                     // read response and send it to whoever is waiting, if anyone
                     try {
-                        final Response response = Response.readFromSocket(socket);
-                        final CompletableFuture<Response> awaiter = awaiting.remove(response.token);
-                        if (awaiter != null) {
-                            awaiter.complete(response);
-                        }
+                        CompletableFuture.supplyAsync(Response.readFromSocket(socket)).handle((response, t) -> {
+                            if (t != null) {
+                                shutdown(t);
+                            } else {
+                                final CompletableFuture<Response> awaiter = awaiting.remove(response.token);
+                                if (awaiter != null) {
+                                    awaiter.complete(response);
+                                }
+                            }
+                            return null;
+                        });
                     } catch (Exception e) {
                         shutdown(e);
                         return;
                     }
                 }
             }, "RethinkDB-" + socket + "-ResponsePump");
+            thread.setDaemon(daemon);
             thread.start();
         }
 
@@ -223,12 +232,12 @@ public class DefaultConnectionFactory implements ConnectionSocket.Factory, Respo
             return thread.isAlive();
         }
 
-        private void shutdown(Exception e) {
+        private void shutdown(Throwable t) {
             Map<Long, CompletableFuture<Response>> awaiting = this.awaiting;
             this.awaiting = null;
             thread.interrupt();
             if (awaiting != null) {
-                awaiting.forEach((token, future) -> future.completeExceptionally(e));
+                awaiting.forEach((token, future) -> future.completeExceptionally(t));
             }
         }
 

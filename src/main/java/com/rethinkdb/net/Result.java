@@ -77,7 +77,16 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         /**
          * Fetches the next part of the sequence once the buffer becomes empty.
          */
-        LAZY
+        LAZY;
+
+        @Nullable
+        public static FetchMode fromString(String s) {
+            try {
+                return valueOf(s.toUpperCase());
+            } catch (RuntimeException ignored) {
+                return null;
+            }
+        }
     }
 
     protected final Connection connection;
@@ -85,6 +94,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     protected final Response firstRes;
     protected final TypeReference<T> typeRef;
     protected final Internals.FormatOptions fmt;
+    protected final boolean unwrapLists;
     // can be altered depending on the operation
     protected FetchMode fetchMode;
 
@@ -102,13 +112,15 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
                   Query query,
                   Response firstRes,
                   FetchMode fetchMode,
+                  boolean unwrapLists,
                   TypeReference<T> typeRef) {
         this.connection = connection;
         this.query = query;
         this.firstRes = firstRes;
         this.fetchMode = fetchMode;
         this.typeRef = typeRef;
-        fmt = new Internals.FormatOptions(query.globalOptions);
+        this.fmt = Internals.parseFormatOptions(query.globalOptions);
+        this.unwrapLists = unwrapLists;
         currentResponse.set(firstRes);
         handleFirstResponse();
     }
@@ -551,7 +563,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         }
         lastRequestCount.set(0);
         for (Object each : (List<?>) Internals.convertPseudotypes(res.data, fmt)) {
-            if (connection.unwrapLists && firstRes.type.equals(ResponseType.SUCCESS_ATOM) && each instanceof List) {
+            if (unwrapLists && firstRes.type.equals(ResponseType.SUCCESS_ATOM) && each instanceof List) {
                 for (Object o : ((List<?>) each)) {
                     rawQueue.offer(o == null ? NIL : o);
                     lastRequestCount.incrementAndGet();

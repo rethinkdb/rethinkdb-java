@@ -35,14 +35,14 @@ public class AuthTest {
 
     @Test
     public void testConnectWithNonAdminUser() throws Exception {
-        Connection bogusConn = TestingFramework.defaultConnectionBuilder().copyOf()
+        Connection bogusConn = r.connection(TestingFramework.defaultConnectionBuilder())
                 .user(bogusUsername, bogusPassword).connect();
         bogusConn.close();
     }
 
     @Test (expected=ReqlDriverError.class)
     public void testConnectWithBothAuthKeyAndUsername() throws Exception {
-        Connection bogusConn = TestingFramework.defaultConnectionBuilder().copyOf()
+        Connection bogusConn = r.connection(TestingFramework.defaultConnectionBuilder())
                 .user(bogusUsername, bogusPassword).authKey("test").connect();
     }
 }
