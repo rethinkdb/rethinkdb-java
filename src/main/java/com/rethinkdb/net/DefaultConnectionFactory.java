@@ -18,6 +18,7 @@ import java.nio.ByteOrder;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The default {@link ConnectionSocket.Factory} and {@link ResponsePump.Factory} for any default connections.
@@ -177,6 +178,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
     }
 
     private static class ThreadResponsePump implements ResponsePump {
+        private final AtomicReference<Throwable> shutdownReason = new AtomicReference<>();
         private final Thread thread;
         private Map<Long, CompletableFuture<Response>> awaiting = new ConcurrentHashMap<>();
 
@@ -220,7 +222,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
         @Override
         public @NotNull CompletableFuture<Response> await(long token) {
             if (awaiting == null) {
-                throw new ReqlDriverError("Response pump closed.");
+                throw new ReqlDriverError("Response pump closed.", shutdownReason.get());
             }
             CompletableFuture<Response> future = new CompletableFuture<>();
             awaiting.put(token, future);
@@ -234,6 +236,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
 
         private void shutdown(Throwable t) {
             Map<Long, CompletableFuture<Response>> awaiting = this.awaiting;
+            this.shutdownReason.compareAndSet(null, t);
             this.awaiting = null;
             thread.interrupt();
             if (awaiting != null) {
@@ -243,7 +246,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
 
         @Override
         public void shutdownPump() {
-            shutdown(new ReqlDriverError("Response pump closed."));
+            shutdown(new Throwable("Shutdown was requested."));
         }
 
         @Override
