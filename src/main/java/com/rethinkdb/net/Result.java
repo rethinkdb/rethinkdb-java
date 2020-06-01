@@ -475,40 +475,44 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      * This function is called on next()
      */
     protected void onStateUpdate() {
-        final Response lastRes = currentResponse.get();
-        if (shouldContinue(lastRes) && requesting.tryAcquire()) {
-            // great, we should make a CONTINUE request.
-            connection.sendContinue(lastRes.token).whenComplete((nextRes, t) -> {
-                if (t != null) { // It errored. This means it's over.
-                    completed.completeExceptionally(t);
-                } else { // Okay, let's process this response.
-                    currentResponse.set(nextRes);
-                    if (nextRes.type.equals(ResponseType.SUCCESS_SEQUENCE)) {
-                        try {
-                            emitting.acquire();
-                            emitData(nextRes);
-                            emitting.release();
-                            completed.complete(true); // Completed. This means it's over.
-                        } catch (Exception e) {
-                            completed.completeExceptionally(e); // It errored. This means it's over.
-                        }
-                    } else if (nextRes.type.equals(ResponseType.SUCCESS_PARTIAL)) {
-                        // Okay, we got another partial response, so there's more.
+        if (requesting.tryAcquire()) {
+            final Response lastRes = currentResponse.get();
+            if (shouldContinue(lastRes)) {
+                // great, we should make a CONTINUE request.
+                connection.sendContinue(lastRes.token).whenComplete((response, t) -> {
+                    if (t == null) { // Okay, let's process this response.
+                        currentResponse.set(response);
+                        if (response.type.equals(ResponseType.SUCCESS_PARTIAL)) {
+                            // Okay, we got another partial response, so there's more.
+                            requesting.release();
 
-                        requesting.release(); // Request's over, release this for later.
-                        try {
-                            emitting.acquire();
-                            emitData(nextRes);
-                            emitting.release();
-                            onStateUpdate(); //Recursion!
-                        } catch (Exception e) {
-                            completed.completeExceptionally(e); // It errored. This means it's over.
+                            try {
+                                emitting.acquire();
+                                emitData(response);
+                                emitting.release();
+                                onStateUpdate(); //Recursion!
+                            } catch (Exception e) {
+                                completed.completeExceptionally(e); // It errored. This means it's over.
+                            }
+                        } else if (response.type.equals(ResponseType.SUCCESS_SEQUENCE)) {
+                            try {
+                                emitting.acquire();
+                                emitData(response);
+                                emitting.release();
+                                completed.complete(true); // Completed. This means it's over.
+                            } catch (Exception e) {
+                                completed.completeExceptionally(e); // It errored. This means it's over.
+                            }
+                        } else {
+                            completed.completeExceptionally(response.makeError(query)); // It errored. This means it's over.
                         }
-                    } else {
-                        completed.completeExceptionally(firstRes.makeError(query)); // It errored. This means it's over.
+                    } else { // It errored. This means it's over.
+                        completed.completeExceptionally(t);
                     }
-                }
-            });
+                });
+            } else { // Just release for re-checking later on
+                requesting.release();
+            }
         }
     }
 
