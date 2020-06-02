@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -37,58 +38,6 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      */
     private static final Object NIL = new Object();
 
-    /**
-     * The fetch mode to use on partial sequences.
-     */
-    public enum FetchMode {
-        /**
-         * Fetches all parts of the sequence as fast as possible.<br>
-         * <b>WARNING:</b> This can end up throwing {@link OutOfMemoryError}s in case of giant sequences.
-         */
-        AGGRESSIVE,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches half of the original size.
-         */
-        PREEMPTIVE_HALF,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches a third of the original size.
-         */
-        PREEMPTIVE_THIRD,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches a fourth of the original size.
-         */
-        PREEMPTIVE_FOURTH,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches a fifth of the original size.
-         */
-        PREEMPTIVE_FIFTH,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches a sixth of the original size.
-         */
-        PREEMPTIVE_SIXTH,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches a seventh of the original size.
-         */
-        PREEMPTIVE_SEVENTH,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches an eight of the original size.
-         */
-        PREEMPTIVE_EIGHTH,
-        /**
-         * Fetches the next part of the sequence once the buffer becomes empty.
-         */
-        LAZY;
-
-        @Nullable
-        public static FetchMode fromString(String s) {
-            try {
-                return valueOf(s.toUpperCase());
-            } catch (RuntimeException ignored) {
-                return null;
-            }
-        }
-    }
-
     protected final Connection connection;
     protected final Query query;
     protected final Response firstRes;
@@ -105,7 +54,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     // This gets used if it's a partial request.
     protected final Semaphore requesting = new Semaphore(1);
     protected final Semaphore emitting = new Semaphore(1);
-    protected final AtomicLong lastRequestCount = new AtomicLong();
+    protected final AtomicInteger lastRequestCount = new AtomicInteger();
     protected final AtomicReference<Response> currentResponse = new AtomicReference<>();
 
     public Result(Connection connection,
@@ -520,36 +469,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         if (completed.isDone() || !res.type.equals(ResponseType.SUCCESS_PARTIAL)) {
             return false;
         }
-        switch (fetchMode) {
-            case PREEMPTIVE_HALF: {
-                return rawQueue.size() * 2 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_THIRD: {
-                return rawQueue.size() * 3 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_FOURTH: {
-                return rawQueue.size() * 4 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_FIFTH: {
-                return rawQueue.size() * 5 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_SIXTH: {
-                return rawQueue.size() * 6 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_SEVENTH: {
-                return rawQueue.size() * 7 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_EIGHTH: {
-                return rawQueue.size() * 8 < lastRequestCount.get();
-            }
-            case LAZY: {
-                return rawQueue.isEmpty();
-            }
-            case AGGRESSIVE:
-            default: {
-                return true;
-            }
-        }
+        return fetchMode.shouldContinue(rawQueue.size(), lastRequestCount.get());
     }
 
     protected void onConnectionClosed() {
@@ -575,6 +495,105 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             } else {
                 rawQueue.offer(each == null ? NIL : each);
                 lastRequestCount.incrementAndGet();
+            }
+        }
+    }
+
+    /**
+     * The fetch mode to use on partial sequences.
+     */
+    public enum FetchMode {
+        /**
+         * Fetches all parts of the sequence as fast as possible.<br>
+         * <b>WARNING:</b> This can end up throwing {@link OutOfMemoryError}s in case of giant sequences.
+         */
+        AGGRESSIVE {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return true;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches half of the original size.
+         */
+        PREEMPTIVE_HALF {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 2;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a third of the original size.
+         */
+        PREEMPTIVE_THIRD {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 3;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a fourth of the original size.
+         */
+        PREEMPTIVE_FOURTH {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 4;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a fifth of the original size.
+         */
+        PREEMPTIVE_FIFTH {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 5;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a sixth of the original size.
+         */
+        PREEMPTIVE_SIXTH {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 6;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a seventh of the original size.
+         */
+        PREEMPTIVE_SEVENTH {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 7;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches an eight of the original size.
+         */
+        PREEMPTIVE_EIGHTH {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 8;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer becomes empty.
+         */
+        LAZY {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size == 0;
+            }
+        };
+
+        public abstract boolean shouldContinue(int size, int requestSize);
+
+        @Nullable
+        public static FetchMode fromString(String s) {
+            try {
+                return valueOf(s.toUpperCase());
+            } catch (RuntimeException ignored) {
+                return null;
             }
         }
     }
