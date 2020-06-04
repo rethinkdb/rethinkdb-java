@@ -329,7 +329,7 @@ public class RethinkDBTest {
 
     @Test(timeout = 40000)
     public void testConcurrentWrites() throws TimeoutException, InterruptedException {
-        final int total = 500;
+        final int total = 200;
         final AtomicInteger writeCounter = new AtomicInteger(0);
         final Waiter waiter = new Waiter();
         for (int i = 0; i < total; i++)

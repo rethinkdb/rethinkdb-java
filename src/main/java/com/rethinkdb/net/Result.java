@@ -10,6 +10,8 @@ import com.rethinkdb.model.Profile;
 import com.rethinkdb.utils.Internals;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.Iterator;
@@ -32,6 +34,7 @@ import java.util.stream.StreamSupport;
  * @param <T> the type of the result.
  */
 public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Result.class);
     /**
      * The object which represents {@code null} inside the BlockingQueue.
      */
@@ -133,7 +136,6 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      */
     public <R, A> R collect(@NotNull Collector<? super T, A, R> collector) {
         try {
-            overrideFetchMode(FetchMode.AGGRESSIVE);
             A container = collector.supplier().get();
             BiConsumer<A, ? super T> accumulator = collector.accumulator();
             forEach(next -> accumulator.accept(container, next));
@@ -385,10 +387,12 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      * Function called on the first response.
      */
     protected void handleFirstResponse() {
+        LOGGER.trace("New response, type is {}", sourceResponse.type);
         try {
             ResponseType type = sourceResponse.type;
             if (type.equals(ResponseType.WAIT_COMPLETE)) {
                 completed.complete(true);
+                LOGGER.trace("Finished with no data.");
                 return;
             }
 
@@ -403,7 +407,10 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             }
 
             if (type.equals(ResponseType.SUCCESS_PARTIAL)) {
-                currentPartial.set(new PartialSequence(sourceResponse));
+                LOGGER.trace("Creating partial sequence handler for the initial response.");
+                PartialSequence partialSequence = new PartialSequence(sourceResponse);
+                currentPartial.set(partialSequence);
+                partialSequence.maybeContinue();
 
                 // It is a partial response, so connection should be able to kill us if needed,
                 // and clients should be able to stop the Result.
@@ -470,6 +477,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
                 count++;
             }
         }
+        LOGGER.trace("Response emitted {} objects.", count);
         return count;
     }
 
@@ -482,11 +490,11 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         private PartialSequence(Response response) {
             this.response = response;
             if (response.type.equals(ResponseType.SUCCESS_PARTIAL)) {
+                LOGGER.trace("Response is partial sequence, emmiting...");
                 this.last = false;
-                // Okay, we got another partial response, so there's more.
                 this.emitted = tryEmitData();
-                maybeContinue(); //Recursion!
             } else if (response.type.equals(ResponseType.SUCCESS_SEQUENCE)) {
+                LOGGER.trace("Response is last sequence, emmiting and completing...");
                 this.last = true;
                 // Last response.
                 this.emitted = tryEmitData();
@@ -494,6 +502,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
                 rawQueue.offer(END);
             } else {
                 this.last = true;
+                LOGGER.trace("Response is not sequence, completing result exceptionally.");
                 completed.completeExceptionally(response.makeError(query)); // It errored. This means it's over.
                 rawQueue.offer(END);
                 this.emitted = 0;
@@ -504,6 +513,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             final int remaining = rawQueue.size();
 
             if (!completed.isDone() && !last && fetchMode.shouldContinue(remaining, emitted)) {
+                LOGGER.trace("Criteria met, sequence will be continued.");
                 continueResponse();
             }
         }
@@ -512,6 +522,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             try {
                 return emitData(response);
             } catch (Exception e) {
+                LOGGER.trace("Data emitting errored, completing result exceptionally.", e);
                 completed.completeExceptionally(e); // It errored. This means it's over.
                 rawQueue.offer(END);
             }
@@ -519,11 +530,16 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         }
 
         private void continueResponse() {
-            if (!continued.getAndSet(true)) {
+            if (continued.compareAndSet(false, true)) {
+                LOGGER.trace("Sending continue...");
                 connection.sendContinue(response.token).whenComplete((continued, t) -> {
                     if (t == null) { // Okay, let's process this response.
-                        currentPartial.set(new PartialSequence(continued));
+                        LOGGER.trace("Creating partial sequence handler for continued response.");
+                        PartialSequence partialSequence = new PartialSequence(continued);
+                        currentPartial.set(partialSequence);
+                        partialSequence.maybeContinue();
                     } else { // It errored. This means it's over.
+                        LOGGER.trace("Continue request completed exceptionally.", t);
                         completed.completeExceptionally(t);
                         rawQueue.offer(END);
                     }

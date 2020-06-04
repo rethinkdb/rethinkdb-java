@@ -3,6 +3,8 @@ package com.rethinkdb.net;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
@@ -19,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * The default {@link ConnectionSocket.Factory} and {@link ResponsePump.Factory} for any default connections.
@@ -43,6 +46,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
     }
 
     private static class SocketWrapper implements ConnectionSocket {
+        private static final Logger LOGGER = LoggerFactory.getLogger(SocketWrapper.class);
         // networking stuff
         private Socket socket;
         private InputStream inputStream;
@@ -66,31 +70,38 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
 
         SocketWrapper connect() {
             try {
+                LOGGER.trace("Starting Socket...");
                 // establish connection
                 final InetSocketAddress addr = new InetSocketAddress(hostname, port);
                 socket = SocketFactory.getDefault().createSocket();
                 socket.connect(addr, timeoutMs == null ? 0 : timeoutMs.intValue());
                 socket.setTcpNoDelay(true);
                 socket.setKeepAlive(true);
+                LOGGER.trace("Socket connected.");
 
                 // should we secure the connection?
                 if (sslContext != null) {
+                    LOGGER.trace("Securing connection with SSL...");
                     SSLSocket sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(
                         socket,
                         socket.getInetAddress().getHostAddress(),
                         socket.getPort(),
                         true);
+                    LOGGER.trace("SSL Socket created.");
 
                     // replace input/output streams
                     inputStream = new DataInputStream(sslSocket.getInputStream());
                     outputStream = sslSocket.getOutputStream();
 
                     // execute SSL handshake
+                    LOGGER.trace("Starting SSL Socket handshake.");
                     sslSocket.startHandshake();
+                    LOGGER.trace("SSL Socket completed.");
                 } else {
                     outputStream = socket.getOutputStream();
                     inputStream = socket.getInputStream();
                 }
+                LOGGER.trace("Socket ready.");
             } catch (IOException e) {
                 throw new ReqlDriverError("Connection timed out.", e);
             }
@@ -103,6 +114,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
                 buffer.flip();
                 outputStream.write(buffer.array());
             } catch (IOException e) {
+                LOGGER.trace("IO Exception happened.", e);
                 throw new ReqlDriverError(e);
             }
         }
@@ -128,6 +140,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
                         return b.toString();
                     }
                 } catch (IOException e) {
+                    LOGGER.trace("IO Exception happened.", e);
                     throw new ReqlDriverError(e);
                 }
                 b.append(c);
@@ -150,6 +163,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
                 }
                 return ByteBuffer.wrap(buf).order(ByteOrder.LITTLE_ENDIAN);
             } catch (IOException e) {
+                LOGGER.trace("IO Exception happened.", e);
                 throw new ReqlDriverError(e);
             }
         }
@@ -166,6 +180,7 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
                 try {
                     socket.close();
                 } catch (IOException e) {
+                    LOGGER.trace("IO Exception happened.", e);
                     throw new ReqlDriverError(e);
                 }
             }
@@ -178,6 +193,8 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
     }
 
     private static class ThreadResponsePump implements ResponsePump {
+        private static final Logger LOGGER = LoggerFactory.getLogger(ThreadResponsePump.class);
+        private final ReentrantLock awaitingLock = new ReentrantLock();
         private final AtomicReference<Throwable> shutdownReason = new AtomicReference<>();
         private final Thread thread;
         private Map<Long, CompletableFuture<Response>> awaiting = new ConcurrentHashMap<>();
@@ -202,10 +219,15 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
                             if (t != null) {
                                 shutdown(t);
                             } else {
-                                final CompletableFuture<Response> awaiter = awaiting.remove(response.token);
-                                if (awaiter != null) {
-                                    awaiter.complete(response);
+                                awaitingLock.lock();
+                                Map<Long, CompletableFuture<Response>> awaiting = this.awaiting;
+                                if (awaiting != null) {
+                                    final CompletableFuture<Response> awaiter = awaiting.remove(response.token);
+                                    if (awaiter != null) {
+                                        awaiter.complete(response);
+                                    }
                                 }
+                                awaitingLock.unlock();
                             }
                             return null;
                         });
@@ -221,11 +243,14 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
 
         @Override
         public @NotNull CompletableFuture<Response> await(long token) {
+            awaitingLock.lock();
             if (awaiting == null) {
+                awaitingLock.unlock();
                 throw new ReqlDriverError("Response pump closed.", shutdownReason.get());
             }
             CompletableFuture<Response> future = new CompletableFuture<>();
             awaiting.put(token, future);
+            awaitingLock.unlock();
             return future;
         }
 
@@ -235,13 +260,19 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
         }
 
         private void shutdown(Throwable t) {
+            if (!this.shutdownReason.compareAndSet(null, t)) {
+                LOGGER.trace("Shutdown method was called but was already set. Suppressed exception was:", t);
+                return;
+            }
+            awaitingLock.lock();
             Map<Long, CompletableFuture<Response>> awaiting = this.awaiting;
-            this.shutdownReason.compareAndSet(null, t);
             this.awaiting = null;
             thread.interrupt();
             if (awaiting != null) {
                 awaiting.forEach((token, future) -> future.completeExceptionally(t));
+                awaiting.clear();
             }
+            awaitingLock.unlock();
         }
 
         @Override

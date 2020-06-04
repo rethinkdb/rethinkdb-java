@@ -1,5 +1,6 @@
 package com.rethinkdb.net;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.rethinkdb.ErrorBuilder;
 import com.rethinkdb.ast.Query;
 import com.rethinkdb.gen.exc.ReqlError;
