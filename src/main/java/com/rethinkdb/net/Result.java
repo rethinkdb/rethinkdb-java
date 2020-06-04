@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -36,62 +36,15 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      * The object which represents {@code null} inside the BlockingQueue.
      */
     private static final Object NIL = new Object();
-
     /**
-     * The fetch mode to use on partial sequences.
+     * The object which represents the completed signal inside the BlockingQueue.
+     * Used only by partial sequences to unlock threads. Multiple ENDs might be emitted.
      */
-    public enum FetchMode {
-        /**
-         * Fetches all parts of the sequence as fast as possible.<br>
-         * <b>WARNING:</b> This can end up throwing {@link OutOfMemoryError}s in case of giant sequences.
-         */
-        AGGRESSIVE,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches half of the original size.
-         */
-        PREEMPTIVE_HALF,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches a third of the original size.
-         */
-        PREEMPTIVE_THIRD,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches a fourth of the original size.
-         */
-        PREEMPTIVE_FOURTH,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches a fifth of the original size.
-         */
-        PREEMPTIVE_FIFTH,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches a sixth of the original size.
-         */
-        PREEMPTIVE_SIXTH,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches a seventh of the original size.
-         */
-        PREEMPTIVE_SEVENTH,
-        /**
-         * Fetches the next part of the sequence once the buffer reaches an eight of the original size.
-         */
-        PREEMPTIVE_EIGHTH,
-        /**
-         * Fetches the next part of the sequence once the buffer becomes empty.
-         */
-        LAZY;
-
-        @Nullable
-        public static FetchMode fromString(String s) {
-            try {
-                return valueOf(s.toUpperCase());
-            } catch (RuntimeException ignored) {
-                return null;
-            }
-        }
-    }
+    private static final Object END = new Object();
 
     protected final Connection connection;
     protected final Query query;
-    protected final Response firstRes;
+    protected final Response sourceResponse;
     protected final TypeReference<T> typeRef;
     protected final Internals.FormatOptions fmt;
     protected final boolean unwrapLists;
@@ -102,26 +55,22 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     // completes with false if cancelled, otherwise with true. exceptionally completes if error.
     protected final CompletableFuture<Boolean> completed = new CompletableFuture<>();
 
-    // This gets used if it's a partial request.
-    protected final Semaphore requesting = new Semaphore(1);
-    protected final Semaphore emitting = new Semaphore(1);
-    protected final AtomicLong lastRequestCount = new AtomicLong();
-    protected final AtomicReference<Response> currentResponse = new AtomicReference<>();
+    // Used by Partial Responses.
+    private final AtomicReference<PartialSequence> currentPartial = new AtomicReference<>();
 
     public Result(Connection connection,
                   Query query,
-                  Response firstRes,
+                  Response sourceResponse,
                   FetchMode fetchMode,
                   boolean unwrapLists,
                   TypeReference<T> typeRef) {
         this.connection = connection;
         this.query = query;
-        this.firstRes = firstRes;
+        this.sourceResponse = sourceResponse;
         this.fetchMode = fetchMode;
         this.typeRef = typeRef;
         this.fmt = Internals.parseFormatOptions(query.globalOptions);
         this.unwrapLists = unwrapLists;
-        currentResponse.set(firstRes);
         handleFirstResponse();
     }
 
@@ -149,7 +98,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      * @return true if this Result is a feed.
      */
     public boolean isFeed() {
-        return firstRes.isFeed();
+        return sourceResponse.isFeed();
     }
 
     /**
@@ -161,7 +110,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     }
 
     /**
-     * Collect all the results, fetching from the server if necessary, to a list and closes the Result.<br><br>
+     * Collect all remaining results to a list, fetching from the server if necessary, and closes the Result.<br><br>
      * <b>WARNING: If {@link Result#isFeed()} is true, this may never return. This method changes the {@code fetchMode}
      * of this Result to {@link FetchMode#AGGRESSIVE} to complete this as fast as possible.</b>
      *
@@ -172,8 +121,8 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     }
 
     /**
-     * Collect all the results, fetching from the server if necessary, using a {@link Collector} and closes the Result.
-     * <br><br>
+     * Collect all remaining results using the provided {@link Collector}, fetching from the server if necessary, and
+     * closes the Result.<br><br>
      * <b>WARNING: If {@link Result#isFeed()} is true, this may never return. This method changes the {@code fetchMode}
      * of this Result to {@link FetchMode#AGGRESSIVE} to complete this as fast as possible.</b>
      *
@@ -184,11 +133,10 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      */
     public <R, A> R collect(@NotNull Collector<? super T, A, R> collector) {
         try {
-            fetchMode = FetchMode.AGGRESSIVE;
-            onStateUpdate();
+            overrideFetchMode(FetchMode.AGGRESSIVE);
             A container = collector.supplier().get();
             BiConsumer<A, ? super T> accumulator = collector.accumulator();
-            forEachRemaining(next -> accumulator.accept(container, next));
+            forEach(next -> accumulator.accept(container, next));
             return collector.finisher().apply(container);
         } finally {
             close();
@@ -198,29 +146,25 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     /**
      * Creates a new sequential {@code Stream} from the results, which closes this Result on completion.
      * <br><br>
-     * <b>WARNING: If {@link Result#isFeed()} is true, this may never return. This method changes the {@code fetchMode}
-     * of this Result to {@link FetchMode#AGGRESSIVE} to complete this as fast as possible.</b>
+     * <b>WARNING: If {@link Result#isFeed()} is true, this stream is possibly infinite. This method changes the
+     * {@code fetchMode} of this Result to {@link FetchMode#AGGRESSIVE} to complete this as fast as possible.</b>
      *
      * @return the newly created stream.
      */
     public @NotNull Stream<T> stream() {
-        fetchMode = FetchMode.AGGRESSIVE;
-        onStateUpdate();
-        return StreamSupport.stream(spliterator(), false).onClose(this::close);
+        return StreamSupport.stream(overrideFetchMode(FetchMode.AGGRESSIVE).spliterator(), false).onClose(this::close);
     }
 
     /**
      * Creates a new parallel {@code Stream} from the results, which closes this Result on completion.
      * <br><br>
-     * <b>WARNING: If {@link Result#isFeed()} is true, this may never return. This method changes the {@code fetchMode}
-     * of this Result to {@link FetchMode#AGGRESSIVE} to complete this as fast as possible.</b>
+     * <b>WARNING: If {@link Result#isFeed()} is true, this stream is possibly infinite. This method changes the
+     * {@code fetchMode} of this Result to {@link FetchMode#AGGRESSIVE} to complete this as fast as possible.</b>
      *
      * @return the newly created stream.
      */
     public @NotNull Stream<T> parallelStream() {
-        fetchMode = FetchMode.AGGRESSIVE;
-        onStateUpdate();
-        return StreamSupport.stream(spliterator(), true).onClose(this::close);
+        return StreamSupport.stream(overrideFetchMode(FetchMode.AGGRESSIVE).spliterator(), true).onClose(this::close);
     }
 
     /**
@@ -228,7 +172,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      */
     @Override
     public boolean hasNext() {
-        return !rawQueue.isEmpty() || !completed.isDone();
+        return !rawQueue.isEmpty() && rawQueue.peek() != END || !completed.isDone();
     }
 
     /**
@@ -245,11 +189,17 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             if (!hasNext()) {
                 throwOnCompleted();
             }
+            maybeContinue();
             Object next = rawQueue.poll(timeout, unit);
+            maybeContinue();
             if (next == null) {
                 throw new TimeoutException("The poll operation timed out.");
             }
-            onStateUpdate();
+            if (next == END) {
+                rawQueue.offer(END);
+                throwOnCompleted();
+                throw new ReqlDriverError("END reached, but wasn't completed. Please contact devs!");
+            }
             if (next == NIL) {
                 return null;
             }
@@ -268,8 +218,14 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             if (!hasNext()) {
                 throwOnCompleted();
             }
-            Object next = rawQueue.take();
-            onStateUpdate();
+            maybeContinue();
+            Object next = rawQueue.take(); // This method shouldn't block forever.
+            maybeContinue();
+            if (next == END) {
+                rawQueue.offer(END);
+                throwOnCompleted();
+                throw new ReqlDriverError("END reached, but wasn't completed. Please contact devs!");
+            }
             if (next == NIL) {
                 return null;
             }
@@ -286,11 +242,17 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      * @return the first result available.
      */
     public @Nullable T first() {
+        // This method should never call "maybeNextBatch".
         try {
             if (!hasNext()) {
                 throwOnCompleted();
             }
             Object next = rawQueue.take();
+            if (next == END) {
+                rawQueue.offer(END);
+                throwOnCompleted();
+                throw new ReqlDriverError("END reached, but wasn't completed. Please contact devs!");
+            }
             if (next == NIL) {
                 return null;
             }
@@ -310,6 +272,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      * @return the first result available.
      */
     public @Nullable T single() {
+        // This method should never call "maybeNextBatch".
         try {
             if (!hasNext()) {
                 throwOnCompleted();
@@ -317,6 +280,11 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             Object next = rawQueue.take();
             if (hasNext()) {
                 throw new IllegalStateException("More than one result.");
+            }
+            if (next == END) {
+                rawQueue.offer(END);
+                throwOnCompleted();
+                throw new ReqlDriverError("END reached, but wasn't completed. Please contact devs!");
             }
             if (next == NIL) {
                 return null;
@@ -345,7 +313,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
     public void forEach(Consumer<? super T> action) {
         try {
             Objects.requireNonNull(action);
-            fetchMode = FetchMode.AGGRESSIVE;
+            overrideFetchMode(FetchMode.AGGRESSIVE);
             while (hasNext()) {
                 action.accept(next());
             }
@@ -368,7 +336,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      * @return the Profile from the current response, or null
      */
     public @Nullable Profile profile() {
-        return currentResponse.get().profile;
+        return currentResponse().profile;
     }
 
     /**
@@ -377,7 +345,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      * @return the {@link ResponseType} of the current response.
      */
     public @NotNull ResponseType responseType() {
-        return currentResponse.get().type;
+        return currentResponse().type;
     }
 
     /**
@@ -388,7 +356,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
      */
     public @NotNull Result<T> overrideFetchMode(FetchMode fetchMode) {
         this.fetchMode = fetchMode;
-        onStateUpdate();
+        maybeContinue();
         return this;
     }
 
@@ -397,20 +365,28 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         return "Result{" +
             "connection=" + connection +
             ", query=" + query +
-            ", firstRes=" + firstRes +
+            ", firstRes=" + sourceResponse +
             ", completed=" + completed +
-            ", currentResponse=" + currentResponse +
+            ", currentResponse=" + currentResponse() +
             '}';
     }
 
     // protected methods
+
+    protected Response currentResponse() {
+        PartialSequence batch = currentPartial.get();
+        if (batch != null) {
+            return batch.response;
+        }
+        return sourceResponse;
+    }
 
     /**
      * Function called on the first response.
      */
     protected void handleFirstResponse() {
         try {
-            ResponseType type = firstRes.type;
+            ResponseType type = sourceResponse.type;
             if (type.equals(ResponseType.WAIT_COMPLETE)) {
                 completed.complete(true);
                 return;
@@ -418,7 +394,7 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
 
             if (type.equals(ResponseType.SUCCESS_ATOM) || type.equals(ResponseType.SUCCESS_SEQUENCE)) {
                 try {
-                    emitData(firstRes);
+                    emitData(sourceResponse);
                 } catch (IndexOutOfBoundsException ex) {
                     throw new ReqlDriverError("Atom response was empty!", ex);
                 }
@@ -427,27 +403,24 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
             }
 
             if (type.equals(ResponseType.SUCCESS_PARTIAL)) {
-                // Welcome to the code documentation of partial sequences, please take a seat.
-
-                // First of all, we emit all of this request. Reactor's buffer should handle this.
-                emitData(firstRes);
+                currentPartial.set(new PartialSequence(sourceResponse));
 
                 // It is a partial response, so connection should be able to kill us if needed,
                 // and clients should be able to stop the Result.
                 completed.thenAccept(finished -> {
                     if (!finished) {
-                        connection.sendStop(firstRes.token);
+                        connection.sendStop(sourceResponse.token);
                     }
-                    connection.loseTrackOf(this);
+                    connection.loseTrackOf(Result.this);
                 });
-                connection.keepTrackOf(this);
+                connection.keepTrackOf(Result.this);
 
                 // We can't simply overflow buffers, so we gotta do small batches.
-                onStateUpdate();
+                maybeContinue();
                 return;
             }
 
-            throw firstRes.makeError(query);
+            throw sourceResponse.makeError(query);
         } catch (Exception e) {
             completed.completeExceptionally(e);
             throw e;
@@ -471,106 +444,189 @@ public class Result<T> implements Iterator<T>, Iterable<T>, Closeable {
         }
     }
 
-    /**
-     * This function is called on next()
-     */
-    protected void onStateUpdate() {
-        final Response lastRes = currentResponse.get();
-        if (shouldContinue(lastRes) && requesting.tryAcquire()) {
-            // great, we should make a CONTINUE request.
-            connection.sendContinue(lastRes.token).whenComplete((nextRes, t) -> {
-                if (t != null) { // It errored. This means it's over.
-                    completed.completeExceptionally(t);
-                } else { // Okay, let's process this response.
-                    currentResponse.set(nextRes);
-                    if (nextRes.type.equals(ResponseType.SUCCESS_SEQUENCE)) {
-                        try {
-                            emitting.acquire();
-                            emitData(nextRes);
-                            emitting.release();
-                            completed.complete(true); // Completed. This means it's over.
-                        } catch (Exception e) {
-                            completed.completeExceptionally(e); // It errored. This means it's over.
-                        }
-                    } else if (nextRes.type.equals(ResponseType.SUCCESS_PARTIAL)) {
-                        // Okay, we got another partial response, so there's more.
-
-                        requesting.release(); // Request's over, release this for later.
-                        try {
-                            emitting.acquire();
-                            emitData(nextRes);
-                            emitting.release();
-                            onStateUpdate(); //Recursion!
-                        } catch (Exception e) {
-                            completed.completeExceptionally(e); // It errored. This means it's over.
-                        }
-                    } else {
-                        completed.completeExceptionally(firstRes.makeError(query)); // It errored. This means it's over.
-                    }
-                }
-            });
-        }
-    }
-
-    protected boolean shouldContinue(Response res) {
-        if (completed.isDone() || !res.type.equals(ResponseType.SUCCESS_PARTIAL)) {
-            return false;
-        }
-        switch (fetchMode) {
-            case PREEMPTIVE_HALF: {
-                return rawQueue.size() * 2 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_THIRD: {
-                return rawQueue.size() * 3 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_FOURTH: {
-                return rawQueue.size() * 4 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_FIFTH: {
-                return rawQueue.size() * 5 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_SIXTH: {
-                return rawQueue.size() * 6 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_SEVENTH: {
-                return rawQueue.size() * 7 < lastRequestCount.get();
-            }
-            case PREEMPTIVE_EIGHTH: {
-                return rawQueue.size() * 8 < lastRequestCount.get();
-            }
-            case LAZY: {
-                return rawQueue.isEmpty();
-            }
-            case AGGRESSIVE:
-            default: {
-                return true;
-            }
+    protected void maybeContinue() {
+        PartialSequence partial = currentPartial.get();
+        if (partial != null) {
+            partial.maybeContinue();
         }
     }
 
     protected void onConnectionClosed() {
-        currentResponse.set(new Response(query.token, ResponseType.SUCCESS_SEQUENCE));
+        currentPartial.set(new PartialSequence(new Response(query.token, ResponseType.SUCCESS_SEQUENCE)));
         completed.completeExceptionally(new ReqlRuntimeError("Connection is closed."));
     }
 
-    protected void emitData(Response res) {
-        if (completed.isDone()) {
-            if (completed.join()) {
-                throw new RuntimeException("The Response already completed successfully.");
-            } else {
-                throw new RuntimeException("The Response was cancelled.");
-            }
-        }
-        lastRequestCount.set(0);
+    protected int emitData(Response res) {
+        throwOnCompleted();
+        int count = 0;
         for (Object each : (List<?>) Internals.convertPseudotypes(res.data, fmt)) {
-            if (unwrapLists && firstRes.type.equals(ResponseType.SUCCESS_ATOM) && each instanceof List) {
+            if (unwrapLists && res.type.equals(ResponseType.SUCCESS_ATOM) && each instanceof List) {
                 for (Object o : ((List<?>) each)) {
                     rawQueue.offer(o == null ? NIL : o);
-                    lastRequestCount.incrementAndGet();
+                    count++;
                 }
             } else {
                 rawQueue.offer(each == null ? NIL : each);
-                lastRequestCount.incrementAndGet();
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private class PartialSequence {
+        protected final Response response;
+        protected final int emitted;
+        protected final boolean last;
+        protected final AtomicBoolean continued = new AtomicBoolean();
+
+        private PartialSequence(Response response) {
+            this.response = response;
+            if (response.type.equals(ResponseType.SUCCESS_PARTIAL)) {
+                this.last = false;
+                // Okay, we got another partial response, so there's more.
+                this.emitted = tryEmitData();
+                maybeContinue(); //Recursion!
+            } else if (response.type.equals(ResponseType.SUCCESS_SEQUENCE)) {
+                this.last = true;
+                // Last response.
+                this.emitted = tryEmitData();
+                completed.complete(true);
+                rawQueue.offer(END);
+            } else {
+                this.last = true;
+                completed.completeExceptionally(response.makeError(query)); // It errored. This means it's over.
+                rawQueue.offer(END);
+                this.emitted = 0;
+            }
+        }
+
+        protected void maybeContinue() {
+            final int remaining = rawQueue.size();
+
+            if (!completed.isDone() && !last && fetchMode.shouldContinue(remaining, emitted)) {
+                continueResponse();
+            }
+        }
+
+        private int tryEmitData() {
+            try {
+                return emitData(response);
+            } catch (Exception e) {
+                completed.completeExceptionally(e); // It errored. This means it's over.
+                rawQueue.offer(END);
+            }
+            return 0;
+        }
+
+        private void continueResponse() {
+            if (!continued.getAndSet(true)) {
+                connection.sendContinue(response.token).whenComplete((continued, t) -> {
+                    if (t == null) { // Okay, let's process this response.
+                        currentPartial.set(new PartialSequence(continued));
+                    } else { // It errored. This means it's over.
+                        completed.completeExceptionally(t);
+                        rawQueue.offer(END);
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * The fetch mode to use on partial sequences.
+     */
+    public enum FetchMode {
+        /**
+         * Fetches all parts of the sequence as fast as possible.<br>
+         * <b>WARNING:</b> This can end up throwing {@link OutOfMemoryError}s in case of giant sequences.
+         */
+        AGGRESSIVE {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return true;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches half of the original size.
+         */
+        PREEMPTIVE_HALF {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 2;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a third of the original size.
+         */
+        PREEMPTIVE_THIRD {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 3;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a fourth of the original size.
+         */
+        PREEMPTIVE_FOURTH {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 4;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a fifth of the original size.
+         */
+        PREEMPTIVE_FIFTH {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 5;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a sixth of the original size.
+         */
+        PREEMPTIVE_SIXTH {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 6;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches a seventh of the original size.
+         */
+        PREEMPTIVE_SEVENTH {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 7;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer reaches an eight of the original size.
+         */
+        PREEMPTIVE_EIGHTH {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size <= requestSize / 8;
+            }
+        },
+        /**
+         * Fetches the next part of the sequence once the buffer becomes empty.
+         */
+        LAZY {
+            @Override
+            public boolean shouldContinue(int size, int requestSize) {
+                return size == 0;
+            }
+        };
+
+        public abstract boolean shouldContinue(int size, int requestSize);
+
+        @Nullable
+        public static FetchMode fromString(String s) {
+            try {
+                return valueOf(s.toUpperCase());
+            } catch (RuntimeException ignored) {
+                return null;
             }
         }
     }
