@@ -12,7 +12,7 @@ public class Profile {
     }
 
     public static @Nullable Profile fromList(List<Object> raw) {
-        if (raw == null || raw.size() == 0) {
+        if (raw == null || raw.isEmpty()) {
             return null;
         }
         return new Profile(raw);

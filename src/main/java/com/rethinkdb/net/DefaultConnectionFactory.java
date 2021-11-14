@@ -75,18 +75,23 @@ public class DefaultConnectionFactory implements ConnectionSocket.AsyncFactory, 
 
                 // should we secure the connection?
                 if (sslContext != null) {
-                    SSLSocket sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(
-                        socket,
-                        socket.getInetAddress().getHostAddress(),
-                        socket.getPort(),
-                        true);
+                    try (
+                      SSLSocket sslSocket = (SSLSocket) sslContext.getSocketFactory()
+                        .createSocket(
+                          socket,
+                          socket.getInetAddress().getHostAddress(),
+                          socket.getPort(),
+                          true
+                        )
+                    ) {
 
-                    // replace input/output streams
-                    inputStream = new DataInputStream(sslSocket.getInputStream());
-                    outputStream = sslSocket.getOutputStream();
+                        // replace input/output streams
+                        inputStream = new DataInputStream(sslSocket.getInputStream());
+                        outputStream = sslSocket.getOutputStream();
 
-                    // execute SSL handshake
-                    sslSocket.startHandshake();
+                        // execute SSL handshake
+                        sslSocket.startHandshake();
+                    }
                 } else {
                     outputStream = socket.getOutputStream();
                     inputStream = socket.getInputStream();
