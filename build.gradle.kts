@@ -13,7 +13,7 @@ plugins {
     id("com.jfrog.bintray") version "1.8.4"
 }
 
-version = "2.4.4"
+version = "2.4.5"
 group = "com.rethinkdb"
 
 java.sourceCompatibility = JavaVersion.VERSION_1_8
