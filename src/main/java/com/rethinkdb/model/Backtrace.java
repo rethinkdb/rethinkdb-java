@@ -12,7 +12,7 @@ public class Backtrace {
     }
 
     public static @Nullable Backtrace fromList(List<Object> raw) {
-        if (raw == null || raw.size() == 0) {
+        if (raw == null || raw.isEmpty()) {
             return null;
         }
         return new Backtrace(raw);

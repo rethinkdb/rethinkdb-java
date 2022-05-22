@@ -57,7 +57,7 @@ public class Response {
     }
 
     public ReqlError makeError(Query query) {
-        String msg = data.size() > 0 ?
+        String msg = !data.isEmpty() ?
             (String) data.get(0)
             : "Unknown error message";
         return new ErrorBuilder(msg, type)
